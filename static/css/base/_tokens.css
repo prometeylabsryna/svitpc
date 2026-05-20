@@ -9,7 +9,9 @@
     --grad-card-border:     linear-gradient(135deg, rgba(59,130,246,0.35) 0%, rgba(139,92,246,0.35) 100%);
     --grad-card-hover:      linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(139,92,246,0.03) 100%);
     --grad-search-btn:      linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-    --grad-badge-new:       linear-gradient(135deg, #059669 0%, #10b981 100%);
+    --clr-badge-new:        #7f1d3d;
+    --bg-badge-new:         rgba(255, 255, 255, 0.92);
+    --border-badge-new:     rgba(127, 29, 61, 0.22);
     --grad-badge-sale:      linear-gradient(135deg, #dc2626 0%, #f97316 100%);
     --grad-badge-hit:       linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
 
