@@ -10,6 +10,7 @@
     --grad-card-hover:      linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(139,92,246,0.03) 100%);
     --grad-search-btn:      linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
     --grad-badge-new:       linear-gradient(135deg, #5c1229 0%, #7f1d3d 55%, #92204a 100%);
+    --clr-badge-new:        #7f1d3d;
     --grad-badge-sale:      linear-gradient(135deg, #dc2626 0%, #f97316 100%);
     --grad-badge-hit:       linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
 
