@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "AI-консультант" %}{% endblock %}
+{% block meta_description %}{% trans "AI-консультант СвітПК — підбір ноутбуків, комплектуючих, перевірка сумісності компонентів" %}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <section class="ai-consultant"
+           data-ai-stream-url="{% url 'ai:consultant_stream' %}"
+           data-ai-compat-url="{% url 'ai:compatibility_check' %}"
+           {% if prefill_product %}data-ai-prefill="{{ prefill_product }}"{% endif %}>
+
+    <h1 class="ai-consultant__title">{% trans "AI-консультант" %}</h1>
+    <p class="ai-consultant__subtitle">
+      {% trans "Підбір ноутбуків, комплектуючих, консультація з вибору техніки та перевірка сумісності компонентів." %}
+    </p>
+
+    {# ── Tabs ──────────────────────────────────────────────── #}
+    <nav class="ai-tabs" role="tablist" aria-label="{% trans 'Режими консультанта' %}">
+      <button class="ai-tab ai-tab--active"
+              role="tab"
+              aria-selected="true"
+              aria-controls="panel-chat"
+              data-tab-btn="chat">
+        {% trans "Консультант" %}
+      </button>
+      <button class="ai-tab"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-compat"
+              data-tab-btn="compat">
+        {% trans "Сумісність" %}
+      </button>
+    </nav>
+
+    {# ── Chat panel ────────────────────────────────────────── #}
+    <div id="panel-chat" role="tabpanel" data-tab-panel="chat">
+
+      {# Quick prompts #}
+      <div class="ai-chips" aria-label="{% trans 'Швидкі запити' %}">
+        <button class="ai-chip" data-chip>{% trans "Підібрати ноутбук до 30 000 ₴" %}</button>
+        <button class="ai-chip" data-chip>{% trans "Ігровий ПК до 50 000 ₴" %}</button>
+        <button class="ai-chip" data-chip>{% trans "Ноутбук для навчання" %}</button>
+        <button class="ai-chip" data-chip>{% trans "Яку відеокарту обрати?" %}</button>
+        <button class="ai-chip" data-chip>{% trans "Офісний ПК — що потрібно?" %}</button>
+        <button class="ai-chip" data-chip>{% trans "Порекомендуй принтер для дому" %}</button>
+      </div>
+
+      <div id="ai-chat-messages"
+           class="ai-chat__messages"
+           aria-live="polite"
+           aria-atomic="false"
+           aria-label="{% trans 'Повідомлення чату' %}">
+      </div>
+
+      <form id="ai-chat-form" class="ai-chat__form" novalidate>
+        {% csrf_token %}
+        <label class="sr-only" for="ai-chat-input">{% trans "Ваше питання" %}</label>
+        <input
+          id="ai-chat-input"
+          class="form-input ai-chat__input"
+          name="message"
+          type="text"
+          placeholder="{% trans 'Запитайте про ноутбук, GPU, сумісність...' %}"
+          autocomplete="off"
+          maxlength="1000"
+        >
+        <button id="ai-chat-send" type="submit" class="btn btn--primary">
+          {% trans "Надіслати" %}
+        </button>
+      </form>
+    </div>
+
+    {# ── Compatibility panel ────────────────────────────────── #}
+    <div id="panel-compat" role="tabpanel" data-tab-panel="compat" hidden>
+      <div class="ai-compat">
+        <div>
+          <label class="ai-compat__label" for="ai-compat-ids">
+            {% trans "ID товарів для перевірки" %}
+          </label>
+          <span class="ai-compat__hint">
+            {% trans "Введіть ID товарів через кому або пробіл (мінімум 2). ID видно в адресному рядку сторінки товару або в адмінці." %}
+          </span>
+          <form id="ai-compat-form" class="ai-compat__form" novalidate>
+            {% csrf_token %}
+            <input
+              id="ai-compat-ids"
+              class="form-input ai-compat__ids"
+              name="product_ids"
+              type="text"
+              placeholder="{% trans 'Наприклад: 101, 245, 378' %}"
+              autocomplete="off"
+            >
+            <button id="ai-compat-btn" type="submit" class="btn btn--primary">
+              {% trans "Перевірити" %}
+            </button>
+          </form>
+        </div>
+        <div id="ai-compat-result" class="compat-result" aria-live="polite"></div>
+      </div>
+    </div>
+
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'js/modules/ai-consultant.js' %}" defer></script>
+{% endblock %}

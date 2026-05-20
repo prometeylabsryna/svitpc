@@ -1,0 +1,24 @@
+{% load i18n %}
+<div class="modal-dialog" role="document">
+  <button type="button" class="modal-dialog__close" data-modal-close aria-label="{% trans 'Закрити' %}">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="16" height="16"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>
+  <div class="one-click-form">
+    <h2 class="one-click-form__title">{% trans "Купити в 1 клік" %}</h2>
+    <p class="page-meta">{{ product.name }}</p>
+    <form hx-post="{% url 'checkout:one_click' product.pk %}" hx-target="#modal-container" hx-swap="innerHTML" class="one-click-form__form">
+      {% csrf_token %}
+      <div class="form-field">
+        <label class="form-label" for="oc-name">{% trans "Ваше ім'я" %} *</label>
+        <input class="form-input" id="oc-name" name="name" type="text" required autofocus>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="oc-phone">{% trans "Телефон" %} *</label>
+        <input class="form-input" id="oc-phone" name="phone" type="tel" required placeholder="+38 (0__)">
+      </div>
+      <div class="one-click-form__actions">
+        <button type="submit" class="btn btn--primary btn--full">{% trans "Замовити" %}</button>
+      </div>
+    </form>
+  </div>
+</div>

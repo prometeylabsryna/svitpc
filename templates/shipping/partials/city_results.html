@@ -1,0 +1,8 @@
+{% for city in cities %}
+<button type="button"
+  class="autocomplete-option"
+  data-city-name="{{ city.name }}"
+  data-city-ref="{{ city.ref }}">
+  {{ city.name }} ({{ city.area }})
+</button>
+{% endfor %}

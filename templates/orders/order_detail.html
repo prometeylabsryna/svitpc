@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load i18n svitpc_tags %}
+{% block title %}{% trans "Замовлення" %} #{{ order.pk }}{% endblock %}
+{% block content %}
+<div class="container container--narrow page-section">
+  <h1 class="page-title">{% trans "Замовлення" %} #{{ order.pk }}</h1>
+  <p class="order-detail__meta">
+    {{ order.created_at|date:"d.m.Y H:i" }} ·
+    <span class="order-detail__meta-status">{{ order.status.name }}</span>
+  </p>
+  <div class="order-detail__items">
+    {% for item in order.items.all %}
+    <div class="order-detail__row {% if forloop.even %}order-detail__row--even{% endif %}">
+      <span>{{ item.name }}</span>
+      <span>{{ item.qty }} × {{ item.price|currency }}</span>
+    </div>
+    {% endfor %}
+    <div class="order-detail__total-row">
+      <span>{% trans "Разом:" %}</span>
+      <span>{{ order.total|currency }}</span>
+    </div>
+  </div>
+  <div class="order-detail__info">
+    <p>{% trans "Доставка:" %} {{ order.get_delivery_type_display }} — {{ order.city }} {{ order.warehouse }}</p>
+    {% if order.delivery_cost %}<p>{% trans "Вартість доставки:" %} {{ order.delivery_cost|currency }}</p>{% endif %}
+    {% if order.ttn %}
+    <p>
+      {% trans "ТТН (НП):" %} <strong>{{ order.ttn }}</strong>
+      — <a href="https://novaposhta.ua/tracking/?cargo_number={{ order.ttn }}" target="_blank" rel="noopener">{% trans "Відстежити" %}</a>
+    </p>
+    {% endif %}
+    {% if order.up_barcode %}
+    <p>
+      {% trans "Штрихкод УкрПошти:" %} <strong>{{ order.up_barcode }}</strong>
+      — <a href="https://track.ukrposhta.ua/tracking_UA.html?barcode={{ order.up_barcode }}" target="_blank" rel="noopener">{% trans "Відстежити" %}</a>
+    </p>
+    {% endif %}
+    {% if order.fiscal_check_url %}<p><a href="{{ order.fiscal_check_url }}" target="_blank">{% trans "Фіскальний чек" %}</a></p>{% endif %}
+  </div>
+  <div class="order-detail__actions">
+    <a href="{% url 'orders:reorder' order.pk %}" class="btn btn--secondary">{% trans "Повторити замовлення" %}</a>
+  </div>
+</div>
+{% endblock %}

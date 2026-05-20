@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load i18n svitpc_tags %}
+{% block title %}{% trans "Оформлення — Оплата" %}{% endblock %}
+{% block content %}
+<div class="container container--narrow checkout-pay">
+  <h1 class="checkout-pay__title">{% trans "Оберіть спосіб оплати" %}</h1>
+
+  <form method="post" class="checkout-pay__form">
+    {% csrf_token %}
+
+    <div class="checkout-pay__options">
+
+      <label class="checkout-pay__option" data-method="card">
+        <input type="radio" name="payment_method" value="card" {% if not request.POST.payment_method or request.POST.payment_method == 'card' %}checked{% endif %}>
+        <span class="checkout-pay__option-inner">
+          <span class="checkout-pay__icon checkout-pay__icon--card" aria-hidden="true">
+            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+              <rect width="28" height="20" rx="3" fill="currentColor" opacity=".12"/>
+              <rect y="5" width="28" height="5" fill="currentColor" opacity=".3"/>
+              <rect x="3" y="14" width="8" height="2" rx="1" fill="currentColor" opacity=".5"/>
+            </svg>
+          </span>
+          <span class="checkout-pay__option-text">
+            <strong class="checkout-pay__option-name">{% trans "Оплата карткою" %}</strong>
+            <span class="checkout-pay__option-desc">{% trans "Visa / Mastercard через LiqPay" %}</span>
+          </span>
+          <span class="checkout-pay__check" aria-hidden="true"></span>
+        </span>
+      </label>
+
+      <label class="checkout-pay__option" data-method="google_pay">
+        <input type="radio" name="payment_method" value="google_pay" {% if request.POST.payment_method == 'google_pay' %}checked{% endif %}>
+        <span class="checkout-pay__option-inner">
+          <span class="checkout-pay__icon checkout-pay__icon--gpay" aria-hidden="true">
+            <svg width="44" height="20" viewBox="0 0 44 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+              <text x="0" y="15" font-size="14" font-family="sans-serif" font-weight="600" fill="currentColor">G Pay</text>
+            </svg>
+          </span>
+          <span class="checkout-pay__option-text">
+            <strong class="checkout-pay__option-name">Google Pay</strong>
+            <span class="checkout-pay__option-desc">{% trans "Швидка оплата з Google" %}</span>
+          </span>
+          <span class="checkout-pay__check" aria-hidden="true"></span>
+        </span>
+      </label>
+
+      <label class="checkout-pay__option" data-method="apple_pay">
+        <input type="radio" name="payment_method" value="apple_pay" {% if request.POST.payment_method == 'apple_pay' %}checked{% endif %}>
+        <span class="checkout-pay__option-inner">
+          <span class="checkout-pay__icon checkout-pay__icon--apay" aria-hidden="true">
+            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+              <text x="3" y="15" font-size="13" font-family="sans-serif" fill="currentColor"></text>
+            </svg>
+          </span>
+          <span class="checkout-pay__option-text">
+            <strong class="checkout-pay__option-name">Apple Pay</strong>
+            <span class="checkout-pay__option-desc">{% trans "Швидка оплата з Apple" %}</span>
+          </span>
+          <span class="checkout-pay__check" aria-hidden="true"></span>
+        </span>
+      </label>
+
+      <label class="checkout-pay__option" data-method="cod">
+        <input type="radio" name="payment_method" value="cod" {% if request.POST.payment_method == 'cod' %}checked{% endif %}>
+        <span class="checkout-pay__option-inner">
+          <span class="checkout-pay__icon checkout-pay__icon--cod" aria-hidden="true">
+            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+              <rect width="28" height="20" rx="3" fill="currentColor" opacity=".12"/>
+              <circle cx="14" cy="10" r="5" fill="currentColor" opacity=".4"/>
+              <text x="11" y="14" font-size="8" font-weight="bold" font-family="sans-serif" fill="currentColor">₴</text>
+            </svg>
+          </span>
+          <span class="checkout-pay__option-text">
+            <strong class="checkout-pay__option-name">{% trans "Післяплата" %}</strong>
+            <span class="checkout-pay__option-desc">{% trans "Оплата при отриманні на Новій Пошті" %}</span>
+          </span>
+          <span class="checkout-pay__check" aria-hidden="true"></span>
+        </span>
+      </label>
+
+      <label class="checkout-pay__option" data-method="installment">
+        <input type="radio" name="payment_method" value="installment" {% if request.POST.payment_method == 'installment' %}checked{% endif %}>
+        <span class="checkout-pay__option-inner">
+          <span class="checkout-pay__icon checkout-pay__icon--installment" aria-hidden="true">
+            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+              <rect width="28" height="20" rx="3" fill="currentColor" opacity=".12"/>
+              <text x="3" y="14" font-size="8" font-family="sans-serif" fill="currentColor" opacity=".8">0% / 0₴</text>
+            </svg>
+          </span>
+          <span class="checkout-pay__option-text">
+            <strong class="checkout-pay__option-name">{% trans "Миттєва розстрочка" %}</strong>
+            <span class="checkout-pay__option-desc">{% trans "Розстрочка 0% через LiqPay Installment" %}</span>
+          </span>
+          <span class="checkout-pay__check" aria-hidden="true"></span>
+        </span>
+      </label>
+
+    </div>
+
+    <div class="checkout-pay__actions">
+      <a href="{% url 'checkout:step1' %}" class="btn btn--ghost">← {% trans "Назад" %}</a>
+      <button type="submit" class="btn btn--primary btn--lg checkout-pay__submit">{% trans "Підтвердити" %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

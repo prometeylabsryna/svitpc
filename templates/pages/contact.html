@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Контакти" %}{% endblock %}
+{% block content %}
+<div class="container container--narrow info-page">
+  <h1 class="info-page__title">{% trans "Контакти" %}</h1>
+  {% if page %}<div class="info-page__content">{{ page.content|safe }}</div>{% endif %}
+  <div class="contact-info">
+    <div><strong>{% trans "Телефон:" %}</strong> <a href="tel:{{ SITE_PHONE }}">{{ SITE_PHONE }}</a></div>
+    <div><strong>{% trans "Email:" %}</strong> <a href="mailto:{{ SITE_EMAIL }}">{{ SITE_EMAIL }}</a></div>
+  </div>
+</div>
+{% endblock %}

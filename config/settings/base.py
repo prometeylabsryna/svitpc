@@ -1,0 +1,582 @@
+"""Base settings — imported by all environment configs."""
+
+from pathlib import Path
+
+import environ
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+env = environ.Env(
+    DEBUG=(bool, False),
+    ALLOWED_HOSTS=(list, []),
+)
+environ.Env.read_env(BASE_DIR / ".env")
+
+SECRET_KEY = env("SECRET_KEY")
+DEBUG = env("DEBUG")
+ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+
+# ── Apps ───────────────────────────────────────────────────────────────────────
+DJANGO_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django.contrib.sitemaps",
+    "django.contrib.humanize",
+]
+
+THIRD_PARTY_APPS = [
+    "mptt",
+    "modeltranslation",
+    "imagekit",
+    "django_htmx",
+    "axes",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "rest_framework",
+    "corsheaders",
+    "django_ckeditor_5",
+]
+
+LOCAL_APPS = [
+    "apps.core",
+    "apps.catalog",
+    "apps.search",
+    "apps.cart",
+    "apps.checkout",
+    "apps.orders",
+    "apps.customers",
+    "apps.wishlist",
+    "apps.compare",
+    "apps.reviews",
+    "apps.services",
+    "apps.pages",
+    "apps.promotions",
+    "apps.loyalty",
+    "apps.notifications",
+    "apps.shipping",
+    "apps.payments",
+    "apps.ai",
+    "apps.chat",
+    "apps.seo",
+    "apps.analytics",
+    "apps.importer",
+    "apps.integrations.brain",
+    "apps.integrations.kancmaster",
+    "apps.integrations.novaposhta",
+    "apps.integrations.ukrposhta",
+    "apps.integrations.vchasnokasa",
+    "apps.bots",
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# ── Middleware ─────────────────────────────────────────────────────────────────
+MIDDLEWARE = [
+    "django.middleware.gzip.GZipMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
+    "axes.middleware.AxesMiddleware",
+    "apps.core.middleware.RedirectMiddleware",
+]
+
+ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+# ── Templates ──────────────────────────────────────────────────────────────────
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.i18n",
+                "apps.core.context_processors.site_context",
+                "apps.cart.context_processors.cart_context",
+                "apps.analytics.context_processors.analytics_context",
+            ],
+        },
+    },
+]
+
+# ── Database ───────────────────────────────────────────────────────────────────
+DATABASES = {
+    "default": env.db("DATABASE_URL", default="postgres://svitpc:svitpc@localhost:5432/svitpc"),
+}
+DATABASES["default"]["OPTIONS"] = {"connect_timeout": 10}
+
+# ── Cache ──────────────────────────────────────────────────────────────────────
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL", default="redis://127.0.0.1:6379/0"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+        },
+        "TIMEOUT": 300,
+        "KEY_PREFIX": "svitpc",
+    }
+}
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+# ── Auth ───────────────────────────────────────────────────────────────────────
+AUTH_USER_MODEL = "customers.Customer"
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+LOGIN_URL = "/account/login/"
+LOGIN_REDIRECT_URL = "/account/"
+LOGOUT_REDIRECT_URL = "/"
+
+# ── Passwords hashing ──────────────────────────────────────────────────────────
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
+
+# ── Internationalization ───────────────────────────────────────────────────────
+LANGUAGE_CODE = env("LANGUAGE_CODE", default="uk")
+LANGUAGES = [
+    ("uk", "Українська"),
+    ("en", "English"),
+]
+LOCALE_PATHS = [BASE_DIR / "locale"]
+TIME_ZONE = "Europe/Kyiv"
+USE_I18N = True
+USE_L10N = True
+USE_TZ = True
+
+# ── Static & Media ─────────────────────────────────────────────────────────────
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# ── Default PK ────────────────────────────────────────────────────────────────
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ── Celery ─────────────────────────────────────────────────────────────────────
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/1")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://127.0.0.1:6379/2")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "Europe/Kyiv"
+CELERY_BEAT_SCHEDULE = {
+    "brain-sync-prices": {
+        "task": "apps.integrations.brain.tasks.sync_prices",
+        "schedule": 4 * 3600,  # every 4 hours
+    },
+    "brain-sync-stock": {
+        "task": "apps.integrations.brain.tasks.sync_stock",
+        "schedule": 2 * 3600,  # every 2 hours
+    },
+    "kancmaster-sync": {
+        "task": "apps.integrations.kancmaster.tasks.sync_all",
+        "schedule": 6 * 3600,  # every 6 hours
+    },
+    "birthday-greetings": {
+        "task": "apps.loyalty.tasks.send_birthday_greetings",
+        "schedule": 86400,  # daily at midnight (via crontab in prod)
+    },
+    "brain-sync-products": {
+        "task": "apps.integrations.brain.tasks.sync_products",
+        "schedule": 86400,  # nightly full import
+    },
+    "brain-sync-options": {
+        "task": "apps.integrations.brain.tasks.sync_options",
+        "schedule": 86400,  # daily — changed characteristics
+    },
+    "brain-sync-images": {
+        "task": "apps.integrations.brain.tasks.sync_images",
+        "schedule": 86400,  # daily — changed gallery images
+    },
+    "brain-sync-new-products": {
+        "task": "apps.integrations.brain.tasks.sync_new_products",
+        "schedule": 6 * 3600,  # every 6 h — import new Brain products between nightly syncs
+    },
+    "novaposhta-update-statuses": {
+        "task": "apps.shipping.tasks.update_delivery_statuses",
+        "schedule": 3600,  # hourly
+    },
+    "ukrposhta-update-statuses": {
+        "task": "apps.integrations.ukrposhta.tasks.update_up_delivery_statuses",
+        "schedule": 3600,  # hourly
+    },
+    "novaposhta-sync-cities": {
+        "task": "apps.integrations.novaposhta.tasks.sync_np_cities",
+        "schedule": 86400,  # daily
+    },
+    "novaposhta-sync-warehouses": {
+        "task": "apps.integrations.novaposhta.tasks.sync_np_warehouses",
+        "schedule": 86400,  # daily
+    },
+}
+
+# ── Email ──────────────────────────────────────────────────────────────────────
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@svitpc.ua")
+
+# ── Sessions security ──────────────────────────────────────────────────────────
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Strict"
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = "Strict"
+CSRF_TRUSTED_ORIGINS = [env("SITE_URL", default="http://localhost:8000")]
+
+# ── Axes (brute-force protection) ─────────────────────────────────────────────
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1  # hours
+AXES_LOCKOUT_CALLABLE = "apps.core.utils.axes_lockout"
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# ── DRF ───────────────────────────────────────────────────────────────────────
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 24,
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/hour",
+        "user": "1000/hour",
+    },
+}
+
+# ── Admin (Unfold) ─────────────────────────────────────────────────────────────
+from django.urls import reverse_lazy  # noqa: E402
+
+UNFOLD = {
+    "SITE_TITLE": "СвітПК Адмін",
+    "SITE_HEADER": "СвітПК",
+    "SITE_SUBHEADER": "Адміністрування",
+    "SITE_URL": "/",
+    "SITE_ICON": {
+        "light": "images/logo-admin.svg",
+        "dark": "images/logo-admin.svg",
+    },
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "COLORS": {
+        "primary": {
+            "50": "240 249 255",
+            "100": "224 242 254",
+            "200": "186 230 253",
+            "300": "125 211 252",
+            "400": "56 189 248",
+            "500": "14 165 233",
+            "600": "2 132 199",
+            "700": "3 105 161",
+            "800": "7 89 133",
+            "900": "12 74 110",
+            "950": "8 47 73",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "command_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Каталог",
+                "separator": False,
+                "items": [
+                    {
+                        "title": "Товари",
+                        "icon": "inventory_2",
+                        "link": reverse_lazy("admin:catalog_product_changelist"),
+                    },
+                    {
+                        "title": "Категорії",
+                        "icon": "category",
+                        "link": reverse_lazy("admin:catalog_category_changelist"),
+                    },
+                    {
+                        "title": "Бренди",
+                        "icon": "verified",
+                        "link": reverse_lazy("admin:catalog_brand_changelist"),
+                    },
+                    {
+                        "title": "Атрибути",
+                        "icon": "tune",
+                        "link": reverse_lazy("admin:catalog_attribute_changelist"),
+                    },
+                    {
+                        "title": "Фільтри",
+                        "icon": "filter_list",
+                        "link": reverse_lazy("admin:catalog_filtergroup_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Замовлення",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Замовлення",
+                        "icon": "receipt_long",
+                        "link": reverse_lazy("admin:orders_order_changelist"),
+                    },
+                    {
+                        "title": "Статуси замовлень",
+                        "icon": "label",
+                        "link": reverse_lazy("admin:orders_orderstatus_changelist"),
+                    },
+                    {
+                        "title": "Платежі",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:payments_payment_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Клієнти",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Клієнти",
+                        "icon": "group",
+                        "link": reverse_lazy("admin:customers_customer_changelist"),
+                    },
+                    {
+                        "title": "Бонусні транзакції",
+                        "icon": "stars",
+                        "link": reverse_lazy("admin:loyalty_bonustransaction_changelist"),
+                    },
+                    {
+                        "title": "Промокоди",
+                        "icon": "confirmation_number",
+                        "link": reverse_lazy("admin:loyalty_coupon_changelist"),
+                    },
+                    {
+                        "title": "Відгуки",
+                        "icon": "rate_review",
+                        "link": reverse_lazy("admin:reviews_review_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Маркетинг",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Акції",
+                        "icon": "local_offer",
+                        "link": reverse_lazy("admin:promotions_promotion_changelist"),
+                    },
+                    {
+                        "title": "Банери",
+                        "icon": "image",
+                        "link": reverse_lazy("admin:promotions_banner_changelist"),
+                    },
+                    {
+                        "title": "Push-підписки",
+                        "icon": "notifications",
+                        "link": reverse_lazy("admin:notifications_pushsubscription_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "SEO та контент",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "SEO URL",
+                        "icon": "link",
+                        "link": reverse_lazy("admin:catalog_seourl_changelist"),
+                    },
+                    {
+                        "title": "Редиректи",
+                        "icon": "alt_route",
+                        "link": reverse_lazy("admin:catalog_redirect_changelist"),
+                    },
+                    {
+                        "title": "Сторінки",
+                        "icon": "article",
+                        "link": reverse_lazy("admin:pages_infopage_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Сервіс",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Послуги",
+                        "icon": "build",
+                        "link": reverse_lazy("admin:services_service_changelist"),
+                    },
+                    {
+                        "title": "Заявки на сервіс",
+                        "icon": "handyman",
+                        "link": reverse_lazy("admin:services_servicerequest_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Налаштування",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Знижкові правила",
+                        "icon": "percent",
+                        "link": reverse_lazy("admin:catalog_markuprule_changelist"),
+                    },
+                    {
+                        "title": "Нова Пошта — міста",
+                        "icon": "location_city",
+                        "link": reverse_lazy("admin:shipping_novaposhtacity_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+}
+
+# ── Site info ──────────────────────────────────────────────────────────────────
+SITE_URL = env("SITE_URL", default="http://localhost:8000")
+ADMIN_URL = env("ADMIN_URL", default="admin/")
+
+# ── Integrations ───────────────────────────────────────────────────────────────
+BRAIN_LOGIN = env("BRAIN_LOGIN", default="")
+BRAIN_PASSWORD = env("BRAIN_PASSWORD", default="")
+# Legacy — kept for backward compat; new code uses session auth via BRAIN_LOGIN/BRAIN_PASSWORD
+BRAIN_API_URL = env("BRAIN_API_URL", default="https://api.brain.com.ua")
+KANCMASTER_XML_URL = env("KANCMASTER_XML_URL", default="https://kancmaster.com.ua/xml_export_request")
+KANCMASTER_LOGIN = env("KANCMASTER_LOGIN", default="")
+KANCMASTER_PASSWORD = env("KANCMASTER_PASSWORD", default="")
+NOVA_POSHTA_API_KEY = env("NOVA_POSHTA_API_KEY", default="")
+# Nova Poshta sender configuration (required for TTN creation)
+NP_SENDER_REF = env("NP_SENDER_REF", default="")
+NP_SENDER_CONTACT_REF = env("NP_SENDER_CONTACT_REF", default="")
+NP_SENDER_PHONE = env("NP_SENDER_PHONE", default="")
+NP_SENDER_CITY_REF = env("NP_SENDER_CITY_REF", default="")
+NP_SENDER_WAREHOUSE_REF = env("NP_SENDER_WAREHOUSE_REF", default="")
+UKRPOSHTA_TOKEN = env("UKRPOSHTA_TOKEN", default="")
+UP_SENDER_POSTCODE = env("UP_SENDER_POSTCODE", default="")
+UP_SENDER_ADDRESS = env("UP_SENDER_ADDRESS", default="")
+UP_SENDER_CITY = env("UP_SENDER_CITY", default="")
+LIQPAY_PUBLIC_KEY = env("LIQPAY_PUBLIC_KEY", default="")
+LIQPAY_PRIVATE_KEY = env("LIQPAY_PRIVATE_KEY", default="")
+LIQPAY_SERVER_URL = env("LIQPAY_SERVER_URL", default="")
+LIQPAY_SANDBOX = env.bool("LIQPAY_SANDBOX", default=False)
+WAYFORPAY_MERCHANT_ACCOUNT = env("WAYFORPAY_MERCHANT_ACCOUNT", default="")
+WAYFORPAY_SECRET_KEY = env("WAYFORPAY_SECRET_KEY", default="")
+MONOBANK_TOKEN = env("MONOBANK_TOKEN", default="")
+VCHASNO_LOGIN = env("VCHASNO_LOGIN", default="")
+VCHASNO_PASSWORD = env("VCHASNO_PASSWORD", default="")
+VCHASNO_CASHBOX_KEY = env("VCHASNO_CASHBOX_KEY", default="")
+TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_ADMIN_CHAT_ID = env("TELEGRAM_ADMIN_CHAT_ID", default="")
+TELEGRAM_BOT_LINK = env("TELEGRAM_BOT_LINK", default="")
+LLM_API_KEY = env("LLM_API_KEY", default="")
+LLM_MODEL = env("LLM_MODEL", default="gpt-4o-mini")
+LLM_BASE_URL = env("LLM_BASE_URL", default="https://api.openai.com/v1")
+VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", default="")
+VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY", default="")
+VAPID_CLAIMS_EMAIL = env("VAPID_CLAIMS_EMAIL", default="admin@svitpc.ua")
+GOOGLE_ANALYTICS_ID = env("GOOGLE_ANALYTICS_ID", default="")
+GOOGLE_TAG_MANAGER_ID = env("GOOGLE_TAG_MANAGER_ID", default="")
+FACEBOOK_PIXEL_ID = env("FACEBOOK_PIXEL_ID", default="")
+WAYFORPAY_MERCHANT_DOMAIN = env("WAYFORPAY_MERCHANT_DOMAIN", default="")
+SMS_API_KEY = env("SMS_API_KEY", default="")
+SMS_SENDER = env("SMS_SENDER", default="SvitPC")
+VIBER_BOT_TOKEN = env("VIBER_BOT_TOKEN", default="")
+
+# ── CKEditor 5 ─────────────────────────────────────────────────────────────────
+CKEDITOR_5_CONFIGS = {
+    "default": {
+        "toolbar": {
+            "items": [
+                "heading", "|", "bold", "italic", "underline", "strikethrough",
+                "|", "bulletedList", "numberedList", "blockQuote",
+                "|", "link", "imageUpload", "mediaEmbed",
+                "|", "undo", "redo", "sourceEditing",
+            ],
+        },
+        "language": "uk",
+    },
+}
+CKEDITOR_5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+
+# ── Imagekit ───────────────────────────────────────────────────────────────────
+IMAGEKIT_CACHEFILE_DIR = "cache"
+IMAGEKIT_DEFAULT_CACHEFILE_STRATEGY = "imagekit.cachefiles.strategies.Optimistic"
+
+# ── MPTT ───────────────────────────────────────────────────────────────────────
+MPTT_DEFAULT_LEVEL_INDICATOR = "—"
+
+# ── Modeltranslation ───────────────────────────────────────────────────────────
+MODELTRANSLATION_DEFAULT_LANGUAGE = "uk"
+MODELTRANSLATION_LANGUAGES = ("uk", "en")
+MODELTRANSLATION_FALLBACK_LANGUAGES = ("uk",)
+
+# ── Logging ────────────────────────────────────────────────────────────────────
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs/django.log",
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
+    },
+    "root": {"handlers": ["console", "file"], "level": "INFO"},
+    "loggers": {
+        "django": {"handlers": ["console", "file"], "level": "WARNING", "propagate": False},
+        "apps": {"handlers": ["console", "file"], "level": "DEBUG", "propagate": False},
+    },
+}

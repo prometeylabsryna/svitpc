@@ -1,0 +1,1317 @@
+# English translations for SvitPC.
+# Copyright (C) 2026 SvitPC
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SvitPC\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-18 13:08+0300\n"
+"PO-Revision-Date: 2026-05-18 13:00+0300\n"
+"Last-Translator: SvitPC <info@svitpc.ua>\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Товарів"
+msgstr "Products"
+
+msgid "Згенерувати AI-опис категорій"
+msgstr "Generate AI descriptions for categories"
+
+msgid "Вміст"
+msgstr "Content"
+
+msgid "Ціни та залишки"
+msgstr "Prices & Stock"
+
+msgid "Позначки"
+msgstr "Labels"
+
+msgid "SEO"
+msgstr "SEO"
+
+msgid "Фото"
+msgstr "Photos"
+
+msgid "Згенерувати SEO (AI)"
+msgstr "Generate SEO (AI)"
+
+msgid "SEO-генерацію поставлено в чергу"
+msgstr "SEO generation queued"
+
+msgid "Позначити Новинками"
+msgstr "Mark as New Arrivals"
+
+msgid "Позначити Хітами"
+msgstr "Mark as Bestsellers"
+
+msgid "Назва"
+msgstr "Name"
+
+msgid "Slug"
+msgstr "Slug"
+
+msgid "Логотип"
+msgstr "Logo"
+
+msgid "Опис"
+msgstr "Description"
+
+msgid "Порядок"
+msgstr "Order"
+
+msgid "OC ID"
+msgstr "OC ID"
+
+msgid "Бренд"
+msgstr "Brand"
+
+msgid "Бренди"
+msgstr "Brands"
+
+msgid "Батьківська категорія"
+msgstr "Parent category"
+
+msgid "Зображення"
+msgstr "Image"
+
+msgid "Іконка"
+msgstr "Icon"
+
+msgid "Активна"
+msgstr "Active"
+
+msgid "Показати у навігації"
+msgstr "Show in navigation"
+
+msgid "SEO title"
+msgstr "SEO title"
+
+msgid "SEO description"
+msgstr "SEO description"
+
+msgid "Kancmaster назва"
+msgstr "Kancmaster name"
+
+msgid "Категорія"
+msgstr "Category"
+
+msgid "Категорії"
+msgstr "Categories"
+
+msgid "Група атрибутів"
+msgstr "Attribute group"
+
+msgid "Групи атрибутів"
+msgstr "Attribute groups"
+
+msgid "Група"
+msgstr "Group"
+
+msgid "Атрибут"
+msgstr "Attribute"
+
+msgid "Атрибути"
+msgstr "Attributes"
+
+msgid "Група брендів"
+msgstr "Brand group"
+
+msgid "Приховати з фасетів — бренди вже відображаються окремим блоком"
+msgstr "Hide from facets — brands are shown as a separate block"
+
+msgid "Група фільтрів"
+msgstr "Filter group"
+
+msgid "Групи фільтрів"
+msgstr "Filter groups"
+
+msgid "Фільтр"
+msgstr "Filter"
+
+msgid "Фільтри"
+msgstr "Filters"
+
+msgid "Націнка %"
+msgstr "Markup %"
+
+msgid "Активне"
+msgstr "Active"
+
+msgid "Пріоритет"
+msgstr "Priority"
+
+msgid "Вищий = важливіший"
+msgstr "Higher = more important"
+
+msgid "Правило націнки"
+msgstr "Markup rule"
+
+msgid "Правила націнки"
+msgstr "Markup rules"
+
+msgid "Вручну"
+msgstr "Manual"
+
+msgid "Зовнішній ID"
+msgstr "External ID"
+
+msgid "Джерело"
+msgstr "Source"
+
+msgid "Артикул"
+msgstr "SKU"
+
+msgid "Модель"
+msgstr "Model"
+
+msgid "Короткий опис"
+msgstr "Short description"
+
+msgid "Ціна"
+msgstr "Price"
+
+msgid "Стара ціна"
+msgstr "Old price"
+
+msgid "Закупівельна ціна"
+msgstr "Purchase price"
+
+msgid "Залишок"
+msgstr "Stock"
+
+msgid "Показувати"
+msgstr "Show"
+
+msgid "Приховати без залишку"
+msgstr "Hide when out of stock"
+
+msgid "Новинка"
+msgstr "New arrival"
+
+msgid "Хіт продажів"
+msgstr "Bestseller"
+
+msgid "Основне фото"
+msgstr "Main photo"
+
+msgid "URL фото (зовнішній)"
+msgstr "Photo URL (external)"
+
+msgid "Дата додавання"
+msgstr "Date added"
+
+msgid "Дата оновлення"
+msgstr "Date updated"
+
+msgid "Переглядів"
+msgstr "Views"
+
+msgid "Товар"
+msgstr "Product"
+
+msgid "Товари"
+msgstr "Products"
+
+msgid "URL (зовнішній)"
+msgstr "URL (external)"
+
+msgid "Alt"
+msgstr "Alt"
+
+msgid "Фото товару"
+msgstr "Product photo"
+
+msgid "Значення"
+msgstr "Value"
+
+msgid "Атрибут товару"
+msgstr "Product attribute"
+
+msgid "Атрибути товару"
+msgstr "Product attributes"
+
+msgid "Фільтр товару"
+msgstr "Product filter"
+
+msgid "Фільтри товару"
+msgstr "Product filters"
+
+msgid "Мова"
+msgstr "Language"
+
+msgid "OC query"
+msgstr "OC query"
+
+msgid "Keyword"
+msgstr "Keyword"
+
+msgid "OC seo_url_id"
+msgstr "OC seo_url_id"
+
+msgid "SEO URL (OC)"
+msgstr "SEO URL (OC)"
+
+msgid "SEO URLs (OC)"
+msgstr "SEO URLs (OC)"
+
+msgid "Старий шлях"
+msgstr "Old path"
+
+msgid "Новий шлях"
+msgstr "New path"
+
+msgid "Статус"
+msgstr "Status"
+
+msgid "Активний"
+msgstr "Active"
+
+msgid "Редірект"
+msgstr "Redirect"
+
+msgid "Редіректи"
+msgstr "Redirects"
+
+msgid "Ключ"
+msgstr "Key"
+
+msgid "Telegram chat"
+msgstr "Telegram chat"
+
+msgid "Чат-сесія"
+msgstr "Chat session"
+
+msgid "Клієнт"
+msgstr "Customer"
+
+msgid "Оператор"
+msgstr "Operator"
+
+msgid "Повідомлення"
+msgstr "Messages"
+
+msgid "Повідомлення чату"
+msgstr "Chat messages"
+
+msgid "Замовлення в 1 клік"
+msgstr "One-click order"
+
+msgid "Особиста інформація"
+msgstr "Personal information"
+
+msgid "Бонуси та підписки"
+msgstr "Bonuses & subscriptions"
+
+msgid "Права доступу"
+msgstr "Access rights"
+
+msgid "Дати"
+msgstr "Dates"
+
+msgid "Ім'я"
+msgstr "First name"
+
+msgid "Прізвище"
+msgstr "Last name"
+
+msgid "Телефон"
+msgstr "Phone"
+
+msgid "Дата народження"
+msgstr "Date of birth"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Невірний email або пароль."
+msgstr "Incorrect email or password."
+
+msgid "Email обов'язковий"
+msgstr "Email is required"
+
+msgid "Аватар"
+msgstr "Avatar"
+
+msgid "Персонал"
+msgstr "Staff"
+
+msgid "Дата реєстрації"
+msgstr "Registration date"
+
+msgid "Бонусний баланс"
+msgstr "Bonus balance"
+
+msgid "Email-розсилка"
+msgstr "Email newsletter"
+
+msgid "SMS-розсилка"
+msgstr "SMS newsletter"
+
+msgid "Push-підписка"
+msgstr "Push subscription"
+
+msgid "Telegram Chat ID"
+msgstr "Telegram Chat ID"
+
+msgid "Viber ID"
+msgstr "Viber ID"
+
+msgid "Покупець"
+msgstr "Customer"
+
+msgid "Покупці"
+msgstr "Customers"
+
+msgid "Мітка"
+msgstr "Label"
+
+msgid "Наприклад: Дім, Робота"
+msgstr "E.g.: Home, Work"
+
+msgid "Місто"
+msgstr "City"
+
+msgid "НП ref міста"
+msgstr "NP city ref"
+
+msgid "Тип доставки"
+msgstr "Delivery type"
+
+msgid "Відділення"
+msgstr "Branch"
+
+msgid "НП ref відділення"
+msgstr "NP branch ref"
+
+msgid "За замовчуванням"
+msgstr "Default"
+
+msgid "Адреса"
+msgstr "Address"
+
+msgid "Адреси"
+msgstr "Addresses"
+
+msgid "Реєстрація успішна! Ласкаво просимо!"
+msgstr "Registration successful! Welcome!"
+
+msgid "Профіль оновлено"
+msgstr "Profile updated"
+
+msgid "Адресу додано"
+msgstr "Address added"
+
+msgid "Адресу видалено"
+msgstr "Address removed"
+
+msgid "Активувати обрані промокоди"
+msgstr "Activate selected promo codes"
+
+#, python-format
+msgid "Активовано: %(n)d"
+msgstr "Activated: %(n)d"
+
+msgid "Деактивувати обрані промокоди"
+msgstr "Deactivate selected promo codes"
+
+#, python-format
+msgid "Деактивовано: %(n)d"
+msgstr "Deactivated: %(n)d"
+
+msgid "Скинути лічильник використань"
+msgstr "Reset usage counter"
+
+msgid "Лічильник скинуто"
+msgstr "Counter reset"
+
+msgid "Нарахування"
+msgstr "Accrual"
+
+msgid "Списання"
+msgstr "Deduction"
+
+msgid "Коригування"
+msgstr "Adjustment"
+
+msgid "Бонус ДН"
+msgstr "Birthday bonus"
+
+msgid "Сума"
+msgstr "Amount"
+
+msgid "Баланс після"
+msgstr "Balance after"
+
+msgid "Бонусна транзакція"
+msgstr "Bonus transaction"
+
+msgid "Бонусні транзакції"
+msgstr "Bonus transactions"
+
+msgid "Код"
+msgstr "Code"
+
+msgid "Тип"
+msgstr "Type"
+
+msgid "Відсоток"
+msgstr "Percentage"
+
+msgid "Фіксована сума"
+msgstr "Fixed amount"
+
+msgid "Знижка"
+msgstr "Discount"
+
+msgid "Мін. замовлення"
+msgstr "Min. order"
+
+msgid "Макс. використань"
+msgstr "Max. uses"
+
+msgid "0 = необмежено"
+msgstr "0 = unlimited"
+
+msgid "Використано"
+msgstr "Used"
+
+msgid "Дійсний з"
+msgstr "Valid from"
+
+msgid "Дійсний до"
+msgstr "Valid until"
+
+msgid "Промокод"
+msgstr "Promo code"
+
+msgid "Промокоди"
+msgstr "Promo codes"
+
+msgid "Endpoint"
+msgstr "Endpoint"
+
+msgid "p256dh"
+msgstr "p256dh"
+
+msgid "auth"
+msgstr "auth"
+
+msgid "Назва (EN)"
+msgstr "Name (EN)"
+
+msgid "Колір (HEX)"
+msgstr "Color (HEX)"
+
+msgid "Сповіщати клієнта"
+msgstr "Notify customer"
+
+msgid "Завершений (нараховувати бонуси)"
+msgstr "Completed (accrue bonuses)"
+
+msgid "Після переходу в цей статус нараховуються бонуси за замовлення"
+msgstr "Bonuses are accrued for the order after transitioning to this status"
+
+msgid "Статус замовлення"
+msgstr "Order status"
+
+msgid "Статуси замовлень"
+msgstr "Order statuses"
+
+msgid "Картка"
+msgstr "Card"
+
+msgid "Післяплата"
+msgstr "Cash on delivery"
+
+msgid "Розстрочка"
+msgstr "Installment"
+
+msgid "Нова Пошта"
+msgstr "Nova Post"
+
+msgid "Укрпошта"
+msgstr "Ukrposhta"
+
+msgid "Самовивіз"
+msgstr "Self-pickup"
+
+msgid "Доставка"
+msgstr "Delivery"
+
+msgid "Оплата"
+msgstr "Payment"
+
+msgid "Оплачено"
+msgstr "Paid"
+
+msgid "ID транзакції"
+msgstr "Transaction ID"
+
+msgid "Бонусів використано"
+msgstr "Bonuses used"
+
+msgid "Коментар"
+msgstr "Comment"
+
+msgid "ТТН"
+msgstr "Tracking number"
+
+msgid "Чек"
+msgstr "Receipt"
+
+msgid "Дата"
+msgstr "Date"
+
+msgid "Замовлення"
+msgstr "Order"
+
+msgid "Назва товару"
+msgstr "Product name"
+
+msgid "Кількість"
+msgstr "Quantity"
+
+msgid "Позиція"
+msgstr "Item"
+
+msgid "Позиції"
+msgstr "Items"
+
+msgid "Сповіщено клієнта"
+msgstr "Customer notified"
+
+msgid "Запис статусу"
+msgstr "Status record"
+
+#, python-format
+msgid "%(n)d товар(ів) додано до кошика."
+msgstr "%(n)d item(s) added to cart."
+
+msgid "Товари зі старого замовлення недоступні."
+msgstr "Products from the previous order are unavailable."
+
+msgid "Заголовок"
+msgstr "Title"
+
+msgid "Вміст (EN)"
+msgstr "Content (EN)"
+
+msgid "Інфосторінка"
+msgstr "Info page"
+
+msgid "Інфосторінки"
+msgstr "Info pages"
+
+msgid "Очікує"
+msgstr "Pending"
+
+msgid "Успішно"
+msgstr "Successful"
+
+msgid "Невдало"
+msgstr "Failed"
+
+msgid "Повернуто"
+msgstr "Refunded"
+
+msgid "Провайдер"
+msgstr "Provider"
+
+msgid "Валюта"
+msgstr "Currency"
+
+msgid "Відповідь провайдера"
+msgstr "Provider response"
+
+msgid "Платіж"
+msgstr "Payment"
+
+msgid "Платежі"
+msgstr "Payments"
+
+msgid "Активувати обрані акції"
+msgstr "Activate selected promotions"
+
+msgid "Деактивувати обрані акції"
+msgstr "Deactivate selected promotions"
+
+msgid "Активувати обрані банери"
+msgstr "Activate selected banners"
+
+msgid "Деактивувати обрані банери"
+msgstr "Deactivate selected banners"
+
+msgid "Початок"
+msgstr "Start"
+
+msgid "Кінець"
+msgstr "End"
+
+msgid "Акція"
+msgstr "Promotion"
+
+msgid "Акції"
+msgstr "Promotions"
+
+msgid "Головна"
+msgstr "Home"
+
+msgid "Каталог"
+msgstr "Catalog"
+
+msgid "Зображення (mobile)"
+msgstr "Image (mobile)"
+
+msgid "Посилання"
+msgstr "Link"
+
+msgid "Банер"
+msgstr "Banner"
+
+msgid "Банери"
+msgstr "Banners"
+
+msgid "Оцінка"
+msgstr "Rating"
+
+msgid "Відгук"
+msgstr "Review"
+
+msgid "Схвалено"
+msgstr "Approved"
+
+msgid "Відгуки"
+msgstr "Reviews"
+
+msgid "Будь ласка, заповніть всі поля"
+msgstr "Please fill in all fields"
+
+msgid "Позначити «В роботі»"
+msgstr "Mark as \"In progress\""
+
+msgid "Позначити «Готова до видачі»"
+msgstr "Mark as \"Ready for pickup\""
+
+msgid "Позначити «Видана»"
+msgstr "Mark as \"Issued\""
+
+msgid "Категорія послуг"
+msgstr "Service category"
+
+msgid "Категорії послуг"
+msgstr "Service categories"
+
+msgid "Послуга"
+msgstr "Service"
+
+msgid "Послуги"
+msgstr "Services"
+
+msgid "Ціна від"
+msgstr "Price from"
+
+msgid "Ціна до"
+msgstr "Price to"
+
+msgid "Ціна (текст)"
+msgstr "Price (text)"
+
+msgid "Прайс-позиція"
+msgstr "Price item"
+
+msgid "Нова"
+msgstr "New"
+
+msgid "В роботі"
+msgstr "In progress"
+
+msgid "Очікує запчастин"
+msgstr "Awaiting parts"
+
+msgid "Готова до видачі"
+msgstr "Ready for pickup"
+
+msgid "Видана"
+msgstr "Issued"
+
+msgid "Скасована"
+msgstr "Cancelled"
+
+msgid "Пристрій"
+msgstr "Device"
+
+msgid "Опис несправності"
+msgstr "Fault description"
+
+msgid "Примітки техніка"
+msgstr "Technician notes"
+
+msgid "Орієнтовна вартість"
+msgstr "Estimated cost"
+
+msgid "Фактична вартість"
+msgstr "Actual cost"
+
+msgid "Заявка сервісного центру"
+msgstr "Service request"
+
+msgid "Заявки сервісного центру"
+msgstr "Service requests"
+
+msgid "Ref"
+msgstr "Ref"
+
+msgid "Область"
+msgstr "Region"
+
+msgid "Місто НП"
+msgstr "NP city"
+
+msgid "Міста НП"
+msgstr "NP cities"
+
+msgid "Номер"
+msgstr "Number"
+
+msgid "Відділення НП"
+msgstr "NP branch"
+
+msgid "Бажаний товар"
+msgstr "Wished product"
+
+msgid "Список бажань"
+msgstr "Wishlist"
+
+msgid "Сторінку не знайдено"
+msgstr "Page not found"
+
+msgid "Можливо, вона була переміщена або видалена."
+msgstr "It may have been moved or deleted."
+
+msgid "На головну"
+msgstr "Go to home"
+
+msgid "AI-консультант"
+msgstr "AI consultant"
+
+msgid ""
+"Задайте питання про вибір техніки, сумісність комплектуючих, характеристики."
+msgstr ""
+"Ask a question about choosing equipment, component compatibility, "
+"specifications."
+
+msgid "Запитайте..."
+msgstr "Ask..."
+
+msgid "Надіслати"
+msgstr "Send"
+
+msgid "Інтернет-магазин СвітПК"
+msgstr "SvitPC Online Store"
+
+msgid ""
+"СвітПК — комп'ютерна техніка, комплектуючі, ноутбуки, принтери, канцтовари "
+"та послуги сервісного центру"
+msgstr ""
+"SvitPC — computers, components, laptops, printers, stationery and service "
+"centre"
+
+msgid "Кошик"
+msgstr "Cart"
+
+msgid "Разом"
+msgstr "Total"
+
+msgid "До сплати:"
+msgstr "Total due:"
+
+msgid "Оформити замовлення"
+msgstr "Checkout"
+
+msgid "Продовжити покупки"
+msgstr "Continue shopping"
+
+msgid "Кошик порожній"
+msgstr "Cart is empty"
+
+msgid "Перейти до каталогу"
+msgstr "Go to catalog"
+
+msgid "Видалити"
+msgstr "Remove"
+
+msgid "Навігація"
+msgstr "Navigation"
+
+msgid "Всі бренди"
+msgstr "All brands"
+
+msgid "Закрити"
+msgstr "Close"
+
+msgid "товарів"
+msgstr "products"
+
+msgid "Сортування"
+msgstr "Sort"
+
+msgid "Ціна: зростання"
+msgstr "Price: low to high"
+
+msgid "Ціна: спадання"
+msgstr "Price: high to low"
+
+msgid "Спочатку нові"
+msgstr "Newest first"
+
+msgid "Популярні"
+msgstr "Popular"
+
+msgid "Назва: А→Я"
+msgstr "Name: A→Z"
+
+msgid "Інтернет-магазин комп'ютерної техніки"
+msgstr "Computer equipment online store"
+
+msgid "Головний банер"
+msgstr "Main banner"
+
+msgid "Офіційні постачальники"
+msgstr "Official suppliers"
+
+msgid "Комп'ютерна техніка та комплектуючі"
+msgstr "Computer equipment and components"
+
+msgid ""
+"Широкий асортимент від провідних брендів з гарантією та швидкою доставкою по "
+"всій Україні"
+msgstr ""
+"Wide range from leading brands with warranty and fast delivery across Ukraine"
+
+msgid "Новинки"
+msgstr "New arrivals"
+
+msgid "Хіти продажів"
+msgstr "Bestsellers"
+
+msgid "Категорії товарів"
+msgstr "Product categories"
+
+msgid "Всі новинки →"
+msgstr "All new arrivals →"
+
+msgid "Всі хіти →"
+msgstr "All bestsellers →"
+
+msgid "Акції та знижки"
+msgstr "Sales & discounts"
+
+msgid "Всі акції →"
+msgstr "All promotions →"
+
+msgid "Сервісний центр"
+msgstr "Service centre"
+
+msgid "Всі послуги →"
+msgstr "All services →"
+
+msgid "Ремонт"
+msgstr "Repair"
+
+msgid "Ремонт ноутбуків та ПК"
+msgstr "Laptop & PC repair"
+
+msgid "Детальніше"
+msgstr "Learn more"
+
+msgid "Друк"
+msgstr "Printing"
+
+msgid "Заправка та ремонт принтерів"
+msgstr "Printer refilling & repair"
+
+msgid "Дані"
+msgstr "Data"
+
+msgid "Відновлення даних"
+msgstr "Data recovery"
+
+msgid "Фільтри каталогу"
+msgstr "Catalog filters"
+
+msgid "Тільки в наявності"
+msgstr "In stock only"
+
+msgid "Ціна, ₴"
+msgstr "Price, ₴"
+
+msgid "від"
+msgstr "from"
+
+msgid "Мінімальна ціна"
+msgstr "Minimum price"
+
+msgid "до"
+msgstr "to"
+
+msgid "Максимальна ціна"
+msgstr "Maximum price"
+
+msgid "Більше фільтрів"
+msgstr "More filters"
+
+msgid "Менше фільтрів"
+msgstr "Fewer filters"
+
+msgid "Сторінки"
+msgstr "Pages"
+
+msgid "Попередня"
+msgstr "Previous"
+
+msgid "Наступна"
+msgstr "Next"
+
+msgid "Товарів не знайдено. Спробуйте змінити фільтри."
+msgstr "No products found. Try changing the filters."
+
+msgid "Фотографії товару"
+msgstr "Product photos"
+
+msgid "Головне фото"
+msgstr "Main photo"
+
+msgid "Арт."
+msgstr "SKU:"
+
+msgid "з 5"
+msgstr "out of 5"
+
+msgid "відгуків"
+msgstr "reviews"
+
+msgid "В наявності"
+msgstr "In stock"
+
+msgid "Немає в наявності"
+msgstr "Out of stock"
+
+msgid "Хіт"
+msgstr "Hit"
+
+msgid "До кошика"
+msgstr "Add to cart"
+
+msgid "Купити в 1 клік"
+msgstr "Buy in 1 click"
+
+msgid "До бажаних"
+msgstr "Add to wishlist"
+
+msgid "Бажані"
+msgstr "Wishlist"
+
+msgid "Порівняти"
+msgstr "Compare"
+
+msgid "Характеристики"
+msgstr "Specifications"
+
+msgid "Опис відсутній."
+msgstr "No description."
+
+msgid "Характеристики відсутні."
+msgstr "No specifications."
+
+msgid "Завантаження..."
+msgstr "Loading..."
+
+msgid "Схожі товари"
+msgstr "Related products"
+
+msgid "Товарів не знайдено."
+msgstr "No products found."
+
+msgid "Ваше ім'я"
+msgstr "Your name"
+
+msgid "Замовити"
+msgstr "Order"
+
+msgid "Замовлення прийнято!"
+msgstr "Order accepted!"
+
+msgid "Ми зателефонуємо вам найближчим часом."
+msgstr "We will call you shortly."
+
+msgid "Оформлення — Крок 1"
+msgstr "Checkout — Step 1"
+
+msgid "Оформлення замовлення"
+msgstr "Place an order"
+
+msgid "Спосіб доставки"
+msgstr "Delivery method"
+
+msgid "Почніть вводити назву..."
+msgstr "Start typing the name..."
+
+msgid "Оберіть відділення..."
+msgstr "Select branch..."
+
+msgid "Коментар до замовлення"
+msgstr "Order comment"
+
+msgid "Далі — Оплата →"
+msgstr "Next — Payment →"
+
+msgid "Оформлення — Оплата"
+msgstr "Checkout — Payment"
+
+msgid "Оберіть спосіб оплати"
+msgstr "Select payment method"
+
+msgid "Назад"
+msgstr "Back"
+
+msgid "Підтвердити"
+msgstr "Confirm"
+
+msgid "Замовлення прийнято"
+msgstr "Order accepted"
+
+msgid "Дякуємо за замовлення!"
+msgstr "Thank you for your order!"
+
+#, python-format
+msgid "Замовлення №%(pk)s прийнято. Ми зв'яжемось з вами найближчим часом."
+msgstr "Order #%(pk)s accepted. We will contact you shortly."
+
+msgid "Мої замовлення"
+msgstr "My orders"
+
+msgid "Порівняння товарів"
+msgstr "Product comparison"
+
+msgid "Характеристика"
+msgstr "Specification"
+
+msgid "Наявність"
+msgstr "Availability"
+
+msgid "Немає товарів для порівняння. Додайте товари з каталогу."
+msgstr "No products to compare. Add products from the catalog."
+
+msgid ""
+"Комп'ютерна техніка, комплектуючі, ноутбуки, принтери та послуги сервісного "
+"центру у Вашому місті."
+msgstr ""
+"Computers, components, laptops, printers and service centre in your city."
+
+msgid "Сервіс-центр"
+msgstr "Service centre"
+
+msgid "Гарантія"
+msgstr "Warranty"
+
+msgid "Повернення"
+msgstr "Returns"
+
+msgid "Контакти"
+msgstr "Contacts"
+
+msgid "Написати нам"
+msgstr "Write to us"
+
+msgid "Всі права захищені."
+msgstr "All rights reserved."
+
+msgid "Конфіденційність"
+msgstr "Privacy"
+
+msgid "Меню"
+msgstr "Menu"
+
+msgid "головна"
+msgstr "home"
+
+msgid "Пошук товарів"
+msgstr "Search products"
+
+msgid "Пошук товарів, артикулів, брендів..."
+msgstr "Search products, SKUs, brands..."
+
+msgid "Пошук"
+msgstr "Search"
+
+msgid "Знайти"
+msgstr "Find"
+
+msgid "Дії покупця"
+msgstr "Customer actions"
+
+msgid "Порівняння"
+msgstr "Comparison"
+
+msgid "Кабінет"
+msgstr "Account"
+
+msgid "Увійти"
+msgstr "Sign in"
+
+msgid "Навігаційне меню"
+msgstr "Navigation menu"
+
+msgid "Закрити меню"
+msgstr "Close menu"
+
+msgid "Ознаки"
+msgstr "Features"
+
+msgid "Додати до кошика"
+msgstr "Add to cart"
+
+msgid "1 клік"
+msgstr "1 click"
+
+msgid "Доступ заблоковано"
+msgstr "Access blocked"
+
+msgid "Доступ тимчасово заблоковано"
+msgstr "Access temporarily blocked"
+
+msgid "Забагато невдалих спроб входу. Спробуйте пізніше."
+msgstr "Too many failed login attempts. Try again later."
+
+msgid "Особистий кабінет"
+msgstr "Personal account"
+
+msgid "Привіт"
+msgstr "Hello"
+
+msgid "Профіль"
+msgstr "Profile"
+
+msgid "Бонусний баланс:"
+msgstr "Bonus balance:"
+
+msgid "Вхід"
+msgstr "Sign in"
+
+msgid "Вхід в кабінет"
+msgstr "Sign in to account"
+
+msgid "Пароль"
+msgstr "Password"
+
+msgid "Немає акаунта?"
+msgstr "No account?"
+
+msgid "Зареєструватись"
+msgstr "Sign up"
+
+msgid "Реєстрація"
+msgstr "Registration"
+
+msgid "Пароль ще раз"
+msgstr "Repeat password"
+
+msgid "Вже є акаунт?"
+msgstr "Already have an account?"
+
+msgid "Разом:"
+msgstr "Total:"
+
+msgid "Доставка:"
+msgstr "Delivery:"
+
+msgid "ТТН:"
+msgstr "Tracking:"
+
+msgid "Фіскальний чек"
+msgstr "Fiscal receipt"
+
+msgid "Повторити замовлення"
+msgstr "Reorder"
+
+msgid "У вас ще немає замовлень."
+msgstr "You have no orders yet."
+
+msgid "Телефон:"
+msgstr "Phone:"
+
+msgid "Email:"
+msgstr "Email:"
+
+msgid "Сторінка"
+msgstr "Page"
+
+msgid "Сторінка в розробці."
+msgstr "Page under development."
+
+msgid "До"
+msgstr "Until"
+
+msgid "Акцій зараз немає."
+msgstr "No promotions at the moment."
+
+msgid "Відгуків поки немає. Будьте першим!"
+msgstr "No reviews yet. Be the first!"
+
+msgid "Залишити відгук"
+msgstr "Leave a review"
+
+msgid "Ваш відгук"
+msgstr "Your review"
+
+msgid "Надіслати відгук"
+msgstr "Submit review"
+
+msgid "Відгук буде опублікований після модерації."
+msgstr "Your review will be published after moderation."
+
+msgid "Дякуємо за відгук!"
+msgstr "Thank you for your review!"
+
+msgid "Він з'явиться після модерації."
+msgstr "It will appear after moderation."
+
+msgid "Результати пошуку"
+msgstr "Search results"
+
+msgid "Всі результати →"
+msgstr "All results →"
+
+#, python-format
+msgid "Пошук: %(q)s"
+msgstr "Search: %(q)s"
+
+#, python-format
+msgid "Результати для «%(q)s»"
+msgstr "Results for \"%(q)s\""
+
+#, python-format
+msgid "Знайдено %(total)s товарів"
+msgstr "Found %(total)s products"
+
+msgid "Нічого не знайдено. Спробуйте інший запит або перевірте написання."
+msgstr "Nothing found. Try a different query or check the spelling."
+
+msgid "Прайс-лист"
+msgstr "Price list"
+
+msgid "Послуги незабаром будуть додані."
+msgstr "Services will be added soon."
+
+msgid "Вартість доставки:"
+msgstr "Delivery cost:"
+
+msgid "Вартість доставки буде розрахована при оформленні"
+msgstr "Delivery cost will be calculated at checkout"
+
+msgid "Список бажань порожній."
+msgstr "Wishlist is empty."

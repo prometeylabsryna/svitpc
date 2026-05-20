@@ -1,0 +1,10 @@
+{% load i18n %}
+<ul>
+  {% for cat in top_categories %}
+  <li><a href="{{ cat.get_absolute_url }}" class="site-nav__item">{{ cat.name }}</a></li>
+  {% endfor %}
+  <li><a href="{% url 'services:list' %}" class="site-nav__item">{% trans "Сервіс-центр" %}</a></li>
+  <li><a href="{% url 'pages:delivery' %}" class="site-nav__item">{% trans "Доставка" %}</a></li>
+  <li><a href="{% url 'pages:payment' %}" class="site-nav__item">{% trans "Оплата" %}</a></li>
+  <li><a href="{% url 'pages:contact' %}" class="site-nav__item">{% trans "Контакти" %}</a></li>
+</ul>

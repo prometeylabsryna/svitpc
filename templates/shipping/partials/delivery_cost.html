@@ -1,0 +1,6 @@
+{% load i18n svitpc_tags %}
+{% if cost %}
+<span class="delivery-cost">{% trans "Вартість доставки:" %} <strong>{{ cost|currency }}</strong></span>
+{% else %}
+<span class="delivery-cost delivery-cost--free">{% trans "Вартість доставки буде розрахована при оформленні" %}</span>
+{% endif %}

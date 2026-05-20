@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load i18n static svitpc_tags %}
+
+{% block title %}{% trans "Інтернет-магазин комп'ютерної техніки" %}{% endblock %}
+
+{% block jsonld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "{{ SITE_NAME }}",
+  "url": "{{ SITE_URL }}",
+  "logo": "{{ SITE_URL }}{% static 'images/logo.svg' %}",
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "{{ SITE_PHONE }}",
+    "contactType": "customer service",
+    "availableLanguage": ["Ukrainian", "Russian"]
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "UA"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "{{ SITE_NAME }}",
+  "url": "{{ SITE_URL }}",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "{{ SITE_URL }}/search/?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  {# Hero banner #}
+  <section class="hero" aria-label="{% trans 'Головний банер' %}">
+    <div class="hero__inner">
+      <span class="hero__eyebrow">{% trans "Офіційні постачальники" %}</span>
+      <h1 class="hero__title">{% trans "Комп'ютерна техніка та комплектуючі" %}</h1>
+      <p class="hero__subtitle">{% trans "Широкий асортимент від провідних брендів з гарантією та швидкою доставкою по всій Україні" %}</p>
+      <div class="hero__actions">
+        <a href="{% url 'catalog:new_products' %}" class="btn btn--primary btn--lg">{% trans "Новинки" %}</a>
+        <a href="{% url 'catalog:hit_products' %}" class="btn btn--secondary btn--on-dark btn--lg">{% trans "Хіти продажів" %}</a>
+      </div>
+    </div>
+  </section>
+
+  {# Top categories #}
+  {% if top_categories %}
+  <section aria-labelledby="cats-heading" class="section-block">
+    <div class="section-heading">
+      <h2 class="section-heading__title" id="cats-heading">{% trans "Категорії товарів" %}</h2>
+    </div>
+    <div class="categories-grid">
+      {% for cat in top_categories %}
+      <a href="{{ cat.get_absolute_url }}" class="category-card">
+        {% if cat.icon %}<img src="{{ cat.icon.url }}" alt="" aria-hidden="true" loading="lazy">{% endif %}
+        <span>{{ cat.name }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# New products #}
+  {% if new_products %}
+  <section aria-labelledby="new-heading" class="section-block">
+    <div class="section-heading">
+      <h2 class="section-heading__title" id="new-heading">{% trans "Новинки" %}</h2>
+      <a href="{% url 'catalog:new_products' %}" class="section-heading__link">{% trans "Всі новинки →" %}</a>
+    </div>
+    {% with count=new_products|length %}
+    <div class="card-grid {{ count|grid_cols_class:3 }}">
+      {% for product in new_products %}
+        {% include "components/product_card.html" with product=product %}
+      {% endfor %}
+    </div>
+    {% endwith %}
+  </section>
+  {% endif %}
+
+  {# Hit products #}
+  {% if hit_products %}
+  <section aria-labelledby="hit-heading" class="section-block">
+    <div class="section-heading">
+      <h2 class="section-heading__title" id="hit-heading">{% trans "Хіти продажів" %}</h2>
+      <a href="{% url 'catalog:hit_products' %}" class="section-heading__link">{% trans "Всі хіти →" %}</a>
+    </div>
+    {% with count=hit_products|length %}
+    <div class="card-grid {{ count|grid_cols_class:3 }}">
+      {% for product in hit_products %}
+        {% include "components/product_card.html" with product=product %}
+      {% endfor %}
+    </div>
+    {% endwith %}
+  </section>
+  {% endif %}
+
+  {# Sale products #}
+  {% if sale_products %}
+  <section aria-labelledby="sale-heading" class="section-block">
+    <div class="section-heading">
+      <h2 class="section-heading__title" id="sale-heading">{% trans "Акції та знижки" %}</h2>
+      <a href="{% url 'promotions:list' %}" class="section-heading__link">{% trans "Всі акції →" %}</a>
+    </div>
+    {% with count=sale_products|length %}
+    <div class="card-grid {{ count|grid_cols_class:3 }}">
+      {% for product in sale_products %}
+        {% include "components/product_card.html" with product=product %}
+      {% endfor %}
+    </div>
+    {% endwith %}
+  </section>
+  {% endif %}
+
+  {# Services strip #}
+  <section aria-labelledby="services-heading" class="section-block section-block--bordered">
+    <div class="section-heading">
+      <h2 class="section-heading__title" id="services-heading">{% trans "Сервісний центр" %}</h2>
+      <a href="{% url 'services:list' %}" class="section-heading__link">{% trans "Всі послуги →" %}</a>
+    </div>
+    <div class="promo-strip">
+      <div class="promo-banner">
+        <span class="promo-banner__tag">{% trans "Ремонт" %}</span>
+        <p class="promo-banner__title">{% trans "Ремонт ноутбуків та ПК" %}</p>
+        <a href="{% url 'services:list' %}" class="btn btn--primary btn--sm promo-banner__cta">{% trans "Детальніше" %}</a>
+      </div>
+      <div class="promo-banner">
+        <span class="promo-banner__tag">{% trans "Друк" %}</span>
+        <p class="promo-banner__title">{% trans "Заправка та ремонт принтерів" %}</p>
+        <a href="{% url 'services:list' %}" class="btn btn--primary btn--sm promo-banner__cta">{% trans "Детальніше" %}</a>
+      </div>
+      <div class="promo-banner">
+        <span class="promo-banner__tag">{% trans "Дані" %}</span>
+        <p class="promo-banner__title">{% trans "Відновлення даних" %}</p>
+        <a href="{% url 'services:list' %}" class="btn btn--primary btn--sm promo-banner__cta">{% trans "Детальніше" %}</a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+{# HTMX modal container #}
+<div id="modal-container" role="dialog" aria-live="polite"></div>
+
+{% endblock %}

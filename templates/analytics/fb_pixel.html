@@ -1,0 +1,8 @@
+{% if FACEBOOK_PIXEL_ID %}
+{# FB Pixel — noscript only; JS init is handled by GTM or external script (no inline scripts per CSP) #}
+<meta name="fb-pixel-id" content="{{ FACEBOOK_PIXEL_ID }}">
+<noscript>
+  <img height="1" width="1" alt=""
+    src="https://www.facebook.com/tr?id={{ FACEBOOK_PIXEL_ID }}&ev=PageView&noscript=1">
+</noscript>
+{% endif %}

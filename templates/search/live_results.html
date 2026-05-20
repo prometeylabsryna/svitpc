@@ -1,0 +1,22 @@
+{% load i18n static %}
+
+{% if products %}
+<ul class="search-dropdown" role="listbox" aria-label="{% trans 'Результати пошуку' %}">
+  {% for product in products %}
+  <li role="option">
+    <a href="{{ product.get_absolute_url }}" class="search-dropdown__item">
+      <img class="search-dropdown__img" src="{{ product.main_image_url|default:'/static/images/no-photo.svg' }}" alt="" width="44" height="44" loading="lazy">
+      <div>
+        <div class="search-dropdown__name">{{ product.name }}</div>
+        <div class="search-dropdown__price">{{ product.price|floatformat:0 }} ₴</div>
+      </div>
+    </a>
+  </li>
+  {% endfor %}
+  <li class="search-dropdown__all">
+    <a href="{% url 'search:results' %}?q={{ q|urlencode }}" class="search-dropdown__all-link">
+      {% trans "Всі результати →" %}
+    </a>
+  </li>
+</ul>
+{% endif %}

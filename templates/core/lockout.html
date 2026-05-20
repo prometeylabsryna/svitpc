@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Доступ заблоковано" %}{% endblock %}
+{% block content %}
+<div class="container lockout-page">
+  <h1 class="lockout-page__title">{% trans "Доступ тимчасово заблоковано" %}</h1>
+  <p class="page-empty">{% trans "Забагато невдалих спроб входу. Спробуйте пізніше." %}</p>
+</div>
+{% endblock %}

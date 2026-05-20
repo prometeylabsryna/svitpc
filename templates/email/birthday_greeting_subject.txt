@@ -1,0 +1,1 @@
+СвітПК вітає з Днем народження, {{ customer.first_name|default:customer.email }}!

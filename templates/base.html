@@ -1,0 +1,112 @@
+{% load i18n static svitpc_tags %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'uk' }}" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f0f4ff">
+
+  <title>{% block title %}{% trans "Інтернет-магазин СвітПК" %}{% endblock %} — СвітПК</title>
+  <meta name="description" content="{% block meta_description %}{% trans "СвітПК — комп'ютерна техніка, комплектуючі, ноутбуки, принтери, канцтовари та послуги сервісного центру" %}{% endblock %}">
+
+  {# Canonical — default: clean URL without query params #}
+  <link rel="canonical" href="{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endblock %}">
+
+  {# hreflang for uk/en #}
+  {% if LANGUAGE_CODE == 'en' %}
+  <link rel="alternate" hreflang="uk" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path|slice:'3:' }}">
+  <link rel="alternate" hreflang="en" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+  <link rel="alternate" hreflang="x-default" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path|slice:'3:' }}">
+  {% else %}
+  <link rel="alternate" hreflang="uk" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+  <link rel="alternate" hreflang="en" href="{{ request.scheme }}://{{ request.get_host }}/en{{ request.path }}">
+  <link rel="alternate" hreflang="x-default" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+  {% endif %}
+
+  {# Open Graph #}
+  <meta property="og:site_name" content="СвітПК">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}СвітПК{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{% trans "СвітПК — комп'ютерна техніка, комплектуючі, ноутбуки, принтери, канцтовари та послуги сервісного центру" %}{% endblock %}">
+  <meta property="og:image" content="{% block og_image %}{{ SITE_URL }}{% static 'images/og-default.jpg' %}{% endblock %}">
+  <meta property="og:url" content="{{ request.build_absolute_uri }}">
+  <meta property="og:locale" content="{% if LANGUAGE_CODE == 'en' %}en_US{% else %}uk_UA{% endif %}">
+
+  {# Twitter Cards #}
+  <meta name="twitter:card" content="{% block twitter_card %}summary_large_image{% endblock %}">
+  <meta name="twitter:title" content="{% block twitter_title %}СвітПК{% endblock %}">
+  <meta name="twitter:description" content="{% block twitter_description %}{% trans "СвітПК — комп'ютерна техніка, комплектуючі, ноутбуки, принтери, канцтовари та послуги сервісного центру" %}{% endblock %}">
+  <meta name="twitter:image" content="{% block twitter_image %}{{ SITE_URL }}{% static 'images/og-default.jpg' %}{% endblock %}">
+
+  {# Favicon #}
+  <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
+  <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}">
+
+  {# Web Push VAPID #}
+  {% if VAPID_PUBLIC_KEY %}<meta name="vapid-pub" content="{{ VAPID_PUBLIC_KEY }}">{% endif %}
+
+  {# DNS prefetch for external resources #}
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+  <link rel="dns-prefetch" href="https://www.googletagmanager.com">
+  <link rel="dns-prefetch" href="https://www.google-analytics.com">
+
+  {# Preconnect for critical external resources #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  {# Space Grotesk — tech display font (also loaded via app.css @import) #}
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  {# Preload critical CSS #}
+  <link rel="preload" href="{% static 'css/app.css' %}" as="style">
+
+  {# CSS #}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block extra_css %}{% endblock %}
+
+  {# GTM — async, no inline scripts; using noscript fallback in body #}
+  {% if GOOGLE_TAG_MANAGER_ID %}
+  <script defer src="https://www.googletagmanager.com/gtm.js?id={{ GOOGLE_TAG_MANAGER_ID }}"></script>
+  {% endif %}
+
+  {# Schema.org JSON-LD #}
+  {% block jsonld %}{% endblock %}
+</head>
+<body class="page-wrapper" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+  {# GTM noscript fallback #}
+  {% if GOOGLE_TAG_MANAGER_ID %}
+  <noscript>
+    <iframe src="https://www.googletagmanager.com/ns.html?id={{ GOOGLE_TAG_MANAGER_ID }}"
+      height="0" width="0" style="display:none;visibility:hidden"></iframe>
+  </noscript>
+  {% endif %}
+
+  {# Django messages → toasts via data attrs #}
+  {% for message in messages %}
+  <div data-toast="{{ message }}" data-toast-type="{{ message.tags }}" hidden></div>
+  {% endfor %}
+
+  {# Header #}
+  {% include "components/header.html" %}
+
+  {# Main content #}
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  {# Footer #}
+  {% include "components/footer.html" %}
+
+  {# HTMX — external, defer #}
+  <script defer src="{% static 'django_htmx/htmx.min.js' %}"></script>
+  {# Main JS entry #}
+  <script type="module" src="{% static 'js/app.js' %}" defer></script>
+
+  {% block extra_js %}{% endblock %}
+
+  {# Live chat widget #}
+  {% include "components/chat_widget.html" %}
+
+  {# Mobile bottom navigation bar #}
+  {% include "components/mobile_bottom_nav.html" %}
+</body>
+</html>

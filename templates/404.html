@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Сторінку не знайдено" %}{% endblock %}
+{% block content %}
+<div class="container error-page">
+  <p class="error-page__code">404</p>
+  <h1 class="error-page__title">{% trans "Сторінку не знайдено" %}</h1>
+  <p class="page-meta">{% trans "Можливо, вона була переміщена або видалена." %}</p>
+  <div class="error-page__actions">
+    <a href="/" class="btn btn--primary">{% trans "На головну" %}</a>
+  </div>
+</div>
+{% endblock %}

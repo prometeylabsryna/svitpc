@@ -1,0 +1,8 @@
+{% for wh in warehouses %}
+<button type="button"
+  class="autocomplete-option"
+  data-warehouse-name="{{ wh.name }}"
+  data-warehouse-ref="{{ wh.ref }}">
+  {{ wh.name }}
+</button>
+{% endfor %}

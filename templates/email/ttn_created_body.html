@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ТТН створено</title>
+</head>
+<body style="font-family: sans-serif; color: #111; max-width: 580px; margin: 0 auto; padding: 24px;">
+  <h2>Замовлення #{{ order.pk }} передано на доставку</h2>
+  <p>Шановний(а) {{ order.first_name }}!</p>
+  <p>Ваше замовлення передано в доставку <strong>Нова Пошта</strong>.</p>
+  <table style="width:100%; border-collapse:collapse; margin: 16px 0;">
+    <tr><td style="padding:6px 0; color:#555;">ТТН:</td><td><strong>{{ ttn }}</strong></td></tr>
+    <tr><td style="padding:6px 0; color:#555;">Місто:</td><td>{{ order.city }}</td></tr>
+    <tr><td style="padding:6px 0; color:#555;">Відділення:</td><td>{{ order.warehouse }}</td></tr>
+    <tr><td style="padding:6px 0; color:#555;">Сума замовлення:</td><td>{{ order.total }} грн</td></tr>
+    <tr><td style="padding:6px 0; color:#555;">Вартість доставки:</td><td>{{ order.delivery_cost }} грн</td></tr>
+  </table>
+  <p>Відслідкувати посилку: <a href="https://novaposhta.ua/tracking/?cargo_number={{ ttn }}">novaposhta.ua</a></p>
+  <hr style="border:none; border-top:1px solid #eee; margin:24px 0;">
+  <p style="color:#888; font-size:13px;">СвітПК — комп'ютерна техніка та електроніка</p>
+</body>
+</html>

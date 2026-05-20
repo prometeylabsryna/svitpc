@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Оформлення — Крок 1" %}{% endblock %}
+{% block content %}
+<div class="container container--narrow checkout-delivery">
+  <h1 class="checkout-delivery__title">{% trans "Оформлення замовлення" %}</h1>
+  <form method="post" novalidate class="checkout-delivery__form">
+    {% csrf_token %}
+    <div class="checkout-delivery__row">
+      <div class="form-field">
+        <label class="form-label" for="first_name">{% trans "Ім'я" %} *</label>
+        <input class="form-input" id="first_name" name="first_name" type="text" required value="{{ prefill.first_name }}">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="last_name">{% trans "Прізвище" %} *</label>
+        <input class="form-input" id="last_name" name="last_name" type="text" required value="{{ prefill.last_name }}">
+      </div>
+    </div>
+    <div class="checkout-delivery__row">
+      <div class="form-field">
+        <label class="form-label" for="phone">{% trans "Телефон" %} *</label>
+        <input class="form-input" id="phone" name="phone" type="tel" required placeholder="+38 (0__) ___-__-__" value="{{ prefill.phone }}">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="email">{% trans "Email" %}</label>
+        <input class="form-input" id="email" name="email" type="email" value="{{ prefill.email }}">
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">{% trans "Спосіб доставки" %} *</label>
+      <div class="delivery-options">
+        <label class="delivery-option">
+          <input type="radio" name="delivery_type" value="nova_poshta" checked>
+          {% trans "Нова Пошта" %}
+        </label>
+        <label class="delivery-option">
+          <input type="radio" name="delivery_type" value="ukrposhta">
+          {% trans "Укрпошта" %}
+        </label>
+        <label class="delivery-option">
+          <input type="radio" name="delivery_type" value="pickup">
+          {% trans "Самовивіз" %}
+        </label>
+      </div>
+    </div>
+
+    {# === Nova Poshta section === #}
+    <div id="delivery-np-section">
+      <div class="form-field">
+        <label class="form-label" for="city">{% trans "Місто" %} *</label>
+        <input class="form-input" id="city" name="city" type="text"
+          autocomplete="off"
+          hx-get="{% url 'shipping:np_cities' %}"
+          hx-trigger="input changed delay:400ms"
+          hx-target="#city-results"
+          hx-swap="innerHTML"
+          placeholder="{% trans 'Почніть вводити назву...' %}">
+        <input type="hidden" name="city_ref" id="city_ref">
+        <div id="city-results" class="autocomplete-results"></div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="warehouse">{% trans "Відділення" %}</label>
+        <input class="form-input" id="warehouse" name="warehouse" type="text"
+          autocomplete="off"
+          hx-get="{% url 'shipping:np_warehouses' %}"
+          hx-trigger="input changed delay:400ms"
+          hx-target="#warehouse-results"
+          hx-swap="innerHTML"
+          hx-include="#city_ref"
+          placeholder="{% trans 'Оберіть відділення...' %}">
+        <input type="hidden" name="warehouse_ref" id="warehouse_ref">
+        <div id="warehouse-results" class="autocomplete-results"></div>
+      </div>
+      <div id="delivery-cost-container" class="form-hint"
+        hx-get="{% url 'shipping:delivery_cost' %}"
+        hx-trigger="change from:#warehouse_ref"
+        hx-include="[name='delivery_type'],[name='city_ref'],[name='warehouse_ref']"
+        hx-swap="innerHTML">
+      </div>
+    </div>
+
+    {# === Ukrposhta section === #}
+    <div id="delivery-up-section" class="delivery-section--hidden">
+      <div class="checkout-delivery__row">
+        <div class="form-field">
+          <label class="form-label" for="up_city">{% trans "Місто" %} *</label>
+          <input class="form-input" id="up_city" name="city" type="text"
+            placeholder="{% trans 'Назва міста...' %}">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="postcode">{% trans "Поштовий індекс" %} *</label>
+          <input class="form-input" id="postcode" name="postcode" type="text"
+            placeholder="{% trans 'Напр. 01001' %}" maxlength="10">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="up_warehouse">{% trans "Відділення / адреса" %}</label>
+        <input class="form-input" id="up_warehouse" name="warehouse" type="text"
+          placeholder="{% trans 'Номер відділення або адреса доставки...' %}">
+      </div>
+    </div>
+
+    {# === Pickup section === #}
+    <div id="delivery-pickup-section" class="delivery-section--hidden">
+      <p class="form-hint">
+        {% trans "Самовивіз з нашого магазину:" %}
+        <strong>{% trans "м. Дніпро, пр. Д. Яворницького 1" %}</strong>
+        ({% trans "Пн–Пт 9:00–19:00, Сб 10:00–17:00" %})
+      </p>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="comment">{% trans "Коментар до замовлення" %}</label>
+      <textarea class="form-textarea" id="comment" name="comment" rows="3"></textarea>
+    </div>
+    <div class="checkout-delivery__actions">
+      <button type="submit" class="btn btn--primary btn--lg btn--full">{% trans "Далі — Оплата →" %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

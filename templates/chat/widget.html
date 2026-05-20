@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Онлайн-консультант" %}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="chat-redirect">
+    <h1 class="chat-redirect__title">{% trans "Онлайн-консультант" %}</h1>
+    <p class="chat-redirect__text">{% trans "Скористайтесь чат-кнопкою внизу сторінки для швидкого зв'язку з менеджером." %}</p>
+  </div>
+</div>
+{% endblock %}

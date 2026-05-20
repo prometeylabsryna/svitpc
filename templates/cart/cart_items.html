@@ -1,0 +1,33 @@
+{% load i18n svitpc_tags %}
+
+<div class="cart-item-list">
+  {% for item in cart %}
+  <div class="cart-item">
+    <img class="cart-item__img"
+      src="{{ item.image_url|default:'/static/images/no-photo.svg' }}"
+      alt="{{ item.name }}"
+      width="72" height="72" loading="lazy">
+    <div class="cart-item__info">
+      <a href="/product/{{ item.slug }}/" class="cart-item__name">{{ item.name }}</a>
+      <span class="cart-item__price">{{ item.price|currency }}</span>
+    </div>
+    <div class="cart-item__qty">
+      <form hx-post="{% url 'cart:update' item.product_id %}" hx-target="#cart-items" hx-swap="outerHTML">
+        {% csrf_token %}
+        <input type="number" name="qty" value="{{ item.qty }}" min="1" max="999"
+          data-cart-quantity
+          class="cart-item__qty-input">
+      </form>
+      <button
+        hx-post="{% url 'cart:remove' item.product_id %}"
+        hx-target="#cart-items"
+        hx-swap="outerHTML"
+        class="cart-item__remove"
+        aria-label="{% trans 'Видалити' %}">✕</button>
+    </div>
+    <div class="cart-item__subtotal">{{ item.subtotal|currency }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<meta name="cart-count" content="{{ cart.item_count }}">

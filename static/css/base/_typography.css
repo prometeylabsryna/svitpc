@@ -1,0 +1,37 @@
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    font-weight: var(--fw-normal);
+    line-height: var(--leading-normal);
+    color: var(--clr-text);
+    background-color: var(--clr-body-bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, .h1 { font-size: clamp(var(--text-2xl), 5vw, var(--text-4xl)); font-weight: var(--fw-bold);     line-height: var(--leading-tight); letter-spacing: -0.025em; }
+  h2, .h2 { font-size: clamp(var(--text-xl),  4vw, var(--text-3xl)); font-weight: var(--fw-semibold); line-height: var(--leading-tight); letter-spacing: -0.02em; }
+  h3, .h3 { font-size: var(--text-xl); font-weight: var(--fw-semibold); line-height: var(--leading-tight); }
+  h4, .h4 { font-size: var(--text-lg); font-weight: var(--fw-medium); }
+  h5, .h5 { font-size: var(--text-base); font-weight: var(--fw-medium); }
+
+  p { margin-block: 0; }
+  p + p { margin-block-start: var(--space-3); }
+
+  strong { font-weight: var(--fw-semibold); }
+  small { font-size: var(--text-sm); }
+
+  a {
+    color: var(--clr-primary-600);
+    transition: color var(--transition-fast);
+    &:hover { color: var(--clr-primary-700); }
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    outline: 2px solid var(--clr-primary-500);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+}

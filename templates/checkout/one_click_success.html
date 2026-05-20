@@ -1,0 +1,12 @@
+{% load i18n %}
+<div class="modal-dialog" role="document">
+  <button type="button" class="modal-dialog__close" data-modal-close aria-label="{% trans 'Закрити' %}">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="16" height="16"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>
+  <div class="checkout-success">
+    <div class="checkout-success__icon" aria-hidden="true">✅</div>
+    <h2 class="checkout-success__title">{% trans "Замовлення прийнято!" %}</h2>
+    <p class="page-meta">{% trans "Ми зателефонуємо вам найближчим часом." %}</p>
+    <p class="page-meta"><strong>{% trans "Замовлення" %} #{{ order.pk }}</strong></p>
+  </div>
+</div>

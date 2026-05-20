@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Перехід до оплати" %}{% endblock %}
+{% block content %}
+<div class="container container--narrow payment-redirect">
+  <h1 class="payment-redirect__title">{% trans "Перехід до оплати" %}</h1>
+  <p class="payment-redirect__hint">{% trans "Будь ласка, зачекайте. Вас перенаправляють на сторінку оплати..." %}</p>
+
+  {% if form_data.data and form_data.signature %}
+  <form
+    id="payment-redirect-form"
+    method="post"
+    action="{{ form_data.url }}"
+    class="payment-redirect__form"
+    data-autosubmit
+  >
+    <input type="hidden" name="data" value="{{ form_data.data }}">
+    <input type="hidden" name="signature" value="{{ form_data.signature }}">
+    <div class="payment-redirect__loader" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <span class="payment-redirect__loader-text">{% trans "Перенаправлення..." %}</span>
+    </div>
+    <noscript>
+      <button type="submit" class="btn btn--primary btn--lg">
+        {% trans "Перейти до оплати" %}
+      </button>
+    </noscript>
+  </form>
+  {% elif form_data.url and form_data.url != '#' %}
+  {# Providers that return a redirect URL (Monobank, etc.) #}
+  <meta http-equiv="refresh" content="1;url={{ form_data.url }}">
+  <div class="payment-redirect__loader">
+    <span class="spinner" aria-hidden="true"></span>
+  </div>
+  {% else %}
+  <p class="payment-redirect__error">{% trans "Не вдалося ініціювати оплату. Спробуйте ще раз або оберіть інший спосіб оплати." %}</p>
+  <a href="{% url 'checkout:step2' %}" class="btn btn--primary">{% trans "Повернутись до вибору оплати" %}</a>
+  {% endif %}
+
+  <p class="payment-redirect__order">
+    {% blocktrans with pk=order.pk %}Замовлення №{{ pk }} на суму{% endblocktrans %}
+    <strong>{{ order.total }} ₴</strong>
+  </p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/payment-redirect.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Реєстрація" %}{% endblock %}
+{% block content %}
+<div class="container container--narrow auth-form auth-form--narrow-reg">
+  <h1 class="auth-form__title">{% trans "Реєстрація" %}</h1>
+  <form method="post" novalidate class="auth-form__form">
+    {% csrf_token %}
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label" for="id_first_name">{% trans "Ім'я" %} *</label>
+        <input class="form-input{% if form.first_name.errors %} is-invalid{% endif %}" id="id_first_name" name="first_name" type="text" value="{{ form.first_name.value|default:'' }}" required>
+        {% if form.first_name.errors %}<span class="form-error">{{ form.first_name.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="id_last_name">{% trans "Прізвище" %}</label>
+        <input class="form-input" id="id_last_name" name="last_name" type="text" value="{{ form.last_name.value|default:'' }}">
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="id_email">{% trans "Email" %} *</label>
+      <input class="form-input{% if form.email.errors %} is-invalid{% endif %}" id="id_email" name="email" type="email" value="{{ form.email.value|default:'' }}" required>
+      {% if form.email.errors %}<span class="form-error">{{ form.email.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="id_phone">{% trans "Телефон" %}</label>
+      <input class="form-input{% if form.phone.errors %} is-invalid{% endif %}" id="id_phone" name="phone" type="tel" value="{{ form.phone.value|default:'' }}">
+      {% if form.phone.errors %}<span class="form-error">{{ form.phone.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="id_birth_date">{% trans "Дата народження" %}</label>
+      <input class="form-input" id="id_birth_date" name="birth_date" type="date" value="{{ form.birth_date.value|default:'' }}" max="{{ today }}">
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="id_password1">{% trans "Пароль" %} *</label>
+      <input class="form-input{% if form.password1.errors %} is-invalid{% endif %}" id="id_password1" name="password1" type="password" required>
+      {% if form.password1.errors %}<span class="form-error">{{ form.password1.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="id_password2">{% trans "Пароль ще раз" %} *</label>
+      <input class="form-input{% if form.password2.errors %} is-invalid{% endif %}" id="id_password2" name="password2" type="password" required>
+      {% if form.password2.errors %}<span class="form-error">{{ form.password2.errors.0 }}</span>{% endif %}
+    </div>
+    <button type="submit" class="btn btn--primary btn--full btn--lg">{% trans "Зареєструватись" %}</button>
+    <p class="auth-form__footer">{% trans "Вже є акаунт?" %} <a href="{% url 'customers:login' %}">{% trans "Увійти" %}</a></p>
+  </form>
+</div>
+{% endblock %}

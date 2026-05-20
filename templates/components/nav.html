@@ -1,0 +1,14 @@
+{% load i18n cache %}
+
+{% cache 600 site_nav LANGUAGE_CODE %}
+<nav class="site-nav" aria-label="{% trans 'Каталог' %}">
+  <div class="site-nav__inner">
+    {% for cat in top_categories %}
+    <a href="{{ cat.get_absolute_url }}" class="site-nav__item">{{ cat.name }}</a>
+    {% endfor %}
+    <a href="{% url 'services:list' %}" class="site-nav__item">{% trans "Сервіс-центр" %}</a>
+    <a href="{% url 'pages:delivery' %}" class="site-nav__item">{% trans "Доставка" %}</a>
+    <a href="{% url 'pages:payment' %}" class="site-nav__item">{% trans "Оплата" %}</a>
+  </div>
+</nav>
+{% endcache %}

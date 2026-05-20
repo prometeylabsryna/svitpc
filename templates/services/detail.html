@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{{ service.seo_title|default:service.name }}{% endblock %}
+{% block meta_description %}{% if service.seo_description %}{{ service.seo_description }}{% endif %}{% endblock %}
+{% block og_title %}{{ service.seo_title|default:service.name }}{% endblock %}
+{% block og_description %}{{ service.seo_description|default:service.name }}{% endblock %}
+{% if service.image %}{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{{ service.image.url }}{% endblock %}{% endif %}
+{% block content %}
+<div class="container container--narrow service-detail">
+  {% if service.image %}
+  <div class="service-detail__hero">
+    <img src="{{ service.image.url }}" alt="{{ service.name }}" class="service-detail__image" loading="lazy">
+  </div>
+  {% endif %}
+  <h1 class="service-detail__title">{{ service.name }}</h1>
+  {% if service.description %}
+  <div class="service-detail__desc page-content">{{ service.description|safe }}</div>
+  {% endif %}
+  {% if service.prices.exists %}
+  <h2 class="service-detail__pricing-title">{% trans "Прайс-лист" %}</h2>
+  <div class="price-table">
+    {% for price in service.prices.all %}
+    <div class="price-table__row {% if forloop.even %}price-table__row--even{% endif %}">
+      <span class="price-table__name">{{ price.name }}</span>
+      <strong class="price-table__price">{{ price.price_text|default_if_none:'' }}</strong>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

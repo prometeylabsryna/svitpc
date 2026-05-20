@@ -1,0 +1,12 @@
+🛒 <b>Нове замовлення #{{ order.pk }}</b>
+
+👤 {{ order.first_name }} {{ order.last_name }}
+📞 {{ order.phone }}
+📧 {{ order.email }}
+
+💰 Сума: <b>{{ order.total }} ₴</b>
+💳 Оплата: {{ order.get_payment_method_display }}
+🚚 Доставка: {{ order.get_delivery_type_display }}{% if order.city %} — {{ order.city }}{% endif %}{% if order.warehouse %}
+🏢 {{ order.warehouse }}{% endif %}{% if order.comment %}
+
+💬 Коментар: {{ order.comment }}{% endif %}

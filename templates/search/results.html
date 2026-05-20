@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n svitpc_tags %}
+
+{% block title %}{% blocktrans with q=q %}Пошук: {{ q }}{% endblocktrans %}{% endblock %}
+
+{% block content %}
+<div class="container search-results">
+  <h1 class="search-results__title">
+    {% if q %}{% blocktrans with q=q %}Результати для «{{ q }}»{% endblocktrans %}
+    {% else %}{% trans "Пошук" %}{% endif %}
+  </h1>
+  {% if q %}
+  <p class="search-results__count">{% blocktrans with total=total %}Знайдено {{ total }} товарів{% endblocktrans %}</p>
+  {% endif %}
+
+  {% if products %}
+  {% with count=products|length %}
+  <div class="card-grid {{ count|grid_cols_class:4 }}">
+    {% for product in products %}
+      {% include "components/product_card.html" with product=product %}
+    {% endfor %}
+  </div>
+  {% endwith %}
+  {% elif q %}
+  <p class="page-empty">{% trans "Нічого не знайдено. Спробуйте інший запит або перевірте написання." %}</p>
+  {% endif %}
+</div>
+<div id="modal-container" role="dialog" aria-live="polite"></div>
+{% endblock %}

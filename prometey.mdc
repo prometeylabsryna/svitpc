@@ -1,0 +1,19 @@
+---
+alwaysApply: true
+---
+
+## Обов'язково при кожному завданні
+
+1. Прочитати CLAUDE.md повністю — там секція ⛔ ЗАБОРОН і порядок роботи:
+   `/Users/olegbonislavskyi/Library/Mobile\ Documents/com\~apple\~CloudDocs/Prometey_vault/CLAUDE.md`
+
+2. Скіли знаходяться тут:
+   `/Users/olegbonislavskyi/Library/Mobile\ Documents/com\~apple\~CloudDocs/Prometey_vault/05_System/Skills`
+
+## ⛔ Швидкі заборони (без читання CLAUDE.md НЕ починати роботу)
+
+- НІКОЛИ не створювати `Dockerfile`, `docker-compose.yml` — стек без Docker
+- НІКОЛИ не додавати `inline style=""`, `onclick=""`, `!important`
+- НІКОЛИ не пропонувати React/Vue SPA або npm-бандлер
+- НІКОЛИ не створювати `.md`-звіти/changelog без явного запиту користувача
+- НІКОЛИ не зберігати секрети в коді — тільки `.env` через `python-decouple`

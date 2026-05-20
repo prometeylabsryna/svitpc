@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Сервісний центр" %}{% endblock %}
+{% block meta_description %}{% trans "Ремонт ноутбуків, ПК, принтерів, заправка картриджів, відновлення даних та інші послуги сервісного центру СвітПК" %}{% endblock %}
+{% block content %}
+<div class="container services-page">
+  <h1 class="services-page__title">{% trans "Сервісний центр" %}</h1>
+  {% for category in categories %}
+  <section class="service-category">
+    <h2 class="service-category__title">{{ category.name }}</h2>
+    <div class="service-category__grid">
+      {% for service in category.services.all %}
+      {% if service.is_active %}
+      <a href="{{ service.get_absolute_url }}" class="service-card">
+        {% if service.image %}
+        <img src="{{ service.image.url }}" alt="{{ service.name }}" class="service-card__image" loading="lazy">
+        {% else %}
+        <div class="service-card__image service-card__image--placeholder" aria-hidden="true"></div>
+        {% endif %}
+        <strong class="service-card__name">{{ service.name }}</strong>
+        {% if service.description %}
+        <span class="service-card__desc">{{ service.description|striptags|truncatewords:12 }}</span>
+        {% endif %}
+      </a>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+  {% empty %}
+  <p class="page-empty">{% trans "Послуги незабаром будуть додані." %}</p>
+  {% endfor %}
+</div>
+{% endblock %}

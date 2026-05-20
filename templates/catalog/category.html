@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load i18n svitpc_tags %}
+
+{% block title %}{{ category.seo_title|default:category.name }}{% endblock %}
+{% block meta_description %}{{ category.seo_description|default:category.name }}{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ category.get_absolute_url }}{% endblock %}
+{% block og_title %}{{ category.seo_title|default:category.name }}{% endblock %}
+{% block og_description %}{{ category.seo_description|default:category.name }}{% endblock %}
+{% block og_image %}{% if category.image %}{{ request.scheme }}://{{ request.get_host }}{{ category.image.url }}{% endif %}{% endblock %}
+
+{% block jsonld %}
+{% with ancestors=category.get_ancestors %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "{% trans "Головна" %}", "item": "{{ SITE_URL }}/"}{% for anc in ancestors %},
+    {"@type": "ListItem", "position": {{ forloop.counter|add:"1" }}, "name": "{{ anc.name|escapejs }}", "item": "{{ request.scheme }}://{{ request.get_host }}{{ anc.get_absolute_url }}"}{% endfor %},
+    {"@type": "ListItem", "position": {{ ancestors|length|add:"2" }}, "name": "{{ category.name|escapejs }}", "item": "{{ request.scheme }}://{{ request.get_host }}{{ category.get_absolute_url }}"}
+  ]
+}
+</script>
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  {# Breadcrumbs #}
+  <nav class="breadcrumbs" aria-label="{% trans 'Навігація' %}">
+    <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
+    {% for ancestor in category.get_ancestors %}
+    <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+    <span class="breadcrumbs__item"><a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name }}</a></span>
+    {% endfor %}
+    <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+    <span class="breadcrumbs__item" aria-current="page">{{ category.name }}</span>
+  </nav>
+
+  <div class="catalog-page">
+
+    {# Desktop sidebar #}
+    <aside class="catalog-sidebar" aria-label="{% trans 'Фільтри' %}">
+      {% include "catalog/partials/filters.html" %}
+    </aside>
+
+    {# Mobile sidebar #}
+    <div class="catalog-sidebar--mobile" data-filters-sidebar role="dialog" aria-modal="true" aria-label="{% trans 'Фільтри' %}">
+      <div class="mobile-menu__backdrop" data-filters-backdrop></div>
+      <div class="catalog-sidebar__panel">
+        <button class="btn btn--ghost btn--sm" data-filters-close>✕ {% trans "Закрити" %}</button>
+        {% include "catalog/partials/filters.html" %}
+      </div>
+    </div>
+
+    <div class="catalog-main">
+      <h1 class="catalog-main__title">{{ category.name }}</h1>
+      {% if category.description %}
+      <div class="category-description">{{ category.description|safe }}</div>
+      {% endif %}
+
+      {# Sort bar #}
+      <div class="sort-bar catalog-sort-bar">
+        <span id="sort-bar-results" class="sort-bar__results"><span id="sort-bar-count">{{ total }}</span>&nbsp;{% trans "товарів" %}</span>
+        <div class="sort-bar__controls">
+          <button class="filters-mobile-btn" data-filters-open aria-label="{% trans 'Фільтри' %}">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>
+            {% trans "Фільтри" %}
+          </button>
+          <select class="sort-select"
+            hx-get="{{ request.path }}"
+            hx-trigger="change"
+            hx-target="#product-grid"
+            hx-swap="outerHTML"
+            hx-include=".catalog-sidebar [name='brand'],.catalog-sidebar [name='f'],.catalog-sidebar [name='price_min'],.catalog-sidebar [name='price_max'],.catalog-sidebar [name='in_stock']"
+            name="sort"
+            aria-label="{% trans 'Сортування' %}">
+            <option value="default" {% if sort == "default" %}selected{% endif %}>{% trans "За замовчуванням" %}</option>
+            <option value="price_asc" {% if sort == "price_asc" %}selected{% endif %}>{% trans "Ціна: зростання" %}</option>
+            <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>{% trans "Ціна: спадання" %}</option>
+            <option value="new" {% if sort == "new" %}selected{% endif %}>{% trans "Спочатку нові" %}</option>
+            <option value="popular" {% if sort == "popular" %}selected{% endif %}>{% trans "Популярні" %}</option>
+            <option value="rating" {% if sort == "rating" %}selected{% endif %}>{% trans "Рейтинг" %}</option>
+            <option value="name_asc" {% if sort == "name_asc" %}selected{% endif %}>{% trans "Назва: А→Я" %}</option>
+          </select>
+        </div>
+      </div>
+
+      {# Product grid — partial for HTMX #}
+      {% include "catalog/partials/product_grid.html" %}
+
+    </div>
+  </div>
+</div>
+<div id="modal-container" role="dialog" aria-live="polite"></div>
+{% endblock %}

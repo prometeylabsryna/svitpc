@@ -1,0 +1,73 @@
+{% load i18n static %}
+
+<footer class="site-footer" role="contentinfo">
+  <div class="container">
+    <div class="site-footer__grid">
+
+      <div class="site-footer__brand">
+        <div class="site-footer__logo">СвітПК</div>
+        <p class="site-footer__desc">
+          {% trans "Комп'ютерна техніка, комплектуючі, ноутбуки, принтери та послуги сервісного центру у Вашому місті." %}
+        </p>
+        <div class="site-footer__socials">
+          <a href="#" class="site-footer__social-link" aria-label="Facebook">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+            </svg>
+          </a>
+          <a href="#" class="site-footer__social-link" aria-label="Instagram">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+            </svg>
+          </a>
+          <a href="#" class="site-footer__social-link" aria-label="Telegram">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="site-footer__col-title">{% trans "Каталог" %}</h3>
+        <ul class="site-footer__links">
+          <li><a href="{% url 'catalog:new_products' %}" class="site-footer__link">{% trans "Новинки" %}</a></li>
+          <li><a href="{% url 'catalog:hit_products' %}" class="site-footer__link">{% trans "Хіти продажів" %}</a></li>
+          <li><a href="{% url 'promotions:list' %}" class="site-footer__link">{% trans "Акції" %}</a></li>
+          <li><a href="{% url 'catalog:brands' %}" class="site-footer__link">{% trans "Бренди" %}</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="site-footer__col-title">{% trans "Послуги" %}</h3>
+        <ul class="site-footer__links">
+          <li><a href="{% url 'services:list' %}" class="site-footer__link">{% trans "Сервіс-центр" %}</a></li>
+          <li><a href="{% url 'ai:consultant' %}" class="site-footer__link">{% trans "AI-консультант" %}</a></li>
+          <li><a href="{% url 'pages:warranty' %}" class="site-footer__link">{% trans "Гарантія" %}</a></li>
+          <li><a href="{% url 'pages:returns' %}" class="site-footer__link">{% trans "Повернення" %}</a></li>
+          <li><a href="{% url 'pages:delivery' %}" class="site-footer__link">{% trans "Доставка" %}</a></li>
+          <li><a href="{% url 'pages:payment' %}" class="site-footer__link">{% trans "Оплата" %}</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="site-footer__col-title">{% trans "Контакти" %}</h3>
+        <ul class="site-footer__links">
+          <li><a href="tel:{{ SITE_PHONE }}" class="site-footer__link">{{ SITE_PHONE }}</a></li>
+          <li><a href="mailto:{{ SITE_EMAIL }}" class="site-footer__link">{{ SITE_EMAIL }}</a></li>
+          <li><a href="{% url 'pages:contact' %}" class="site-footer__link">{% trans "Написати нам" %}</a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="site-footer__bottom">
+      <span>&copy; {% now "Y" %} СвітПК. {% trans "Всі права захищені." %}</span>
+      <span>
+        <a href="{% url 'pages:privacy' %}" class="site-footer__link">{% trans "Конфіденційність" %}</a>
+      </span>
+    </div>
+  </div>
+</footer>

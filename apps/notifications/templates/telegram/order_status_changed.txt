@@ -1,0 +1,7 @@
+📦 <b>Замовлення #{{ order.pk }}</b>
+
+Статус змінено: <b>{{ order.status.name }}</b>{% if order.ttn %}
+
+🚚 ТТН: <b>{{ order.ttn }}</b>{% endif %}
+
+Деталі на сайті: <a href="https://svitpc.ua/orders/{{ order.pk }}/">переглянути</a>

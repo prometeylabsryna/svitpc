@@ -1,0 +1,1 @@
+СвітПК: З Днем народження, {{ customer.first_name|default:"" }}! Промокод на знижку 10%: {{ coupon.code }} (до {{ coupon.valid_to|date:"d.m.Y" }}). +{{ bonus_amount }} бонусних грн на рахунок. svitpc.ua

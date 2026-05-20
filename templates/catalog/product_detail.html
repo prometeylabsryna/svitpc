@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% load i18n static svitpc_tags %}
+
+{% block title %}{{ product.seo_title|default:product.name }}{% endblock %}
+{% block meta_description %}{{ product.seo_description|default:product.short_description }}{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ product.get_absolute_url }}{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block og_title %}{{ product.name }}{% endblock %}
+{% block og_description %}{{ product.seo_description|default:product.short_description|striptags }}{% endblock %}
+{% block og_image %}{% if product.main_image_url %}{{ product.main_image_url }}{% else %}{{ SITE_URL }}{% static 'images/og-default.jpg' %}{% endif %}{% endblock %}
+{% block twitter_title %}{{ product.name }}{% endblock %}
+{% block twitter_description %}{{ product.seo_description|default:product.short_description|striptags }}{% endblock %}
+{% block twitter_image %}{% if product.main_image_url %}{{ product.main_image_url }}{% else %}{{ SITE_URL }}{% static 'images/og-default.jpg' %}{% endif %}{% endblock %}
+
+{% block jsonld %}
+{# Product structured data #}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "{{ product.name|escapejs }}",
+  "description": "{{ product.short_description|striptags|escapejs }}",
+  "sku": "{{ product.sku }}",
+  "mpn": "{{ product.sku }}",
+  "url": "{{ request.scheme }}://{{ request.get_host }}{{ product.get_absolute_url }}",
+  {% if product.main_image_url %}"image": ["{{ product.main_image_url }}"],{% endif %}
+  "brand": {"@type": "Brand", "name": "{{ product.brand.name|default:''|escapejs }}"},
+  "offers": {
+    "@type": "Offer",
+    "price": "{{ product.price }}",
+    "priceCurrency": "UAH",
+    "availability": "{% if product.is_available %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+    "itemCondition": "https://schema.org/NewCondition",
+    "url": "{{ request.scheme }}://{{ request.get_host }}{{ product.get_absolute_url }}",
+    "seller": {"@type": "Organization", "name": "СвітПК", "url": "{{ SITE_URL }}"}
+  }{% if attrs_by_group %},
+  "additionalProperty": [{% for ag in attrs_by_group %}{% for pa in ag.items %}{% if not forloop.parentloop.first or not forloop.first %},{% endif %}
+    {"@type": "PropertyValue", "name": "{{ pa.attribute.name|escapejs }}", "value": "{{ pa.value|escapejs }}"}{% endfor %}{% endfor %}
+  ]{% endif %}{% if product.avg_rating %},
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "{{ product.avg_rating }}",
+    "reviewCount": "{{ product.review_count }}"
+  }{% endif %}
+}
+</script>
+{# BreadcrumbList for product page #}
+{% with cats=product.categories.all %}{% if cats %}
+{% with cat=cats.0 %}{% with ancestors=cat.get_ancestors %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "{% trans "Головна" %}", "item": "{{ SITE_URL }}/"}{% for anc in ancestors %},
+    {"@type": "ListItem", "position": {{ forloop.counter|add:"1" }}, "name": "{{ anc.name|escapejs }}", "item": "{{ request.scheme }}://{{ request.get_host }}{{ anc.get_absolute_url }}"}{% endfor %},
+    {"@type": "ListItem", "position": {{ ancestors|length|add:"2" }}, "name": "{{ cat.name|escapejs }}", "item": "{{ request.scheme }}://{{ request.get_host }}{{ cat.get_absolute_url }}"},
+    {"@type": "ListItem", "position": {{ ancestors|length|add:"3" }}, "name": "{{ product.name|escapejs }}"}
+  ]
+}
+</script>
+{% endwith %}{% endwith %}
+{% endif %}{% endwith %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  {# Breadcrumbs #}
+  <nav class="breadcrumbs" aria-label="{% trans 'Навігація' %}">
+    <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
+    {% with cats=product.categories.all %}
+    {% if cats %}
+    {% with cat=cats.0 %}
+    {% for ancestor in cat.get_ancestors %}
+    <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+    <span class="breadcrumbs__item"><a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name }}</a></span>
+    {% endfor %}
+    <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+    <span class="breadcrumbs__item"><a href="{{ cat.get_absolute_url }}">{{ cat.name }}</a></span>
+    {% endwith %}
+    {% endif %}
+    {% endwith %}
+    <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+    <span class="breadcrumbs__item" aria-current="page">{{ product.name }}</span>
+  </nav>
+
+  <div class="pdp-grid">
+
+    {# Gallery #}
+    <div class="pdp-gallery" data-gallery>
+      <div class="pdp-gallery__main" data-gallery-main>
+        <img
+          src="{{ product.main_image_url|default:'/static/images/no-photo.svg' }}"
+          alt="{{ product.name }}"
+          width="600"
+          height="600"
+          loading="eager">
+      </div>
+      {% if product.images.all %}
+      <div class="pdp-gallery__thumbs" role="list" aria-label="{% trans 'Фотографії товару' %}">
+        <button class="pdp-gallery__thumb is-active" data-gallery-thumb data-src="{{ product.main_image_url }}" role="listitem" aria-label="{% trans 'Головне фото' %}">
+          <img src="{{ product.main_image_url }}" alt="" loading="lazy" width="72" height="72">
+        </button>
+        {% for img in product.images.all %}{% if img.url %}
+        <button class="pdp-gallery__thumb" data-gallery-thumb data-src="{{ img.url }}" role="listitem" aria-label="{% trans 'Фото' %} {{ forloop.counter }}">
+          <img src="{{ img.url }}" alt="" loading="lazy" width="72" height="72">
+        </button>
+        {% endif %}{% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    {# Info panel #}
+    <div class="pdp-info">
+
+      {% if product.brand %}
+      <div class="pdp-brand">
+        <a href="{{ product.brand.get_absolute_url }}">{{ product.brand.name }}</a>
+        {% if product.sku %}<span style="color:var(--clr-neutral-300)">|</span> <span>{% trans "Арт." %}: {{ product.sku }}</span>{% endif %}
+      </div>
+      {% endif %}
+
+      <h1 class="pdp-title">{{ product.name }}</h1>
+
+      <div class="pdp-meta">
+        {% if product.avg_rating %}
+        <div class="rating-stars" aria-label="{{ product.avg_rating }} {% trans 'з 5' %}">
+          {% for i in "12345" %}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{% if forloop.counter <= product.avg_rating %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5z"/></svg>
+          {% endfor %}
+        </div>
+        <a href="#reviews" style="font-size:var(--text-sm)">{{ product.review_count }} {% trans "відгуків" %}</a>
+        {% endif %}
+        <span class="pdp-stock {% if product.is_available %}pdp-stock--in{% else %}pdp-stock--out{% endif %}">
+          {% if product.is_available %}✓ {% trans "В наявності" %}{% else %}{% trans "Немає в наявності" %}{% endif %}
+        </span>
+      </div>
+
+      {# Badges #}
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        {% if product.is_new %}<span class="badge badge--success">{% trans "Новинка" %}</span>{% endif %}
+        {% if product.is_hit %}<span class="badge badge--info">{% trans "Хіт" %}</span>{% endif %}
+        {% with d=product.price|discount_percent:product.old_price %}{% if d > 0 %}<span class="badge badge--danger">-{{ d }}%</span>{% endif %}{% endwith %}
+      </div>
+
+      <div class="pdp-price-block">
+        <span class="pdp-price">{{ product.price|currency }}</span>
+        {% if product.old_price %}
+        <span class="pdp-old-price">{{ product.old_price|currency }}</span>
+        {% endif %}
+      </div>
+
+      <div class="pdp-actions">
+        {% if product.is_available %}
+        <button
+          class="btn btn--primary btn--lg"
+          hx-post="{% url 'cart:add' product.pk %}"
+          hx-swap="none"
+          style="flex:1">
+          {% trans "До кошика" %}
+        </button>
+        <button
+          class="btn btn--secondary"
+          hx-get="{% url 'checkout:one_click' product.pk %}"
+          hx-target="#modal-container"
+          hx-swap="innerHTML">
+          {% trans "Купити в 1 клік" %}
+        </button>
+        {% else %}
+        <button class="btn btn--primary btn--lg" disabled style="flex:1">{% trans "Немає в наявності" %}</button>
+        {% endif %}
+
+        <button
+          class="btn btn--ghost"
+          data-wishlist-toggle
+          hx-post="{% url 'wishlist:toggle' product.pk %}"
+          hx-swap="none"
+          aria-label="{% trans 'До бажаних' %}">
+          ♡ {% trans "Бажані" %}
+        </button>
+        <button
+          class="btn btn--ghost"
+          data-compare-toggle
+          hx-post="{% url 'compare:toggle' product.pk %}"
+          hx-swap="none"
+          aria-label="{% trans 'Порівняти' %}">
+          {% trans "Порівняти" %}
+        </button>
+        <a href="{% url 'ai:consultant' %}?product={{ product.name|urlencode }}"
+           class="btn btn--ghost pdp-ai-btn"
+           aria-label="{% trans 'Запитати AI-консультанта про цей товар' %}">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+               stroke-width="1.5" stroke="currentColor" width="16" height="16" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/>
+          </svg>
+          {% trans "Запитати AI" %}
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  {# Tabs: Description / Attributes / Reviews #}
+  <div class="pdp-tabs" data-tabs>
+    <div class="tab-list" role="tablist">
+      <button class="tab-btn" data-tab-btn="desc" role="tab" aria-selected="true">{% trans "Опис" %}</button>
+      <button class="tab-btn" data-tab-btn="attrs" role="tab" aria-selected="false">{% trans "Характеристики" %}</button>
+      <button class="tab-btn" data-tab-btn="reviews" id="reviews" role="tab" aria-selected="false">{% trans "Відгуки" %} ({{ product.review_count }})</button>
+    </div>
+
+    <div class="tab-panel" data-tab-panel="desc" role="tabpanel">
+      {% if product.description %}
+        {{ product.description|safe }}
+      {% else %}
+        <p style="color:var(--clr-text-muted)">{% trans "Опис відсутній." %}</p>
+      {% endif %}
+    </div>
+
+    <div class="tab-panel" data-tab-panel="attrs" role="tabpanel">
+      {% if attrs_by_group %}
+      {% for ag in attrs_by_group %}
+      <h3 style="margin-bottom:.75rem;margin-top:1.5rem;font-weight:600">{{ ag.group.name }}</h3>
+      <dl class="pdp-attrs">
+        {% for pa in ag.items %}
+        <div class="pdp-attr-row">
+          <dt>{{ pa.attribute.name }}</dt>
+          <dd>{{ pa.value }}</dd>
+        </div>
+        {% endfor %}
+      </dl>
+      {% endfor %}
+      {% else %}
+      <p style="color:var(--clr-text-muted)">{% trans "Характеристики відсутні." %}</p>
+      {% endif %}
+    </div>
+
+    <div class="tab-panel" data-tab-panel="reviews" role="tabpanel"
+      hx-get="{% url 'reviews:product' product.pk %}"
+      hx-trigger="revealed"
+      hx-swap="innerHTML">
+      <p style="color:var(--clr-text-muted)">{% trans "Завантаження..." %}</p>
+    </div>
+  </div>
+
+  {# Related products #}
+  {% if related %}
+  <section style="margin-top: 3rem">
+    <div class="section-heading">
+      <h2 class="section-heading__title">{% trans "Схожі товари" %}</h2>
+    </div>
+    {% with count=related|length %}
+    <div class="card-grid {{ count|grid_cols_class:4 }}">
+      {% for p in related %}
+        {% include "components/product_card.html" with product=p %}
+      {% endfor %}
+    </div>
+    {% endwith %}
+  </section>
+  {% endif %}
+
+</div>
+<div id="modal-container" role="dialog" aria-live="polite"></div>
+{% endblock %}

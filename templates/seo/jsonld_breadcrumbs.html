@@ -1,0 +1,12 @@
+{% if breadcrumbs %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Головна", "item": "{{ request.scheme }}://{{ request.get_host }}/"}{% for crumb in breadcrumbs %},
+    {"@type": "ListItem", "position": {{ forloop.counter|add:1 }}, "name": "{{ crumb.name|escapejs }}", "item": "{{ request.scheme }}://{{ request.get_host }}{{ crumb.get_absolute_url }}"}{% endfor %}
+  ]
+}
+</script>
+{% endif %}

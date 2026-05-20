@@ -1,0 +1,58 @@
+/* SvitPC — main CSS entrypoint.
+   Layer order: reset → tokens → base → layout → components → pages → utilities
+   All cascade layers declared here so import order = specificity order. */
+
+@layer reset, tokens, base, layout, components, pages, utilities;
+
+/* ── Google Fonts ─────────────────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+/* ── Layers ──────────────────────────────────────────────────────────────── */
+@import "base/_reset.css"        layer(reset);
+@import "base/_tokens.css"       layer(tokens);
+@import "base/_typography.css"   layer(base);
+
+@import "layouts/_container.css" layer(layout);
+@import "layouts/_grid.css"      layer(layout);
+
+@import "components/_header.css"            layer(components);
+@import "components/_footer.css"            layer(components);
+@import "components/_card.css"             layer(components);
+@import "components/_forms.css"            layer(components);
+@import "components/_filters.css"          layer(components);
+@import "components/_misc.css"             layer(components);
+@import "components/_chat.css"             layer(components);
+@import "components/_mobile-bottom-nav.css" layer(components);
+
+@import "pages/_home.css"     layer(pages);
+@import "pages/_catalog.css"  layer(pages);
+@import "pages/_product.css"  layer(pages);
+@import "pages/_checkout.css" layer(pages);
+@import "pages/_ai.css"       layer(pages);
+@import "pages/_pages.css"    layer(pages);
+
+/* ── Utilities ────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+  }
+
+  .text-center { text-align: center; }
+  .text-muted  { color: var(--clr-text-muted); }
+
+  .mt-auto { margin-top: auto; }
+  .flex    { display: flex; }
+  /* Native [hidden] attribute — in utilities layer so it wins over components/pages without !important */
+  [hidden] { display: none; }
+  .hidden  { display: none; }
+
+  /* HTMX loading indicator */
+  .htmx-indicator { opacity: 0; transition: opacity 200ms ease; }
+  .htmx-request .htmx-indicator,
+  .htmx-request.htmx-indicator { opacity: 1; }
+}

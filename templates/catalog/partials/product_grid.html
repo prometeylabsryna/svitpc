@@ -1,0 +1,39 @@
+{% load i18n svitpc_tags %}
+
+<div id="product-grid" data-total="{{ total }}">
+  {% if products %}
+  {% with count=products|length %}
+  <div class="card-grid {{ count|grid_cols_class:4 }}">
+    {% for product in products %}
+      {% include "components/product_card.html" with product=product %}
+    {% endfor %}
+  </div>
+  {% endwith %}
+
+  {# Pagination — query_params contains all active filters without `page` #}
+  {% if total_pages > 1 %}
+  {% with base=query_params|default:"" %}
+  <nav class="pagination" aria-label="{% trans 'Сторінки' %}">
+    {% if page > 1 %}
+    <a href="?{% if base %}{{ base }}&{% endif %}page={{ page|add:"-1" }}" class="pagination__item" aria-label="{% trans 'Попередня' %}">‹</a>
+    {% endif %}
+    {% for i in "123456789"|make_list %}
+      {% with pi=forloop.counter %}
+        {% if pi <= total_pages %}
+        <a href="?{% if base %}{{ base }}&{% endif %}page={{ pi }}" class="pagination__item {% if pi == page %}is-active{% endif %}" {% if pi == page %}aria-current="page"{% endif %}>{{ pi }}</a>
+        {% endif %}
+      {% endwith %}
+    {% endfor %}
+    {% if page < total_pages %}
+    <a href="?{% if base %}{{ base }}&{% endif %}page={{ page|add:"1" }}" class="pagination__item" aria-label="{% trans 'Наступна' %}">›</a>
+    {% endif %}
+  </nav>
+  {% endwith %}
+  {% endif %}
+
+  {% else %}
+  <div style="text-align:center; padding: 4rem; color: var(--clr-text-muted)">
+    <p>{% trans "Товарів не знайдено. Спробуйте змінити фільтри." %}</p>
+  </div>
+  {% endif %}
+</div>

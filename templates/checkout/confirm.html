@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load i18n svitpc_tags %}
+{% block title %}{% trans "Підтвердження замовлення" %}{% endblock %}
+{% block content %}
+<div class="container container--narrow checkout-confirm">
+  <h1 class="checkout-confirm__title">{% trans "Перевірте замовлення" %}</h1>
+
+  <div class="checkout-confirm__sections">
+
+    <section class="checkout-confirm__section">
+      <h2 class="checkout-confirm__section-title">{% trans "Контактні дані" %}</h2>
+      <dl class="checkout-confirm__dl">
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Ім'я" %}</dt>
+          <dd>{{ step1.first_name }} {{ step1.last_name }}</dd>
+        </div>
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Телефон" %}</dt>
+          <dd>{{ step1.phone }}</dd>
+        </div>
+        {% if step1.email %}
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Email" %}</dt>
+          <dd>{{ step1.email }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    </section>
+
+    <section class="checkout-confirm__section">
+      <h2 class="checkout-confirm__section-title">{% trans "Доставка" %}</h2>
+      <dl class="checkout-confirm__dl">
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Спосіб" %}</dt>
+          <dd>
+            {% if step1.delivery_type == "nova_poshta" %}{% trans "Нова Пошта" %}
+            {% elif step1.delivery_type == "ukrposhta" %}{% trans "Укрпошта" %}
+            {% elif step1.delivery_type == "pickup" %}{% trans "Самовивіз" %}
+            {% else %}{{ step1.delivery_type }}{% endif %}
+          </dd>
+        </div>
+        {% if step1.city %}
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Місто" %}</dt>
+          <dd>{{ step1.city }}</dd>
+        </div>
+        {% endif %}
+        {% if step1.warehouse %}
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Відділення" %}</dt>
+          <dd>{{ step1.warehouse }}</dd>
+        </div>
+        {% endif %}
+        {% if step1.postcode %}
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Індекс" %}</dt>
+          <dd>{{ step1.postcode }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    </section>
+
+    <section class="checkout-confirm__section">
+      <h2 class="checkout-confirm__section-title">{% trans "Оплата" %}</h2>
+      <dl class="checkout-confirm__dl">
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Спосіб" %}</dt>
+          <dd>
+            {% if step2.payment_method == "card" %}{% trans "Оплата карткою (Visa/Mastercard)" %}
+            {% elif step2.payment_method == "google_pay" %}Google Pay
+            {% elif step2.payment_method == "apple_pay" %}Apple Pay
+            {% elif step2.payment_method == "cod" %}{% trans "Післяплата (при отриманні)" %}
+            {% elif step2.payment_method == "installment" %}{% trans "Розстрочка 0%" %}
+            {% else %}{{ step2.payment_method }}{% endif %}
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    {% if step1.comment %}
+    <section class="checkout-confirm__section">
+      <h2 class="checkout-confirm__section-title">{% trans "Коментар" %}</h2>
+      <p class="checkout-confirm__comment">{{ step1.comment }}</p>
+    </section>
+    {% endif %}
+
+    <section class="checkout-confirm__section checkout-confirm__section--cart">
+      <h2 class="checkout-confirm__section-title">{% trans "Товари" %}</h2>
+      <div class="checkout-confirm__items">
+        {% for item in cart %}
+        <div class="checkout-confirm__item">
+          <img class="checkout-confirm__item-img"
+            src="{{ item.image_url|default:'/static/images/no-photo.svg' }}"
+            alt="{{ item.name }}"
+            width="56" height="56" loading="lazy">
+          <div class="checkout-confirm__item-info">
+            <span class="checkout-confirm__item-name">{{ item.name }}</span>
+            <span class="checkout-confirm__item-qty">× {{ item.qty }}</span>
+          </div>
+          <span class="checkout-confirm__item-subtotal">{{ item.subtotal|currency }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="checkout-confirm__total">
+        <span>{% trans "Разом:" %}</span>
+        <strong>{{ cart.total|currency }}</strong>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="checkout-confirm__actions">
+    <a href="{% url 'checkout:step2' %}" class="btn btn--ghost">← {% trans "Назад" %}</a>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn--primary btn--lg">{% trans "Оформити замовлення" %}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

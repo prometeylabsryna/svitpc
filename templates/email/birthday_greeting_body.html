@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вітаємо з Днем народження!</title>
+</head>
+<body style="font-family: sans-serif; color: #111; max-width: 580px; margin: 0 auto; padding: 24px;">
+  <h2>🎂 З Днем народження, {{ customer.first_name|default:customer.email }}!</h2>
+  <p>Команда <strong>СвітПК</strong> щиро вітає вас із цим особливим днем і бажає здоров'я, успіхів та нових технологічних знахідок!</p>
+
+  <table style="width:100%; border-collapse:collapse; background:#f9f9f9; border-radius:8px; margin:20px 0;">
+    <tr>
+      <td style="padding:16px;">
+        <p style="margin:0 0 8px; font-size:15px;"><strong>🎁 Подарунок від нас:</strong></p>
+        <p style="margin:0 0 4px;">Ваш промокод на <strong>10% знижку</strong>:</p>
+        <p style="margin:0; font-size:22px; font-weight:bold; letter-spacing:2px; color:#2563eb;">{{ coupon.code }}</p>
+      </td>
+    </tr>
+  </table>
+
+  <table style="width:100%; border-collapse:collapse; margin:0 0 20px;">
+    <tr><td style="padding:6px 0; color:#555; width:50%;">Дійсний до:</td><td>{{ coupon.valid_to|date:"d.m.Y" }}</td></tr>
+    <tr><td style="padding:6px 0; color:#555;">Бонусів нараховано:</td><td><strong>+{{ bonus_amount }} грн</strong></td></tr>
+  </table>
+
+  <p>Введіть промокод під час оформлення замовлення на <a href="https://svitpc.ua">svitpc.ua</a></p>
+
+  <hr style="border:none; border-top:1px solid #eee; margin:24px 0;">
+  <p style="color:#888; font-size:13px;">СвітПК — комп'ютерна техніка та електроніка.<br>
+  Якщо ви не хочете отримувати подібні листи — оновіть налаштування у <a href="https://svitpc.ua/account/profile/">особистому кабінеті</a>.</p>
+</body>
+</html>

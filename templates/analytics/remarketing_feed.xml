@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>СвітПК Google Ads Remarketing Feed</title>
+  {% for product in products %}
+  <entry>
+    <id>{{ product.pk }}</id>
+    <title>{{ product.name }}</title>
+    <link href="{{ request.scheme }}://{{ request.get_host }}{{ product.get_absolute_url }}"/>
+    <price currency="UAH">{{ product.price }}</price>
+  </entry>
+  {% endfor %}
+</feed>

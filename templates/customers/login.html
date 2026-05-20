@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Вхід" %}{% endblock %}
+{% block content %}
+<div class="container container--narrow auth-form auth-form--narrow">
+  <h1 class="auth-form__title">{% trans "Вхід в кабінет" %}</h1>
+  <form method="post" novalidate class="auth-form__form">
+    {% csrf_token %}
+    <div class="form-field">
+      <label class="form-label" for="id_username">{% trans "Email" %}</label>
+      <input class="form-input" id="id_username" name="username" type="email" required autofocus>
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="id_password">{% trans "Пароль" %}</label>
+      <input class="form-input" id="id_password" name="password" type="password" required>
+    </div>
+    {% if form.non_field_errors %}<p class="form-error">{{ form.non_field_errors.0 }}</p>{% endif %}
+    <button type="submit" class="btn btn--primary btn--full btn--lg">{% trans "Увійти" %}</button>
+    <p class="auth-form__footer">{% trans "Немає акаунта?" %} <a href="{% url 'customers:register' %}">{% trans "Зареєструватись" %}</a></p>
+  </form>
+</div>
+{% endblock %}

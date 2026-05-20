@@ -1,0 +1,12 @@
+🔧 <b>Заявка сервісного центру #{{ req.pk }}</b>
+
+Пристрій: {{ req.device }}
+Статус: <b>{{ status_label }}</b>{% if req.technician_notes %}
+
+📝 Примітки: {{ req.technician_notes }}{% endif %}{% if req.final_cost %}
+
+💰 Вартість ремонту: <b>{{ req.final_cost }} ₴</b>{% elif req.estimated_cost %}
+
+💰 Орієнтовна вартість: <b>{{ req.estimated_cost }} ₴</b>{% endif %}
+
+📞 З питань звертайтесь: {{ site_phone }}

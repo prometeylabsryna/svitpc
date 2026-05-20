@@ -1,0 +1,90 @@
+@layer pages {
+  .catalog-page {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+    padding-block: var(--space-6);
+
+    @media (min-width: 1024px) {
+      grid-template-columns: 260px 1fr;
+    }
+  }
+
+  .catalog-sidebar {
+    @media (max-width: 1023px) { display: none; }
+
+    @media (min-width: 1024px) {
+      position: sticky;
+      top: calc(var(--header-h) + var(--space-4));
+      max-height: calc(100dvh - var(--header-h) - var(--space-8));
+      overflow-y: auto;
+      align-self: start;
+      scrollbar-width: thin;
+      scrollbar-color: var(--clr-border-strong) transparent;
+      background: var(--clr-bg);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-4);
+
+      &::-webkit-scrollbar { width: 4px; }
+      &::-webkit-scrollbar-track { background: transparent; }
+      &::-webkit-scrollbar-thumb { background: var(--clr-border-strong); border-radius: 2px; }
+    }
+  }
+
+  .catalog-sidebar--mobile {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    display: none;
+
+    &.is-open { display: flex; }
+
+    .catalog-sidebar__panel {
+      background: var(--clr-surface);
+      border-right: 1px solid var(--clr-border-strong);
+      width: min(320px, 100%);
+      height: 100%;
+      overflow-y: auto;
+      padding: var(--space-6) var(--space-4);
+    }
+  }
+
+  .catalog-main {}
+
+  .catalog-main__title {
+    font-size: clamp(var(--text-xl), 3vw, var(--text-3xl));
+    font-weight: var(--fw-bold);
+    color: var(--clr-text);
+    line-height: var(--leading-tight);
+    letter-spacing: -0.02em;
+    margin-bottom: var(--space-4);
+  }
+
+  .catalog-sort-bar {
+    margin-bottom: var(--space-4);
+  }
+
+  .filters-mobile-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-md);
+    background: var(--clr-bg);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    color: var(--clr-text-muted);
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+
+    svg { width: 18px; height: 18px; }
+
+    &:hover {
+      border-color: var(--clr-primary-500);
+      color: var(--clr-primary-600);
+    }
+
+    @media (min-width: 1024px) { display: none; }
+  }
+}

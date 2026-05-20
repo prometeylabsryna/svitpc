@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Замовлення прийнято" %}{% endblock %}
+{% block content %}
+<div class="container container--narrow checkout-success">
+  <div class="checkout-success__icon" aria-hidden="true">✅</div>
+  <h1 class="checkout-success__title">{% trans "Дякуємо за замовлення!" %}</h1>
+  <p class="page-meta">{% blocktrans with pk=order.pk %}Замовлення №{{ pk }} прийнято. Ми зв'яжемось з вами найближчим часом.{% endblocktrans %}</p>
+  <div class="checkout-pay__actions">
+    <a href="{% url 'orders:list' %}" class="btn btn--secondary">{% trans "Мої замовлення" %}</a>
+    <a href="{% url 'catalog:home' %}" class="btn btn--ghost">{% trans "Продовжити покупки" %}</a>
+  </div>
+</div>
+<meta name="ecommerce-purchase" content='{"order_id":"{{ order.pk }}","total":"{{ order.total }}"}'>
+{% endblock %}

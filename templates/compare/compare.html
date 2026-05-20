@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n svitpc_tags %}
+{% block title %}{% trans "Порівняння товарів" %}{% endblock %}
+{% block content %}
+<div class="container compare">
+  <h1 class="compare__title">{% trans "Порівняння товарів" %}</h1>
+  {% if products %}
+  <table class="compare__table">
+    <thead>
+      <tr>
+        <th class="compare__th-label">{% trans "Характеристика" %}</th>
+        {% for p in products %}
+        <th class="compare__th-product">
+          <a href="{{ p.get_absolute_url }}" class="compare__product-name">{{ p.name|truncatewords:6 }}</a>
+          <div class="compare__product-price">{{ p.price|currency }}</div>
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="compare__td">{% trans "Бренд" %}</td>
+        {% for p in products %}<td class="compare__td compare__td--center">{{ p.brand.name|default:"—" }}</td>{% endfor %}
+      </tr>
+      <tr>
+        <td class="compare__td">{% trans "Артикул" %}</td>
+        {% for p in products %}<td class="compare__td compare__td--center">{{ p.sku|default:"—" }}</td>{% endfor %}
+      </tr>
+      <tr>
+        <td class="compare__td">{% trans "Наявність" %}</td>
+        {% for p in products %}
+        <td class="compare__td compare__td--center {% if p.is_available %}compare__td--available{% else %}compare__td--unavailable{% endif %}">
+          {% if p.is_available %}✓{% else %}✗{% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% for group in attr_groups %}
+      <tr class="compare__tr-group">
+        <td class="compare__td compare__td--group-label" colspan="{{ products|length|add:1 }}">{{ group.name }}</td>
+      </tr>
+      {% for row in group.rows %}
+      <tr>
+        <td class="compare__td">{{ row.name }}</td>
+        {% for val in row.values %}<td class="compare__td compare__td--center">{{ val }}</td>{% endfor %}
+      </tr>
+      {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="page-empty">{% trans "Немає товарів для порівняння. Додайте товари з каталогу." %}</p>
+  {% endif %}
+</div>
+{% endblock %}

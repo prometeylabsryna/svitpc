@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Всі бренди" %}{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-block: 2rem">
+  <h1 style="margin-bottom: 1.5rem; font-weight: 700">{% trans "Бренди" %}</h1>
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem;">
+    {% for brand in brands %}
+    <a href="{{ brand.get_absolute_url }}" style="display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:1rem;border-radius:.75rem;border:1px solid var(--clr-border);text-align:center;font-weight:500;color:var(--clr-text);transition:box-shadow .2s">
+      {% if brand.logo %}<img src="{{ brand.logo.url }}" alt="{{ brand.name }}" style="height:48px;object-fit:contain" loading="lazy">{% endif %}
+      {{ brand.name }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
