@@ -66,11 +66,7 @@
     color: #fff;
 
     &--sale   { background: var(--grad-badge-sale); }
-    &--new {
-      color: var(--clr-badge-new);
-      background: var(--bg-badge-new);
-      border: 1px solid var(--border-badge-new);
-    }
+    &--new    { background: var(--grad-badge-new); }
     &--hit    { background: var(--grad-badge-hit); }
     &--promo  { background: var(--grad-primary); }
   }

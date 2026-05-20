@@ -1,7 +1,6 @@
 .PHONY: help install run migrate makemigrations shell test lint fmt celery worker beat import-sql createsuperuser
 
-PYTHON := python
-MANAGE := $(PYTHON) manage.py
+MANAGE := uv run manage.py
 SETTINGS := DJANGO_SETTINGS_MODULE=config.settings.develop
 
 help:
@@ -22,7 +21,7 @@ install:
 	uv sync --all-extras
 
 run:
-	$(SETTINGS) $(MANAGE) runserver 0.0.0.0:8000
+	$(SETTINGS) $(MANAGE) runserver 0.0.0.0:8001
 
 migrate:
 	$(SETTINGS) $(MANAGE) migrate
