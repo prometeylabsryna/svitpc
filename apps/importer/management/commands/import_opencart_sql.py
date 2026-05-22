@@ -648,10 +648,12 @@ class Command(BaseCommand):
         images: list[ProductImage] = []
         count = 0
 
+        from apps.catalog.gallery import is_stale_gallery_url
+
         for row in stream_table(self._filepath, "oc_product_image"):
             pid = prod_map.get(int(row["product_id"]))
             url = _normalize_image_url(row.get("image") or "")
-            if not pid or not url:
+            if not pid or not url or is_stale_gallery_url(url):
                 continue
             images.append(ProductImage(
                 product_id=pid,

@@ -127,6 +127,9 @@ DATABASES = {
 }
 DATABASES["default"]["OPTIONS"] = {"connect_timeout": 10}
 
+# Full-text search — 'ukrainian' is created by apps.search migration (COPY simple)
+POSTGRES_FTS_CONFIG = env("POSTGRES_FTS_CONFIG", default="ukrainian")
+
 # ── Cache ──────────────────────────────────────────────────────────────────────
 CACHES = {
     "default": {
@@ -191,6 +194,10 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Europe/Kyiv"
 CELERY_BEAT_SCHEDULE = {
+    "brain-sync-categories": {
+        "task": "apps.integrations.brain.tasks.sync_categories",
+        "schedule": 6 * 3600,  # every 6 hours
+    },
     "brain-sync-prices": {
         "task": "apps.integrations.brain.tasks.sync_prices",
         "schedule": 4 * 3600,  # every 4 hours
@@ -213,11 +220,19 @@ CELERY_BEAT_SCHEDULE = {
     },
     "brain-sync-options": {
         "task": "apps.integrations.brain.tasks.sync_options",
-        "schedule": 86400,  # daily — changed characteristics
+        "schedule": 6 * 3600,  # every 6 hours
     },
     "brain-sync-images": {
         "task": "apps.integrations.brain.tasks.sync_images",
-        "schedule": 86400,  # daily — changed gallery images
+        "schedule": 6 * 3600,  # every 6 hours
+    },
+    "brain-backfill-metadata": {
+        "task": "apps.integrations.brain.tasks.backfill_metadata",
+        "schedule": 2 * 3600,  # every 2 hours — brands/categories for OC-imported rows
+    },
+    "brain-reconcile-stale-stock": {
+        "task": "apps.integrations.brain.tasks.reconcile_stale_stock",
+        "schedule": 4 * 3600,  # every 4 hours — fix placeholder stock values
     },
     "brain-sync-new-products": {
         "task": "apps.integrations.brain.tasks.sync_new_products",
@@ -485,6 +500,8 @@ BRAIN_LOGIN = env("BRAIN_LOGIN", default="")
 BRAIN_PASSWORD = env("BRAIN_PASSWORD", default="")
 # Legacy — kept for backward compat; new code uses session auth via BRAIN_LOGIN/BRAIN_PASSWORD
 BRAIN_API_URL = env("BRAIN_API_URL", default="https://api.brain.com.ua")
+# Auto-hide Brain products with zero availability (is_archive)
+BRAIN_HIDE_OUT_OF_STOCK = env.bool("BRAIN_HIDE_OUT_OF_STOCK", default=True)
 KANCMASTER_XML_URL = env("KANCMASTER_XML_URL", default="https://kancmaster.com.ua/xml_export_request")
 KANCMASTER_LOGIN = env("KANCMASTER_LOGIN", default="")
 KANCMASTER_PASSWORD = env("KANCMASTER_PASSWORD", default="")

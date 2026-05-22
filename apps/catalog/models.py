@@ -305,7 +305,13 @@ class ProductImage(models.Model):
     class Meta:
         verbose_name = _("Фото товару")
         verbose_name_plural = _("Фото товару")
-        ordering = ["sort_order"]
+        ordering = ["sort_order", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product", "sort_order"],
+                name="catalog_productimage_product_sort_uniq",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.product.name} [{self.sort_order}]"

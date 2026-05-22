@@ -121,6 +121,14 @@
     display: flex;
     gap: var(--space-3);
     flex-wrap: wrap;
+
+    .btn--secondary {
+      color: var(--clr-text);
+
+      &:hover {
+        color: var(--clr-text);
+      }
+    }
   }
 
   .hero__image {

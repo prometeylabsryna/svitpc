@@ -88,8 +88,13 @@ make beat     # celery -A config beat -l info --scheduler django
 ```
 
 Заплановані задачі (beat):
+- `brain.sync_categories` — кожні 6 год
 - `brain.sync_prices` — кожні 4 год
-- `brain.sync_stock` — щогодини
+- `brain.sync_stock` — кожні 2 год
+- `brain.sync_options` / `brain.sync_images` — кожні 6 год
+- `brain.sync_new_products` — кожні 6 год
+- `brain.backfill_metadata` — кожні 2 год (бренди/категорії після OC-імпорту)
+- `brain.reconcile_stale_stock` — кожні 4 год
 - `kancmaster.sync_all` — щодня о 3:00
 - `loyalty.send_birthday_greetings` — щодня о 9:00
 - `shipping.update_delivery_statuses` — кожні 2 год
@@ -97,10 +102,18 @@ make beat     # celery -A config beat -l info --scheduler django
 ## Налаштування інтеграцій
 
 ### Brain API
-Вкажіть `BRAIN_API_KEY` в `.env`. Запустіть початкову синхронізацію:
+Вкажіть `BRAIN_LOGIN` та `BRAIN_PASSWORD` в `.env` (див. `.env.example`).  
+Після імпорту з OpenCart — увімкніть політику приховування та backfill:
 ```bash
-python manage.py shell -c "from apps.integrations.brain.tasks import sync_products; sync_products.delay()"
+uv run manage.py brain_setup --sync-now   # одразу
+uv run manage.py brain_setup --enqueue    # через Celery
 ```
+Повна нічна синхронізація:
+```bash
+uv run manage.py shell -c "from apps.integrations.brain.tasks import sync_products; sync_products.delay()"
+```
+В адмінці: **Товари** → дії «Brain: синхронізувати…» / «Brain: оновити ціни та залишки».
+Націнки: **Налаштування → Знижкові правила** (`MarkupRule`).
 
 ### Нова Пошта — початкове завантаження міст
 ```bash
@@ -126,7 +139,7 @@ make createsuperuser
 ### Корисні дії в адмінці
 - **Товари** → виберіть кілька → "Згенерувати SEO (AI)" — автоматичне написання title/description
 - **Категорії** → drag-and-drop для зміни порядку (MPTT)
-- **Інтеграції → Brain** → кнопка "Синхронізувати ціни/залишки" вручну
+- **Товари** → дії Brain (синхронізація, ціни/залишки, приховування без залишку)
 - **Замовлення** → "Створити ТТН НП", "Відправити повідомлення про статус"
 
 ## Бекап БД

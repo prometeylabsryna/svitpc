@@ -91,22 +91,19 @@
     <div class="pdp-gallery" data-gallery>
       <div class="pdp-gallery__main" data-gallery-main>
         <img
-          src="{{ product.main_image_url|default:'/static/images/no-photo.svg' }}"
+          src="{% if gallery_urls %}{{ gallery_urls.0 }}{% else %}/static/images/no-photo.svg{% endif %}"
           alt="{{ product.name }}"
           width="600"
           height="600"
           loading="eager">
       </div>
-      {% if product.images.all %}
+      {% if gallery_urls|length > 1 %}
       <div class="pdp-gallery__thumbs" role="list" aria-label="{% trans 'Фотографії товару' %}">
-        <button class="pdp-gallery__thumb is-active" data-gallery-thumb data-src="{{ product.main_image_url }}" role="listitem" aria-label="{% trans 'Головне фото' %}">
-          <img src="{{ product.main_image_url }}" alt="" loading="lazy" width="72" height="72">
+        {% for url in gallery_urls %}
+        <button class="pdp-gallery__thumb{% if forloop.first %} is-active{% endif %}" data-gallery-thumb data-src="{{ url }}" role="listitem" aria-label="{% if forloop.first %}{% trans 'Головне фото' %}{% else %}{% trans 'Фото' %} {{ forloop.counter }}{% endif %}">
+          <img src="{{ url }}" alt="" loading="lazy" width="72" height="72">
         </button>
-        {% for img in product.images.all %}{% if img.url %}
-        <button class="pdp-gallery__thumb" data-gallery-thumb data-src="{{ img.url }}" role="listitem" aria-label="{% trans 'Фото' %} {{ forloop.counter }}">
-          <img src="{{ img.url }}" alt="" loading="lazy" width="72" height="72">
-        </button>
-        {% endif %}{% endfor %}
+        {% endfor %}
       </div>
       {% endif %}
     </div>

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
+from django.conf import settings
+from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -17,7 +18,7 @@ def _search_qs(q: str):
         return Product.objects.none()
 
     vector = SearchVector("name", weight="A") + SearchVector("sku", weight="A") + SearchVector("description", weight="B")
-    query = SearchQuery(q, config="ukrainian")
+    query = SearchQuery(q, config=settings.POSTGRES_FTS_CONFIG)
 
     fts_qs = (
         Product.objects.annotate(rank=SearchRank(vector, query))

@@ -101,6 +101,9 @@ class ProductAdmin(ModelAdmin):
         "enhance_characteristics_action",
         "mark_as_new",
         "mark_as_hit",
+        "brain_sync_incremental",
+        "brain_sync_prices_stock",
+        "brain_enable_hide_out_of_stock",
     ]
 
     @admin.display(description=_("Фото"))
@@ -145,6 +148,30 @@ class ProductAdmin(ModelAdmin):
     @admin.action(description=_("Позначити Хітами"))
     def mark_as_hit(self, request, queryset):
         queryset.update(is_hit=True)
+
+    @admin.action(description=_("Brain: синхронізувати (ціни, залишки, фото, опції)"))
+    def brain_sync_incremental(self, request, queryset):
+        from apps.integrations.brain.tasks import sync_all_incremental
+
+        sync_all_incremental.delay()
+        self.message_user(request, _("Повну інкрементальну синхронізацію Brain поставлено в чергу Celery"))
+
+    @admin.action(description=_("Brain: оновити ціни та залишки"))
+    def brain_sync_prices_stock(self, request, queryset):
+        from apps.integrations.brain.tasks import sync_prices, sync_stock
+
+        sync_prices.delay()
+        sync_stock.delay()
+        self.message_user(request, _("Оновлення цін і залишків Brain поставлено в чергу"))
+
+    @admin.action(description=_("Brain: приховувати без залишку"))
+    def brain_enable_hide_out_of_stock(self, request, queryset):
+        from apps.integrations.brain.tasks import apply_hide_out_of_stock_policy
+
+        qs = queryset.filter(source="brain")
+        updated = qs.update(hide_if_out_of_stock=True)
+        apply_hide_out_of_stock_policy.delay()
+        self.message_user(request, _(f"Увімкнено приховування для {updated} товарів Brain; видимість оновлюється в черзі"))
 
 
 @admin.register(AttributeGroup)

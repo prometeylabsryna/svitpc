@@ -11,6 +11,7 @@ from django_htmx.http import trigger_client_event
 
 from django.db.models import Avg, Count, Q
 
+from .gallery import product_gallery_urls
 from .models import Brand, Category, Product
 from .services import get_category_facets, get_filtered_products, get_product_facets, order_stock_first
 
@@ -131,6 +132,7 @@ def product_detail_view(request: HttpRequest, slug: str) -> HttpResponse:
 
     return render(request, "catalog/product_detail.html", {
         "product": product,
+        "gallery_urls": product_gallery_urls(product),
         "attrs_by_group": attrs_by_group.values(),
         "related": related,
         "top_categories": _top_categories_qs()[:12],
