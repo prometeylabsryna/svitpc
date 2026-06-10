@@ -21,7 +21,7 @@ help:
 	@echo "  make fix-catalog-uk — замінити російські назви атрибутів/фільтрів на українські"
 	@echo "  make dedupe-filters  — об'єднати дублікати груп/значень фільтрів OpenCart"
 	@echo "  make rebuild-search  — перебудувати FTS-індекс пошуку товарів"
-	@echo "  make populate-site — заповнити сайт (OpenCart + Brain + довідники)"
+	@echo "  make docker-populate — наповнити prod (OpenCart + Brain + довідники)"
 	@echo "  make backfill-i18n   — скопіювати legacy-дані в modeltranslation *_uk"
 	@echo "  make test-sms      — перевірити SMS_API_KEY (TurboSMS ping)"
 	@echo "  make test-sms-send PHONE=+380... — надіслати тестове SMS"
@@ -101,6 +101,9 @@ docker-logs:
 
 docker-deploy:
 	bash deploy/docker/deploy.sh
+
+docker-populate:
+	bash deploy/docker/populate.sh
 
 export-requirements:
 	uv export --no-dev --no-hashes --no-editable --no-emit-project -o requirements.txt
