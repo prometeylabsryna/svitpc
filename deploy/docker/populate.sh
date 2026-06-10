@@ -40,7 +40,14 @@ fi
 mkdir -p data logs backups
 
 echo "==> Compose: ${COMPOSE[*]}"
-echo "==> Ensuring db, redis, backend are up"
+
+if [[ ! -f apps/core/management/commands/populate_site.py ]]; then
+  echo "FATAL: populate_site.py missing — run: git pull origin main"
+  exit 1
+fi
+
+echo "==> Rebuild backend (pick up latest management commands)"
+"${COMPOSE[@]}" build backend
 "${COMPOSE[@]}" up -d db redis backend
 
 echo "==> Waiting for backend"
