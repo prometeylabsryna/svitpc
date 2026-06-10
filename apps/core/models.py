@@ -75,11 +75,14 @@ class SiteSettings(models.Model):
 
     @classmethod
     def load(cls) -> SiteSettings:
-        cached = cache.get(SITE_SETTINGS_CACHE_KEY)
-        if cached is not None:
-            return cached
-        obj, _ = cls.objects.get_or_create(pk=1)
-        cache.set(SITE_SETTINGS_CACHE_KEY, obj, timeout=None)
+        cached_pk = cache.get(SITE_SETTINGS_CACHE_KEY)
+        if cached_pk is not None:
+            try:
+                return cls.objects.select_related("used_category").get(pk=cached_pk)
+            except cls.DoesNotExist:
+                cache.delete(SITE_SETTINGS_CACHE_KEY)
+        obj, _ = cls.objects.select_related("used_category").get_or_create(pk=1)
+        cache.set(SITE_SETTINGS_CACHE_KEY, obj.pk, timeout=None)
         return obj
 
     def effective_viber_phone(self) -> str:
