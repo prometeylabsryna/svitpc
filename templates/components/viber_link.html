@@ -1,0 +1,9 @@
+{% load svitpc_tags %}
+{% if SITE_VIBER_PHONE|viber_chat_url %}
+<a href="{{ SITE_VIBER_PHONE|viber_chat_url }}" class="{{ css_class|default:'viber-link' }}" aria-label="Viber">
+  <svg xmlns="http://www.w3.org/2000/svg" width="{{ size|default:18 }}" height="{{ size|default:18 }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M11.4 0C9.473.028 5.333.344 3.02 2.467 1.302 4.187.597 6.657.488 9.883c-.11 3.227-.237 9.293 5.727 10.875h.005l-.004 2.436s-.037.98.61 1.177c.777.241 1.234-.498 1.97-1.293.405-.455 1.926-2.303 2.763-3.158a15.724 15.724 0 0 0 4.32.633c1.303-.05 5.392-.218 7.09-4.238 1.763-4.186 1.396-9.625 1.362-10.062-.035-.437-1.063-4.287-4.363-6.075C18.412.875 14.064.45 11.4 0z"/>
+  </svg>
+  {% if show_label %}<span>{{ label|default:"Viber" }}</span>{% endif %}
+</a>
+{% endif %}

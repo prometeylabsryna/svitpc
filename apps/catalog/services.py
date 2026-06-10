@@ -4,9 +4,18 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from django.db.models import Avg, Case, Count, IntegerField, Q, QuerySet, Value, When
+from django.db.models import Avg, Case, Count, F, IntegerField, Q, QuerySet, Value, When
+from django.utils import timezone
 
+from apps.core.i18n import localized_field
+
+from .gallery import filter_products_with_display_image
 from .models import Category, Filter, Product
+
+
+def visible_catalog_products() -> QuerySet[Product]:
+    """Visible products with a real display photo (no placeholder/stale URLs)."""
+    return filter_products_with_display_image(Product.objects.filter(is_visible=True))
 
 
 def order_stock_first(qs: QuerySet[Product], *order_fields: str) -> QuerySet[Product]:
@@ -31,7 +40,7 @@ def get_filtered_products(
 ) -> QuerySet[Product]:
     """Apply catalog filters and sorting to a product queryset."""
 
-    qs = queryset.filter(is_visible=True)
+    qs = filter_products_with_display_image(queryset.filter(is_visible=True))
 
     if brands:
         qs = qs.filter(brand_id__in=brands)
@@ -94,11 +103,11 @@ def get_product_facets(current_qs: QuerySet[Product]) -> dict:
 
     by_name: dict[str, dict] = {}
     for f in filter_groups:
-        gname = f.group.name
+        gname = localized_field(f.group, "name")
         if gname not in by_name:
             by_name[gname] = {"name": gname, "gid": f.group_id, "options": {}}
         opts = by_name[gname]["options"]
-        opt_name = f.name
+        opt_name = localized_field(f, "name")
         if opt_name not in opts or f.count > opts[opt_name]["count"]:
             opts[opt_name] = {"id": f.id, "name": opt_name, "count": f.count}
 
@@ -116,6 +125,23 @@ def get_product_facets(current_qs: QuerySet[Product]) -> dict:
 def get_category_facets(category: Category, current_qs: QuerySet[Product]) -> dict:
     """Wrapper kept for backward compatibility — delegates to get_product_facets."""
     return get_product_facets(current_qs)
+
+
+def get_sale_products_queryset() -> QuerySet[Product]:
+    """Products on sale: discounted (old_price > price) or in a running promotion."""
+    from apps.promotions.services import running_promotions_qs
+
+    promo_ids = list(
+        running_promotions_qs().values_list("product_id", flat=True).distinct()
+    )
+
+    discounted = Q(old_price__isnull=False, old_price__gt=F("price"))
+    qs = visible_catalog_products()
+    if promo_ids:
+        qs = qs.filter(discounted | Q(pk__in=promo_ids))
+    else:
+        qs = qs.filter(discounted)
+    return qs.select_related("brand").prefetch_related("images").distinct()
 
 
 def apply_markup(base_price: Decimal, brand_id: int | None, category_ids: list[int]) -> Decimal:

@@ -18,6 +18,7 @@ ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
 # ── Apps ───────────────────────────────────────────────────────────────────────
 DJANGO_APPS = [
+    "django.contrib.postgres",
     "unfold",
     "unfold.contrib.filters",
     "unfold.contrib.forms",
@@ -83,7 +84,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
+    "apps.core.session_middleware.SplitSessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -94,6 +95,7 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
     "axes.middleware.AxesMiddleware",
     "apps.core.middleware.RedirectMiddleware",
+    "apps.core.middleware_debug_i18n.DebugI18nMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -114,7 +116,10 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.i18n",
                 "apps.core.context_processors.site_context",
+                "apps.catalog.context_processors.catalog_nav",
                 "apps.cart.context_processors.cart_context",
+                "apps.compare.context_processors.compare_context",
+                "apps.wishlist.context_processors.wishlist_context",
                 "apps.analytics.context_processors.analytics_context",
             ],
         },
@@ -149,14 +154,14 @@ SESSION_CACHE_ALIAS = "default"
 # ── Auth ───────────────────────────────────────────────────────────────────────
 AUTH_USER_MODEL = "customers.Customer"
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
 ]
-LOGIN_URL = "/account/login/"
-LOGIN_REDIRECT_URL = "/account/"
-LOGOUT_REDIRECT_URL = "/"
+LOGIN_URL = "customers:login"
+LOGIN_REDIRECT_URL = "customers:dashboard"
+LOGOUT_REDIRECT_URL = "catalog:home"
 
 # ── Passwords hashing ──────────────────────────────────────────────────────────
 PASSWORD_HASHERS = [
@@ -210,9 +215,18 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.integrations.kancmaster.tasks.sync_all",
         "schedule": 6 * 3600,  # every 6 hours
     },
+    "catalog-translate-en": {
+        "task": "catalog.translate_to_english",
+        "schedule": 6 * 3600,  # fill missing EN fields after imports
+        "kwargs": {"what": "catalog", "with_descriptions": True, "with_attribute_values": False},
+    },
     "birthday-greetings": {
         "task": "apps.loyalty.tasks.send_birthday_greetings",
         "schedule": 86400,  # daily at midnight (via crontab in prod)
+    },
+    "expire-old-coins": {
+        "task": "apps.loyalty.tasks.expire_old_coins",
+        "schedule": 86400,
     },
     "brain-sync-products": {
         "task": "apps.integrations.brain.tasks.sync_products",
@@ -229,6 +243,10 @@ CELERY_BEAT_SCHEDULE = {
     "brain-backfill-metadata": {
         "task": "apps.integrations.brain.tasks.backfill_metadata",
         "schedule": 2 * 3600,  # every 2 hours — brands/categories for OC-imported rows
+    },
+    "brain-backfill-images": {
+        "task": "apps.integrations.brain.tasks.backfill_images",
+        "schedule": 2 * 3600,  # every 2 hours — photos after placeholder cleanup / late Brain uploads
     },
     "brain-reconcile-stale-stock": {
         "task": "apps.integrations.brain.tasks.reconcile_stale_stock",
@@ -266,8 +284,13 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@svitpc.ua")
 
 # ── Sessions security ──────────────────────────────────────────────────────────
+# Admin uses a separate session cookie so staff login does not log in on the storefront.
+ADMIN_SESSION_COOKIE_NAME = "admin_sessionid"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Strict"
+# Store CSRF in the active session (admin_sessionid vs sessionid) so admin tabs
+# do not invalidate storefront forms via a shared csrftoken cookie.
+CSRF_USE_SESSIONS = True
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Strict"
 CSRF_TRUSTED_ORIGINS = [env("SITE_URL", default="http://localhost:8000")]
@@ -278,7 +301,7 @@ AXES_COOLOFF_TIME = 1  # hours
 AXES_LOCKOUT_CALLABLE = "apps.core.utils.axes_lockout"
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
-    "django.contrib.auth.backends.ModelBackend",
+    "apps.customers.backends.CustomerModelBackend",
 ]
 
 # ── DRF ───────────────────────────────────────────────────────────────────────
@@ -302,6 +325,7 @@ REST_FRAMEWORK = {
 }
 
 # ── Admin (Unfold) ─────────────────────────────────────────────────────────────
+from django.templatetags.static import static  # noqa: E402
 from django.urls import reverse_lazy  # noqa: E402
 
 UNFOLD = {
@@ -310,9 +334,33 @@ UNFOLD = {
     "SITE_SUBHEADER": "Адміністрування",
     "SITE_URL": "/",
     "SITE_ICON": {
-        "light": "images/logo-admin.svg",
-        "dark": "images/logo-admin.svg",
+        "light": lambda request: static("images/logo-admin.svg"),
+        "dark": lambda request: static("images/logo-admin-dark.svg"),
     },
+    "SITE_FAVICONS": [
+        {
+            "rel": "icon",
+            "type": "image/svg+xml",
+            "href": lambda request: static("images/favicon.svg"),
+        },
+        {
+            "rel": "icon",
+            "sizes": "32x32",
+            "type": "image/png",
+            "href": lambda request: static("images/favicon-32.png"),
+        },
+        {
+            "rel": "icon",
+            "sizes": "16x16",
+            "type": "image/png",
+            "href": lambda request: static("images/favicon-16.png"),
+        },
+        {
+            "rel": "apple-touch-icon",
+            "sizes": "180x180",
+            "href": lambda request: static("images/apple-touch-icon.png"),
+        },
+    ],
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
     "COLORS": {
@@ -336,8 +384,29 @@ UNFOLD = {
         "show_all_applications": False,
         "navigation": [
             {
-                "title": "Каталог",
+                "title": "Замовлення",
                 "separator": False,
+                "items": [
+                    {
+                        "title": "Замовлення",
+                        "icon": "receipt_long",
+                        "link": reverse_lazy("admin:orders_order_changelist"),
+                    },
+                    {
+                        "title": "Платежі",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:payments_payment_changelist"),
+                    },
+                    {
+                        "title": "Статуси замовлень",
+                        "icon": "label",
+                        "link": reverse_lazy("admin:orders_orderstatus_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Каталог",
+                "separator": True,
                 "items": [
                     {
                         "title": "Товари",
@@ -360,30 +429,19 @@ UNFOLD = {
                         "link": reverse_lazy("admin:catalog_attribute_changelist"),
                     },
                     {
+                        "title": "Групи атрибутів",
+                        "icon": "folder",
+                        "link": reverse_lazy("admin:catalog_attributegroup_changelist"),
+                    },
+                    {
                         "title": "Фільтри",
                         "icon": "filter_list",
                         "link": reverse_lazy("admin:catalog_filtergroup_changelist"),
                     },
-                ],
-            },
-            {
-                "title": "Замовлення",
-                "separator": True,
-                "items": [
                     {
-                        "title": "Замовлення",
-                        "icon": "receipt_long",
-                        "link": reverse_lazy("admin:orders_order_changelist"),
-                    },
-                    {
-                        "title": "Статуси замовлень",
+                        "title": "Значення фільтрів",
                         "icon": "label",
-                        "link": reverse_lazy("admin:orders_orderstatus_changelist"),
-                    },
-                    {
-                        "title": "Платежі",
-                        "icon": "payments",
-                        "link": reverse_lazy("admin:payments_payment_changelist"),
+                        "link": reverse_lazy("admin:catalog_filter_changelist"),
                     },
                 ],
             },
@@ -397,9 +455,9 @@ UNFOLD = {
                         "link": reverse_lazy("admin:customers_customer_changelist"),
                     },
                     {
-                        "title": "Бонусні транзакції",
-                        "icon": "stars",
-                        "link": reverse_lazy("admin:loyalty_bonustransaction_changelist"),
+                        "title": "Відгуки",
+                        "icon": "rate_review",
+                        "link": reverse_lazy("admin:reviews_review_changelist"),
                     },
                     {
                         "title": "Промокоди",
@@ -407,9 +465,9 @@ UNFOLD = {
                         "link": reverse_lazy("admin:loyalty_coupon_changelist"),
                     },
                     {
-                        "title": "Відгуки",
-                        "icon": "rate_review",
-                        "link": reverse_lazy("admin:reviews_review_changelist"),
+                        "title": "Бонусні транзакції",
+                        "icon": "stars",
+                        "link": reverse_lazy("admin:loyalty_bonustransaction_changelist"),
                     },
                 ],
             },
@@ -428,30 +486,14 @@ UNFOLD = {
                         "link": reverse_lazy("admin:promotions_banner_changelist"),
                     },
                     {
+                        "title": "Реклама на головній",
+                        "icon": "view_carousel",
+                        "link": reverse_lazy("admin:promotions_homeadsettings_changelist"),
+                    },
+                    {
                         "title": "Push-підписки",
                         "icon": "notifications",
                         "link": reverse_lazy("admin:notifications_pushsubscription_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": "SEO та контент",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "SEO URL",
-                        "icon": "link",
-                        "link": reverse_lazy("admin:catalog_seourl_changelist"),
-                    },
-                    {
-                        "title": "Редиректи",
-                        "icon": "alt_route",
-                        "link": reverse_lazy("admin:catalog_redirect_changelist"),
-                    },
-                    {
-                        "title": "Сторінки",
-                        "icon": "article",
-                        "link": reverse_lazy("admin:pages_infopage_changelist"),
                     },
                 ],
             },
@@ -460,14 +502,60 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {
+                        "title": "Заявки на сервіс",
+                        "icon": "handyman",
+                        "link": reverse_lazy("admin:services_servicerequest_changelist"),
+                    },
+                    {
+                        "title": "Заявки на гарантію",
+                        "icon": "verified",
+                        "link": reverse_lazy("admin:services_warrantyclaim_changelist"),
+                    },
+                    {
+                        "title": "Заявки на повернення",
+                        "icon": "assignment_return",
+                        "link": reverse_lazy("admin:pages_returnrequest_changelist"),
+                    },
+                    {
                         "title": "Послуги",
                         "icon": "build",
                         "link": reverse_lazy("admin:services_service_changelist"),
                     },
                     {
-                        "title": "Заявки на сервіс",
-                        "icon": "handyman",
-                        "link": reverse_lazy("admin:services_servicerequest_changelist"),
+                        "title": "Категорії послуг",
+                        "icon": "folder_open",
+                        "link": reverse_lazy("admin:services_servicecategory_changelist"),
+                    },
+                    {
+                        "title": "Прейскурант",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:services_priceitem_changelist"),
+                    },
+                    {
+                        "title": "Серійні номери",
+                        "icon": "qr_code_2",
+                        "link": reverse_lazy("admin:services_productserial_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Контент",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Сторінки",
+                        "icon": "article",
+                        "link": reverse_lazy("admin:pages_infopage_changelist"),
+                    },
+                    {
+                        "title": "Редиректи",
+                        "icon": "alt_route",
+                        "link": reverse_lazy("admin:catalog_redirect_changelist"),
+                    },
+                    {
+                        "title": "SEO URL",
+                        "icon": "link",
+                        "link": reverse_lazy("admin:catalog_seourl_changelist"),
                     },
                 ],
             },
@@ -475,6 +563,11 @@ UNFOLD = {
                 "title": "Налаштування",
                 "separator": True,
                 "items": [
+                    {
+                        "title": "Контакти та сайт",
+                        "icon": "store",
+                        "link": reverse_lazy("admin:core_sitesettings_changelist"),
+                    },
                     {
                         "title": "Знижкові правила",
                         "icon": "percent",
@@ -485,10 +578,21 @@ UNFOLD = {
                         "icon": "location_city",
                         "link": reverse_lazy("admin:shipping_novaposhtacity_changelist"),
                     },
+                    {
+                        "title": "Нова Пошта — відділення",
+                        "icon": "local_shipping",
+                        "link": reverse_lazy("admin:shipping_novaposhtawarehouse_changelist"),
+                    },
                 ],
             },
         ],
     },
+    "STYLES": [
+        lambda request: static("css/admin_extra.css"),
+    ],
+    "SCRIPTS": [
+        lambda request: static("admin/js/admin_sidebar.js"),
+    ],
 }
 
 # ── Site info ──────────────────────────────────────────────────────────────────
@@ -512,7 +616,9 @@ NP_SENDER_CONTACT_REF = env("NP_SENDER_CONTACT_REF", default="")
 NP_SENDER_PHONE = env("NP_SENDER_PHONE", default="")
 NP_SENDER_CITY_REF = env("NP_SENDER_CITY_REF", default="")
 NP_SENDER_WAREHOUSE_REF = env("NP_SENDER_WAREHOUSE_REF", default="")
+UKRPOSHTA_BEARER = env("UKRPOSHTA_BEARER", default="")
 UKRPOSHTA_TOKEN = env("UKRPOSHTA_TOKEN", default="")
+UP_SENDER_CLIENT_UUID = env("UP_SENDER_CLIENT_UUID", default="")
 UP_SENDER_POSTCODE = env("UP_SENDER_POSTCODE", default="")
 UP_SENDER_ADDRESS = env("UP_SENDER_ADDRESS", default="")
 UP_SENDER_CITY = env("UP_SENDER_CITY", default="")
@@ -523,20 +629,22 @@ LIQPAY_SANDBOX = env.bool("LIQPAY_SANDBOX", default=False)
 WAYFORPAY_MERCHANT_ACCOUNT = env("WAYFORPAY_MERCHANT_ACCOUNT", default="")
 WAYFORPAY_SECRET_KEY = env("WAYFORPAY_SECRET_KEY", default="")
 MONOBANK_TOKEN = env("MONOBANK_TOKEN", default="")
-VCHASNO_LOGIN = env("VCHASNO_LOGIN", default="")
-VCHASNO_PASSWORD = env("VCHASNO_PASSWORD", default="")
 VCHASNO_CASHBOX_KEY = env("VCHASNO_CASHBOX_KEY", default="")
+VCHASNO_DEVICE_NAME = env("VCHASNO_DEVICE_NAME", default="SvitPC")
+VCHASNO_TAX_GRP = env.int("VCHASNO_TAX_GRP", default=1)
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_ADMIN_CHAT_ID = env("TELEGRAM_ADMIN_CHAT_ID", default="")
 TELEGRAM_BOT_LINK = env("TELEGRAM_BOT_LINK", default="")
 LLM_API_KEY = env("LLM_API_KEY", default="")
 LLM_MODEL = env("LLM_MODEL", default="gpt-4o-mini")
 LLM_BASE_URL = env("LLM_BASE_URL", default="https://api.openai.com/v1")
+AI_CONSULTANT_ENABLED = env.bool("AI_CONSULTANT_ENABLED", default=False)
 VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", default="")
 VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY", default="")
 VAPID_CLAIMS_EMAIL = env("VAPID_CLAIMS_EMAIL", default="admin@svitpc.ua")
 GOOGLE_ANALYTICS_ID = env("GOOGLE_ANALYTICS_ID", default="")
 GOOGLE_TAG_MANAGER_ID = env("GOOGLE_TAG_MANAGER_ID", default="")
+ANALYTICS_FEED_MAX_PRODUCTS = env.int("ANALYTICS_FEED_MAX_PRODUCTS", default=10000)
 FACEBOOK_PIXEL_ID = env("FACEBOOK_PIXEL_ID", default="")
 WAYFORPAY_MERCHANT_DOMAIN = env("WAYFORPAY_MERCHANT_DOMAIN", default="")
 SMS_API_KEY = env("SMS_API_KEY", default="")

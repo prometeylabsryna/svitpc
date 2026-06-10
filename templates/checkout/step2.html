@@ -5,6 +5,11 @@
 <div class="container container--narrow checkout-pay">
   <h1 class="checkout-pay__title">{% trans "Оберіть спосіб оплати" %}</h1>
 
+  {% if checkout_coin_hint %}
+  {% trans "Майже готово!" as svitik_title %}
+  {% include "components/svitik_hint.html" with variant="checkout" mascot="coins" title=svitik_title hint_parts=checkout_coin_hint_parts message=checkout_coin_hint coins=checkout_coin_coins coins_after_delivery=True compact=True %}
+  {% endif %}
+
   <form method="post" class="checkout-pay__form">
     {% csrf_token %}
 
@@ -60,42 +65,56 @@
         </span>
       </label>
 
-      <label class="checkout-pay__option" data-method="cod">
-        <input type="radio" name="payment_method" value="cod" {% if request.POST.payment_method == 'cod' %}checked{% endif %}>
-        <span class="checkout-pay__option-inner">
-          <span class="checkout-pay__icon checkout-pay__icon--cod" aria-hidden="true">
-            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-              <rect width="28" height="20" rx="3" fill="currentColor" opacity=".12"/>
-              <circle cx="14" cy="10" r="5" fill="currentColor" opacity=".4"/>
-              <text x="11" y="14" font-size="8" font-weight="bold" font-family="sans-serif" fill="currentColor">₴</text>
-            </svg>
-          </span>
-          <span class="checkout-pay__option-text">
-            <strong class="checkout-pay__option-name">{% trans "Післяплата" %}</strong>
-            <span class="checkout-pay__option-desc">{% trans "Оплата при отриманні на Новій Пошті" %}</span>
-          </span>
-          <span class="checkout-pay__check" aria-hidden="true"></span>
-        </span>
-      </label>
-
-      <label class="checkout-pay__option" data-method="installment">
-        <input type="radio" name="payment_method" value="installment" {% if request.POST.payment_method == 'installment' %}checked{% endif %}>
-        <span class="checkout-pay__option-inner">
-          <span class="checkout-pay__icon checkout-pay__icon--installment" aria-hidden="true">
-            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-              <rect width="28" height="20" rx="3" fill="currentColor" opacity=".12"/>
-              <text x="3" y="14" font-size="8" font-family="sans-serif" fill="currentColor" opacity=".8">0% / 0₴</text>
-            </svg>
-          </span>
-          <span class="checkout-pay__option-text">
-            <strong class="checkout-pay__option-name">{% trans "Миттєва розстрочка" %}</strong>
-            <span class="checkout-pay__option-desc">{% trans "Розстрочка 0% через LiqPay Installment" %}</span>
-          </span>
-          <span class="checkout-pay__check" aria-hidden="true"></span>
-        </span>
-      </label>
-
     </div>
+
+    <section class="checkout-loyalty" aria-labelledby="checkout-loyalty-title">
+      <h2 class="checkout-loyalty__title" id="checkout-loyalty-title">{% trans "Промокод" %}</h2>
+
+      {% if loyalty_error %}
+      <p class="form-error" role="alert">{{ loyalty_error }}</p>
+      {% endif %}
+
+      <div class="form-field">
+        <label class="form-label" for="coupon_code">{% trans "Промокод" %}</label>
+        <input class="form-input" id="coupon_code" name="coupon_code" type="text"
+          value="{{ loyalty_session.coupon_code|default:'' }}"
+          placeholder="{% trans 'Наприклад: COIN-XXXXXXXX' %}"
+          autocomplete="off">
+      </div>
+
+      {% if user.is_authenticated %}
+      <p class="form-hint checkout-loyalty__coins">
+        {% trans "Монети СвітПК:" %}
+        <strong>{{ user.bonus_balance|floatformat:0 }}</strong>
+        — <a href="{% url 'loyalty:bonus' %}">{% trans "деталі програми" %}</a>
+      </p>
+      {% endif %}
+
+      {% if loyalty %}
+      <dl class="checkout-loyalty__preview">
+        <div class="checkout-loyalty__preview-row">
+          <dt>{% trans "Товари" %}</dt>
+          <dd>{{ loyalty.subtotal|currency }}</dd>
+        </div>
+        {% if loyalty.discount %}
+        <div class="checkout-loyalty__preview-row checkout-loyalty__preview-row--discount">
+          <dt>{% trans "Знижка (промокод)" %}</dt>
+          <dd>−{{ loyalty.discount|currency }}</dd>
+        </div>
+        {% endif %}
+        {% if delivery_cost %}
+        <div class="checkout-loyalty__preview-row">
+          <dt>{% trans "Доставка" %}</dt>
+          <dd>{{ delivery_cost|currency }}</dd>
+        </div>
+        {% endif %}
+        <div class="checkout-loyalty__preview-row checkout-loyalty__preview-row--total">
+          <dt>{% trans "До сплати" %}</dt>
+          <dd><strong>{% if payable_total %}{{ payable_total|currency }}{% else %}{{ loyalty.total|currency }}{% endif %}</strong></dd>
+        </div>
+      </dl>
+      {% endif %}
+    </section>
 
     <div class="checkout-pay__actions">
       <a href="{% url 'checkout:step1' %}" class="btn btn--ghost">← {% trans "Назад" %}</a>

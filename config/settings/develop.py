@@ -17,6 +17,16 @@ INSTALLED_APPS += ["django_extensions"]  # noqa: F405
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
+# make run serves 0.0.0.0:8001 — trust common local origins for CSRF Origin checks
+CSRF_TRUSTED_ORIGINS = list(
+    {
+        env("SITE_URL", default="http://localhost:8001"),  # noqa: F405
+        "http://localhost:8001",
+        "http://127.0.0.1:8001",
+        "http://0.0.0.0:8001",
+    }
+)
+
 # Show emails in console
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 

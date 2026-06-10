@@ -1,0 +1,46 @@
+{% load i18n %}
+{% if home_ads %}
+<section
+  class="home-ads home-ads--cols-{{ home_ad_columns }}"
+  aria-label="{% trans 'Реклама' %}"
+  data-home-ads
+  data-columns="{{ home_ad_columns }}"
+>
+  <h1 class="sr-only">{% trans "Комп'ютерна техніка та комплектуючі" %}</h1>
+  <div class="home-ads__viewport">
+    <div class="home-ads__track" data-home-ads-track>
+      {% for banner in home_ads %}
+      <article class="home-ads__slide">
+        {% if banner.link %}
+        <a href="{{ banner.link }}" class="home-ads__link">
+        {% else %}
+        <div class="home-ads__link home-ads__link--static">
+        {% endif %}
+          <picture>
+            {% if banner.image_mobile %}
+            <source media="(max-width: 639px)" srcset="{{ banner.image_mobile.url }}">
+            {% endif %}
+            <img
+              class="home-ads__img"
+              src="{{ banner.image.url }}"
+              alt="{{ banner.title|default:' ' }}"
+              width="{{ home_ad_slot_width }}"
+              height="{{ home_ad_slot_height }}"
+              {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+              decoding="async"
+            >
+          </picture>
+        {% if banner.link %}
+        </a>
+        {% else %}
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+  {% if home_ads_carousel %}
+  <div class="home-ads__dots" data-home-ads-dots role="tablist" aria-label="{% trans 'Навігація банерів' %}"></div>
+  {% endif %}
+</section>
+{% endif %}

@@ -1,7 +1,6 @@
 /**
  * Ecommerce dataLayer module.
- * Listens for custom events and fires GA4 Ecommerce pushes.
- * No inline scripts — event data is carried via CustomEvent.detail or data-* attrs.
+ * Listens for HTMX HX-Trigger events and meta tags — no inline scripts.
  */
 
 const dl = window.dataLayer ?? [];
@@ -10,12 +9,32 @@ window.dataLayer = dl;
 /** Push an event object to dataLayer. */
 const push = (obj) => dl.push(obj);
 
-/** Read product JSON from a <meta name="ecommerce-purchase"> tag and fire purchase. */
+/** Prevent duplicate meta-based events (e.g. HTMX afterSettle on category filters). */
+const trackedMeta = new Set();
+
+const parseMetaJson = (name) => {
+  const meta = document.querySelector(`meta[name="${name}"]`);
+  if (!meta?.content) return null;
+  try {
+    return JSON.parse(meta.content);
+  } catch {
+    return null;
+  }
+};
+
+const trackMetaOnce = (key, fn) => {
+  if (trackedMeta.has(key)) return;
+  trackedMeta.add(key);
+  fn();
+};
+
+/** Fire purchase from checkout success meta tag. */
 const firePurchaseFromMeta = () => {
   const meta = document.querySelector('meta[name="ecommerce-purchase"]');
   if (!meta) return;
-  try {
-    const data = JSON.parse(meta.content);
+  trackMetaOnce(`purchase:${meta.content}`, () => {
+    const data = parseMetaJson("ecommerce-purchase");
+    if (!data) return;
     push({
       event: "purchase",
       ecommerce: {
@@ -25,64 +44,112 @@ const firePurchaseFromMeta = () => {
         items: data.items ?? [],
       },
     });
-  } catch {
-    // invalid JSON — skip
-  }
+  });
 };
 
-/** Fire view_item from a <meta name="ecommerce-product"> tag (product detail page). */
+/** Fire view_item from product detail meta tag. */
 const fireViewItemFromMeta = () => {
   const meta = document.querySelector('meta[name="ecommerce-product"]');
   if (!meta) return;
-  try {
-    const p = JSON.parse(meta.content);
+  trackMetaOnce(`view_item:${meta.content}`, () => {
+    const data = parseMetaJson("ecommerce-product");
+    if (!data) return;
     push({
       event: "view_item",
       ecommerce: {
         currency: "UAH",
-        value: parseFloat(p.price),
-        items: [{ item_id: String(p.id), item_name: p.name, price: parseFloat(p.price) }],
+        value: parseFloat(data.price),
+        items: [{
+          item_id: String(data.id),
+          item_name: data.name,
+          price: parseFloat(data.price),
+          quantity: 1,
+        }],
       },
     });
-  } catch {
-    // skip
-  }
+  });
 };
 
-/** Listen for cart:add custom event dispatched by cart module. */
+/** Fire view_item_list from category/list meta tag. */
+const fireViewItemListFromMeta = () => {
+  const meta = document.querySelector('meta[name="ecommerce-list"]');
+  if (!meta) return;
+  trackMetaOnce(`view_item_list:${meta.content}`, () => {
+    const data = parseMetaJson("ecommerce-list");
+    if (!data?.items?.length) return;
+    const value = data.items.reduce(
+      (sum, item) => sum + parseFloat(item.price) * (item.quantity || 1),
+      0,
+    );
+    push({
+      event: "view_item_list",
+      ecommerce: {
+        item_list_id: data.list_id,
+        item_list_name: data.list_name,
+        currency: "UAH",
+        value,
+        items: data.items,
+      },
+    });
+  });
+};
+
+/** Fire begin_checkout when checkout step 1 meta is present. */
+const fireBeginCheckoutFromMeta = () => {
+  const meta = document.querySelector('meta[name="ecommerce-checkout"]');
+  if (!meta || meta.content !== "begin") return;
+  trackMetaOnce("begin_checkout", () => {
+    push({ event: "begin_checkout" });
+  });
+};
+
+const trackCartEvent = (eventName, detail) => {
+  const { id, name, price, qty } = detail ?? {};
+  if (!id) return;
+  const quantity = qty || 1;
+  push({
+    event: eventName,
+    ecommerce: {
+      currency: "UAH",
+      value: parseFloat(price) * quantity,
+      items: [{
+        item_id: String(id),
+        item_name: name,
+        price: parseFloat(price),
+        quantity,
+      }],
+    },
+  });
+};
+
+/** Run all page-level ecommerce events (meta tags). */
+const firePageEvents = () => {
+  firePurchaseFromMeta();
+  fireViewItemFromMeta();
+  fireViewItemListFromMeta();
+  fireBeginCheckoutFromMeta();
+};
+
 document.addEventListener("cart:add", (e) => {
-  const { id, name, price, qty } = e.detail ?? {};
-  if (!id) return;
-  push({
-    event: "add_to_cart",
-    ecommerce: {
-      currency: "UAH",
-      value: parseFloat(price) * (qty || 1),
-      items: [{ item_id: String(id), item_name: name, price: parseFloat(price), quantity: qty || 1 }],
-    },
-  });
+  trackCartEvent("add_to_cart", e.detail);
 });
 
-/** Listen for cart:remove. */
 document.addEventListener("cart:remove", (e) => {
-  const { id, name, price, qty } = e.detail ?? {};
-  if (!id) return;
-  push({
-    event: "remove_from_cart",
-    ecommerce: {
-      currency: "UAH",
-      items: [{ item_id: String(id), item_name: name, price: parseFloat(price), quantity: qty || 1 }],
-    },
-  });
+  trackCartEvent("remove_from_cart", e.detail);
 });
 
-/** Listen for checkout:begin. */
 document.addEventListener("checkout:begin", () => {
   push({ event: "begin_checkout" });
 });
 
-// ── Init on page load ──────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  firePurchaseFromMeta();
-  fireViewItemFromMeta();
+document.addEventListener("DOMContentLoaded", firePageEvents);
+
+/** HTMX modal success (1-click buy) injects purchase meta after initial load. */
+document.addEventListener("htmx:afterSettle", (e) => {
+  const target = e.detail?.target;
+  if (target?.querySelector?.('meta[name="ecommerce-purchase"]')) {
+    firePurchaseFromMeta();
+  }
 });
+
+export { push, firePageEvents };

@@ -38,6 +38,34 @@ SAMPLE_XML = """<?xml version="1.0" encoding="UTF-8"?>
 
 BROKEN_XML = b"<root><item><id>1</id><name>Bad</name><price>NOT_A_NUMBER</price>"  # intentionally truncated
 
+SAMPLE_YML = """<?xml version="1.0" encoding="UTF-8"?>
+<yml_catalog date="2026-05-22">
+  <shop>
+    <categories>
+      <category id="10">Ручки</category>
+      <category id="20">Олівці</category>
+    </categories>
+    <offers>
+      <offer id="201" available="true">
+        <name>Ручка YML</name>
+        <price>15.00</price>
+        <categoryId>10</categoryId>
+        <vendor>Pilot</vendor>
+        <barcode>BC-201</barcode>
+        <description><![CDATA[<p>Опис YML</p>]]></description>
+        <picture>https://cdn.example.com/yml1.jpg</picture>
+        <picture>https://cdn.example.com/yml2.jpg</picture>
+      </offer>
+      <offer id="202" available="false">
+        <name>Олівець YML</name>
+        <price>3.00</price>
+        <categoryId>20</categoryId>
+      </offer>
+    </offers>
+  </shop>
+</yml_catalog>
+""".encode("utf-8")
+
 
 @pytest.fixture()
 def client(settings):
@@ -58,7 +86,7 @@ class TestFetchXml:
         mock_get.assert_called_once_with(
             "https://kancmaster.com.ua/xml_export_request",
             params={"login": "testlogin", "password": "testpass"},
-            timeout=120,
+            timeout=300,
             follow_redirects=True,
         )
 
@@ -75,7 +103,7 @@ class TestFetchXml:
         mock_get.assert_called_once_with(
             "https://kancmaster.com.ua/unique-token-url/",
             params=None,
-            timeout=120,
+            timeout=300,
             follow_redirects=True,
         )
 
@@ -121,3 +149,34 @@ class TestParseProducts:
     def test_returns_empty_list_on_broken_xml(self, client):
         products = client.parse_products(b"not xml at all <<<")
         assert products == []
+
+    def test_parses_yml_offers(self, client):
+        products = client.parse_products(SAMPLE_YML)
+        assert len(products) == 2
+
+    def test_yml_category_id_resolved(self, client):
+        p = client.parse_products(SAMPLE_YML)[0]
+        assert p["category"] == "Ручки"
+        assert p["id"] == "201"
+
+    def test_yml_barcode_as_sku(self, client):
+        p = client.parse_products(SAMPLE_YML)[0]
+        assert p["sku"] == "BC-201"
+
+    def test_yml_available_false_zero_quantity(self, client):
+        p = client.parse_products(SAMPLE_YML)[1]
+        assert p["quantity"] == "0"
+
+    def test_yml_available_true_default_quantity(self, client):
+        p = client.parse_products(SAMPLE_YML)[0]
+        assert p["quantity"] == "1"
+
+    def test_yml_description_from_cdata(self, client):
+        p = client.parse_products(SAMPLE_YML)[0]
+        assert "Опис YML" in p["description"]
+
+    def test_legacy_item_format_still_supported(self, client):
+        """item and offer must not be mixed when items are present."""
+        products = client.parse_products(SAMPLE_XML)
+        assert len(products) == 2
+        assert products[0]["id"] == "101"

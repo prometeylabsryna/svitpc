@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Доступ обмежено" %}{% endblock %}
+{% block content %}
+<div class="container container--narrow">
+  <h1>{% trans "Оформлення гарантії" %}</h1>
+  <p>{% trans "Цей розділ доступний лише співробітникам магазину. Увійдіть під обліковим записом персоналу або зверніться до адміністратора." %}</p>
+  <p>
+    <a href="{% url 'customers:login' %}?next={{ request.path }}" class="btn btn--primary">{% trans "Увійти" %}</a>
+    <a href="{% url 'pages:warranty' %}" class="btn btn--ghost">{% trans "Інформація про гарантію" %}</a>
+  </p>
+</div>
+{% endblock %}

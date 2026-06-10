@@ -1,0 +1,7 @@
+🛒 <b>Замовлення #{{ order.pk }} прийнято</b>
+
+💰 Сума: <b>{{ order.total }} ₴</b>
+💳 {{ order.get_payment_method_display }}
+🚚 {{ order.get_delivery_type_display }}{% if order.city %} — {{ order.city }}{% endif %}
+
+<a href="{{ site_url }}{{ order.get_absolute_url }}">Переглянути замовлення</a>

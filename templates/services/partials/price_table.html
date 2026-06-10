@@ -1,0 +1,15 @@
+{% load i18n svitpc_tags %}
+{% if prices %}
+<div class="price-table">
+  {% for price in prices %}
+  <div class="price-table__row {% if forloop.counter0|divisibleby:2 %}price-table__row--even{% endif %}">
+    <span class="price-table__name">
+      {{ price|localized:'name' }}{% if price.excludes_materials %}<span class="price-table__mark" title="{% trans 'Вартість робіт без урахування матеріалів' %}">*</span>{% endif %}
+    </span>
+    <span class="price-table__price-wrap">
+      <strong class="price-table__price">{{ price.display_price }}</strong>{% if price.unit %}<span class="price-table__unit">/ {{ price.unit }}</span>{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

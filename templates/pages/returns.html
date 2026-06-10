@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+{% load i18n static svitpc_tags %}
+
+{% block title %}{% trans "Повернення та обмін товару" %}{% endblock %}
+{% block meta_description %}{% trans "Умови повернення та обміну товарів у СвітПК. Оформіть заявку онлайн — ми допоможемо відповідно до законодавства України." %}{% endblock %}
+
+{% block content %}
+<div class="returns-page">
+  <div class="container">
+
+    <nav class="breadcrumbs returns-page__breadcrumbs" aria-label="{% trans 'Навігація' %}">
+      <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
+      <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+      <span class="breadcrumbs__item" aria-current="page">{% trans "Повернення та обмін товару" %}</span>
+    </nav>
+
+    <section class="returns-hero" aria-labelledby="returns-heading">
+      <div class="returns-hero__content">
+        <h1 class="returns-hero__title" id="returns-heading">{% trans "Повернення та обмін товару" %}</h1>
+        <p class="returns-hero__intro">
+          {% trans "Ми прагнемо, щоб ви були задоволені покупкою. Якщо товар не підійшов або виявився несправним, ми допоможемо оформити повернення або обмін відповідно до законодавства України." %}
+        </p>
+      </div>
+      <div class="returns-hero__media">
+        <img
+          src="{% static 'images/returns-hero.png' %}"
+          width="988"
+          height="502"
+          alt="{% trans 'Коробка з логотипом Світ ПК та щит гарантії безпечного повернення' %}"
+          class="returns-hero__image"
+          fetchpriority="high"
+          decoding="async"
+        >
+      </div>
+    </section>
+
+    <section class="returns-cards" aria-label="{% trans 'Умови повернення' %}">
+      <article class="returns-card returns-card--ok">
+        <div class="returns-card__icon returns-card__icon--ok" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M12 7v5l4 2"/>
+          </svg>
+        </div>
+        <h2 class="returns-card__title">{% trans "Умови повернення товару належної якості" %}</h2>
+        <p class="returns-card__lead">{% trans "Товар належної якості можна повернути протягом 14 днів з моменту отримання." %}</p>
+        <p class="returns-card__subtitle">{% trans "Для повернення необхідно:" %}</p>
+        <ul class="returns-card__list returns-card__list--ok">
+          <li>{% trans "зберегти товарний вигляд" %}</li>
+          <li>{% trans "повну комплектацію" %}</li>
+          <li>{% trans "заводські пломби та упаковку" %}</li>
+          <li>{% trans "чек або інший документ, що підтверджує покупку" %}</li>
+        </ul>
+      </article>
+
+      <article class="returns-card returns-card--no">
+        <div class="returns-card__icon returns-card__icon--no" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+        </div>
+        <h2 class="returns-card__title">{% trans "Товари, що не підлягають поверненню" %}</h2>
+        <ul class="returns-card__list returns-card__list--no">
+          <li>{% trans "програмне забезпечення з активованою ліцензією" %}</li>
+          <li>{% trans "витратні матеріали після використання" %}</li>
+          <li>{% trans "товари зі слідами експлуатації" %}</li>
+          <li>{% trans "інші товари згідно з постановою КМУ №172" %}</li>
+        </ul>
+      </article>
+
+      <article class="returns-card returns-card--warranty">
+        <div class="returns-card__icon returns-card__icon--warranty" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <h2 class="returns-card__title">{% trans "Якщо товар несправний" %}</h2>
+        <p class="returns-card__lead">{% trans "Зверніться до сервісного центру або магазину — ми проведемо діагностику та запропонуємо рішення." %}</p>
+        <ul class="returns-card__list returns-card__list--warranty">
+          <li>{% trans "діагностика несправності" %}</li>
+          <li>{% trans "гарантійний ремонт або обмін" %}</li>
+          <li>{% trans "повернення коштів, якщо ремонт неможливий" %}</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="returns-steps" aria-labelledby="returns-steps-heading">
+      <h2 class="returns-steps__title" id="returns-steps-heading">{% trans "Як оформити повернення або обмін" %}</h2>
+      <ol class="returns-steps__list">
+        <li class="returns-steps__item">
+          <span class="returns-steps__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </span>
+          <span class="returns-steps__label">{% trans "Заповніть заявку" %}</span>
+        </li>
+        <li class="returns-steps__item">
+          <span class="returns-steps__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
+              <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+            </svg>
+          </span>
+          <span class="returns-steps__label">{% trans "Отримайте підтвердження" %}</span>
+        </li>
+        <li class="returns-steps__item">
+          <span class="returns-steps__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          </span>
+          <span class="returns-steps__label">{% trans "Надішліть товар" %}</span>
+        </li>
+        <li class="returns-steps__item">
+          <span class="returns-steps__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+              <line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+          </span>
+          <span class="returns-steps__label">{% trans "Отримайте кошти або заміну" %}</span>
+        </li>
+      </ol>
+    </section>
+
+    <div class="returns-main">
+      <section class="returns-form-section" aria-labelledby="returns-form-heading">
+        <h2 class="returns-form-section__title" id="returns-form-heading">{% trans "Заявка на повернення або обмін" %}</h2>
+
+        <form
+          class="returns-form"
+          method="post"
+          enctype="multipart/form-data"
+          novalidate
+          data-returns-form
+        >
+          {% csrf_token %}
+
+          <div class="returns-form__row returns-form__row--3">
+            <div class="form-field">
+              <label class="form-label" for="id_full_name">{% trans "ПІБ" %}</label>
+              {{ form.full_name }}
+              {% if form.full_name.errors %}<p class="form-error">{{ form.full_name.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="id_order_number">{% trans "Номер замовлення" %}</label>
+              {{ form.order_number }}
+              {% if form.order_number.errors %}<p class="form-error">{{ form.order_number.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="id_phone">{% trans "Телефон" %}</label>
+              {{ form.phone }}
+              {% if form.phone.errors %}<p class="form-error">{{ form.phone.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="id_reason">{% trans "Причина звернення" %}</label>
+            {{ form.reason }}
+            {% if form.reason.errors %}<p class="form-error">{{ form.reason.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="id_description">{% trans "Детальний опис проблеми" %}</label>
+            {{ form.description }}
+            {% if form.description.errors %}<p class="form-error">{{ form.description.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div class="form-field">
+            <span class="form-label">{% trans "Додайте фото товару (за бажанням)" %}</span>
+            <div class="returns-form__dropzone" data-returns-dropzone tabindex="0" role="button" aria-label="{% trans 'Завантажити фото товару' %}">
+              <svg class="returns-form__dropzone-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <p class="returns-form__dropzone-text">{% trans "Натисніть або перетягніть файл сюди" %}</p>
+              <p class="returns-form__dropzone-hint">{% trans "PNG, JPG до 5 МБ" %}</p>
+              <p class="returns-form__dropzone-name" data-returns-file-name hidden></p>
+              {{ form.photo }}
+            </div>
+            {% if form.photo.errors %}<p class="form-error">{{ form.photo.errors.0 }}</p>{% endif %}
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--lg returns-form__submit">{% trans "Надіслати заявку" %}</button>
+
+          <p class="returns-form__privacy">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            {% trans "Ваші дані в безпеці та не будуть передані третім особам" %}
+          </p>
+        </form>
+      </section>
+
+      <aside class="returns-aside" aria-labelledby="returns-aside-heading">
+        <div class="returns-aside__panel">
+          <h2 class="returns-aside__title" id="returns-aside-heading">{% trans "Пан Світік підказує" %}</h2>
+          <div class="returns-aside__mascot-wrap">
+            <img
+              src="{% svitik_mascot 'search' 'search' %}"
+              alt=""
+              class="returns-aside__mascot"
+              loading="lazy"
+              decoding="async"
+            >
+          </div>
+          <div class="returns-aside__tip">
+            <p>{% trans "Перед оформленням повернення перевірте комплектацію товару та збережіть заводське пакування — це допоможе швидше опрацювати вашу заявку." %}</p>
+          </div>
+          <ul class="returns-aside__features">
+            <li>
+              <span class="returns-aside__feature-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+              </span>
+              {% trans "Швидке вирішення питань" %}
+            </li>
+            <li>
+              <span class="returns-aside__feature-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </span>
+              {% trans "Прозорі умови" %}
+            </li>
+            <li>
+              <span class="returns-aside__feature-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+              </span>
+              {% trans "Підтримка 24/7" %}
+            </li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+
+    <section class="returns-info-bar" aria-label="{% trans 'Контактна інформація' %}">
+      <div class="returns-info-bar__item">
+        <span class="returns-info-bar__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+            <line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+        </span>
+        <div>
+          <h3 class="returns-info-bar__title">{% trans "Терміни повернення коштів" %}</h3>
+          <p class="returns-info-bar__text">{% trans "Повернення коштів здійснюється протягом 1–7 робочих днів після перевірки товару." %}</p>
+        </div>
+      </div>
+
+      <div class="returns-info-bar__item">
+        <span class="returns-info-bar__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
+            <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+          </svg>
+        </span>
+        <div>
+          <h3 class="returns-info-bar__title">{% trans "Потрібна допомога?" %}</h3>
+          <div class="returns-info-bar__socials">
+            {% if SITE_TELEGRAM_URL %}
+            <a href="{{ SITE_TELEGRAM_URL }}" class="returns-info-bar__social returns-info-bar__social--tg" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
+            </a>
+            {% elif TELEGRAM_BOT_LINK %}
+            <a href="{{ TELEGRAM_BOT_LINK }}" class="returns-info-bar__social returns-info-bar__social--tg" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
+            </a>
+            {% endif %}
+            {% include "components/viber_link.html" with css_class="returns-info-bar__social returns-info-bar__social--viber" size=20 only %}
+            {% with digits=SITE_PHONE|phone_digits %}
+            {% if digits %}
+            <a href="https://wa.me/{{ digits }}" class="returns-info-bar__social returns-info-bar__social--wa" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+            </a>
+            {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+      </div>
+
+      <div class="returns-info-bar__item">
+        <span class="returns-info-bar__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </span>
+        <div>
+          <h3 class="returns-info-bar__title">{% trans "Контакти" %}</h3>
+          <p class="returns-info-bar__text">
+            <a href="tel:{{ SITE_PHONE }}">{{ SITE_PHONE }}</a><br>
+            {% if SITE_VIBER_PHONE|viber_chat_url %}
+            <a href="{{ SITE_VIBER_PHONE|viber_chat_url }}">Viber: {{ SITE_VIBER_PHONE }}</a><br>
+            {% endif %}
+            <a href="mailto:{{ SITE_EMAIL }}">{{ SITE_EMAIL }}</a>
+          </p>
+          <p class="returns-info-bar__hours">{% trans "Пн–Пт: 09:00–18:00, Сб–Нд: вихідний" %}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="returns-trust" aria-label="{% trans 'Переваги магазину' %}">
+      <ul class="returns-trust__list">
+        <li class="returns-trust__item">
+          <span class="returns-trust__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </span>
+          {% trans "Офіційна продукція" %}
+        </li>
+        <li class="returns-trust__item">
+          <span class="returns-trust__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          </span>
+          {% trans "14 днів на повернення" %}
+        </li>
+        <li class="returns-trust__item">
+          <span class="returns-trust__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+          </span>
+          {% trans "Швидка підтримка" %}
+        </li>
+        <li class="returns-trust__item">
+          <span class="returns-trust__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          </span>
+          {% trans "Надійна упаковка" %}
+        </li>
+      </ul>
+    </section>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'js/modules/returns-form.js' %}"></script>
+{% endblock %}

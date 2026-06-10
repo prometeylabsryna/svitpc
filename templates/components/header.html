@@ -11,8 +11,16 @@
     </button>
 
     {# Logo #}
-    <a href="{% url 'catalog:home' %}" class="site-header__logo" aria-label="СвітПК — {% trans 'головна' %}">
-      <span>СвітПК</span>
+    <a href="{% url 'catalog:home' %}" class="site-header__logo" aria-label="{{ SITE_NAME }} — {% trans 'головна' %}">
+      <img
+        class="site-header__logo-img"
+        src="{% static 'images/logo-header.png' %}"
+        srcset="{% static 'images/logo-header.png' %} 1x, {% static 'images/logo-header@2x.png' %} 2x"
+        width="672"
+        height="511"
+        alt=""
+        decoding="async"
+        fetchpriority="high">
     </a>
 
     {# Live search #}
@@ -24,11 +32,11 @@
           class="search-bar__input"
           type="search"
           name="q"
-          placeholder="{% trans 'Пошук товарів, артикулів, брендів...' %}"
+          placeholder="{% trans 'Пошук товарів…' %}"
           autocomplete="off"
           data-search-input
           hx-get="{% url 'search:live' %}"
-          hx-trigger="input changed delay:350ms, search"
+          hx-trigger="input changed delay:450ms, search"
           hx-target="[data-search-results]"
           hx-swap="innerHTML"
           aria-label="{% trans 'Пошук' %}"
@@ -46,20 +54,12 @@
     {# Header actions #}
     <nav class="header-actions" aria-label="{% trans 'Дії покупця' %}">
 
-      {# AI Consultant #}
-      <a href="{% url 'ai:consultant' %}" class="header-action header-action--secondary" aria-label="{% trans 'AI-консультант' %}">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/>
-        </svg>
-        <span class="header-action__label">AI</span>
-      </a>
-
       {# Compare #}
       <a href="{% url 'compare:page' %}" class="header-action header-action--secondary" aria-label="{% trans 'Порівняння' %}">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5h18M3 12h18M3 16.5h18"/>
         </svg>
-        <span class="header-action__badge" data-compare-count hidden>0</span>
+        <span class="header-action__badge" data-compare-count{% if not compare_count %} hidden{% endif %}>{{ compare_count }}</span>
         <span class="header-action__label">{% trans "Порівняти" %}</span>
       </a>
 
@@ -68,33 +68,21 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
         </svg>
-        <span class="header-action__badge" data-wishlist-count hidden>0</span>
+        <span class="header-action__badge" data-wishlist-count{% if not wishlist_count %} hidden{% endif %}>{{ wishlist_count }}</span>
         <span class="header-action__label">{% trans "Бажані" %}</span>
       </a>
 
       {# Account #}
-      {% if request.user.is_authenticated %}
-      <a href="{% url 'customers:dashboard' %}" class="header-action" aria-label="{{ request.user.get_short_name|default:request.user.email }}">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-        <span class="header-action__label">{{ request.user.get_short_name|default:_("Кабінет") }}</span>
-      </a>
-      {% else %}
-      <a href="{% url 'customers:login' %}" class="header-action" aria-label="{% trans 'Увійти' %}">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
-        </svg>
-        <span class="header-action__label">{% trans "Увійти" %}</span>
-      </a>
-      {% endif %}
+      <span id="header-account">
+        {% include "customers/partials/header_account.html" %}
+      </span>
 
       {# Cart #}
       <a href="{% url 'cart:detail' %}" class="header-action" id="cart-action" aria-label="{% trans 'Кошик' %}">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
         </svg>
-        <span class="header-action__badge" data-cart-count hidden>0</span>
+        <span class="header-action__badge" data-cart-count{% if not cart_count %} hidden{% endif %}>{{ cart_count }}</span>
         <span class="header-action__label">{% trans "Кошик" %}</span>
       </a>
 
@@ -103,9 +91,6 @@
 
     </nav>
   </div>
-
-  {# Category nav #}
-  {% include "components/nav.html" %}
 </header>
 
 {# Mobile menu overlay #}
@@ -116,14 +101,11 @@
 
     {# Quick user actions: items hidden from the mobile header bar #}
     <ul class="mobile-menu__quick">
-      {% if request.user.is_authenticated %}
-      <li><a href="{% url 'customers:dashboard' %}" class="mobile-menu__quick-link">{% trans "Кабінет" %}</a></li>
-      {% else %}
-      <li><a href="{% url 'customers:login' %}" class="mobile-menu__quick-link">{% trans "Увійти" %}</a></li>
-      {% endif %}
+      <li id="mobile-menu-account">
+        {% include "customers/partials/mobile_menu_account.html" %}
+      </li>
       <li><a href="{% url 'wishlist:page' %}" class="mobile-menu__quick-link">{% trans "Список бажань" %}</a></li>
       <li><a href="{% url 'compare:page' %}" class="mobile-menu__quick-link">{% trans "Порівняння" %}</a></li>
-      <li><a href="{% url 'ai:consultant' %}" class="mobile-menu__quick-link">{% trans "AI-консультант" %}</a></li>
     </ul>
 
     {% include "components/nav_mobile.html" %}

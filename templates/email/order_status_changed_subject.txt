@@ -1,0 +1,1 @@
+{% load i18n %}{% blocktrans with pk=order.pk status=order.status.name %}СвітПК — замовлення #{{ pk }}: {{ status }}{% endblocktrans %}

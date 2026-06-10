@@ -15,6 +15,9 @@ class ReviewAdmin(ModelAdmin):
     readonly_fields = ("product", "customer", "author_name", "rating", "text", "created_at")
     actions = ["approve_selected", "reject_selected"]
 
+    def has_add_permission(self, request) -> bool:
+        return False
+
     @admin.action(description=_("✅ Схвалити відгуки"))
     def approve_selected(self, request, queryset):
         queryset.update(is_approved=True)

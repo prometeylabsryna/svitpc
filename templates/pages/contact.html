@@ -1,13 +1,152 @@
 {% extends "base.html" %}
-{% load i18n %}
-{% block title %}{% trans "Контакти" %}{% endblock %}
+{% load i18n svitpc_tags %}
+
+{% block title %}{% if page %}{{ page.seo_title|default:page|localized:'title' }}{% else %}{% trans "Контакти" %}{% endif %}{% endblock %}
+{% block meta_description %}{% if page and page.seo_description %}{{ page.seo_description }}{% else %}{% trans "Зв'яжіться зі СвітПК: телефон, Viber, email та адреса. Допоможемо з замовленнями, товарами та послугами сервісного центру." %}{% endif %}{% endblock %}
+
 {% block content %}
-<div class="container container--narrow info-page">
-  <h1 class="info-page__title">{% trans "Контакти" %}</h1>
-  {% if page %}<div class="info-page__content">{{ page.content|safe }}</div>{% endif %}
-  <div class="contact-info">
-    <div><strong>{% trans "Телефон:" %}</strong> <a href="tel:{{ SITE_PHONE }}">{{ SITE_PHONE }}</a></div>
-    <div><strong>{% trans "Email:" %}</strong> <a href="mailto:{{ SITE_EMAIL }}">{{ SITE_EMAIL }}</a></div>
+<div class="contact-page">
+  <div class="container">
+
+    <nav class="contact-page__breadcrumbs breadcrumbs" aria-label="{% trans 'Навігація' %}">
+      <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
+      <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+      <span class="breadcrumbs__item" aria-current="page">{% trans "Контакти" %}</span>
+    </nav>
+
+    <header class="contact-hero">
+      <h1 class="contact-hero__title">
+        {% if page %}{{ page|localized:'title' }}{% else %}{% trans "Контакти" %}{% endif %}
+      </h1>
+      <p class="contact-hero__lead">
+        {% trans "Маєте питання щодо замовлення, товару чи ремонту? Зв'яжіться з нами зручним способом — менеджер відповість найближчим часом." %}
+      </p>
+    </header>
+
+    <section class="contact-cards" aria-label="{% trans "Способи зв'язку" %}">
+      <article class="contact-card">
+        <div class="contact-card__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </div>
+        <h2 class="contact-card__label">{% trans "Телефон" %}</h2>
+        <a href="tel:{{ SITE_PHONE }}" class="contact-card__value">{{ SITE_PHONE }}</a>
+        <p class="contact-card__hint">{% trans "Пн–Пт 9:00–19:00, Сб 10:00–17:00" %}</p>
+      </article>
+
+      {% if SITE_VIBER_PHONE|viber_chat_url %}
+      <article class="contact-card">
+        <div class="contact-card__icon contact-card__icon--viber" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.4 0C9.473.028 5.333.344 3.02 2.467 1.302 4.187.597 6.657.488 9.883c-.11 3.227-.237 9.293 5.727 10.875h.005l-.004 2.436s-.037.98.61 1.177c.777.241 1.234-.498 1.97-1.293.405-.455 1.926-2.303 2.763-3.158a15.724 15.724 0 0 0 4.32.633c1.303-.05 5.392-.218 7.09-4.238 1.763-4.186 1.396-9.625 1.362-10.062-.035-.437-1.063-4.287-4.363-6.075C18.412.875 14.064.45 11.4 0z"/>
+          </svg>
+        </div>
+        <h2 class="contact-card__label">Viber</h2>
+        <a href="{{ SITE_VIBER_PHONE|viber_chat_url }}" class="contact-card__value">{{ SITE_VIBER_PHONE }}</a>
+        <p class="contact-card__hint">{% trans "Напишіть у чат — відповімо, коли будемо на зв'язку" %}</p>
+      </article>
+      {% endif %}
+
+      <article class="contact-card">
+        <div class="contact-card__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+        </div>
+        <h2 class="contact-card__label">{% trans "Email" %}</h2>
+        <a href="mailto:{{ SITE_EMAIL }}" class="contact-card__value">{{ SITE_EMAIL }}</a>
+        <p class="contact-card__hint">{% trans "Для детальних запитів та співпраці" %}</p>
+      </article>
+
+      <article class="contact-card">
+        <div class="contact-card__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+        </div>
+        <h2 class="contact-card__label">{% trans "Адреса" %}</h2>
+        <p class="contact-card__value contact-card__value--text">{{ SITE_ADDRESS }}</p>
+        <p class="contact-card__hint">{% trans "Самовивіз та консультація в магазині" %}</p>
+        <a href="{{ SITE_MAPS_URL }}" class="contact-card__map-link" target="_blank" rel="noopener noreferrer">
+          {% trans "Відкрити на карті" %}
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
+      </article>
+    </section>
+
+    <section class="contact-map" aria-labelledby="contact-map-heading">
+      <h2 class="contact-map__title" id="contact-map-heading">{% trans "Як нас знайти" %}</h2>
+      <p class="contact-map__address">{{ SITE_ADDRESS }}</p>
+      <div class="contact-map__frame">
+        <iframe
+          src="{{ SITE_MAPS_EMBED_URL }}"
+          title="{% trans 'Магазин СвітПК на карті' %}"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen
+        ></iframe>
+      </div>
+      <a href="{{ SITE_MAPS_URL }}" class="contact-map__link" target="_blank" rel="noopener noreferrer">
+        {% trans "Відкрити в Google Maps" %}
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </a>
+    </section>
+
+    {% if page and page|localized:'content' %}
+    <div class="contact-page__content page-content">
+      {{ page|localized:'content'|safe }}
+    </div>
+    {% endif %}
+
+    {% if SITE_FACEBOOK_URL or SITE_INSTAGRAM_URL or SITE_TELEGRAM_URL %}
+    <section class="contact-social" aria-label="{% trans 'Соціальні мережі' %}">
+      <h2 class="contact-social__title">{% trans "Ми в соцмережах" %}</h2>
+      <div class="contact-social__links">
+        {% if SITE_FACEBOOK_URL %}
+        <a href="{{ SITE_FACEBOOK_URL }}" class="contact-social__link" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+          </svg>
+        </a>
+        {% endif %}
+        {% if SITE_INSTAGRAM_URL %}
+        <a href="{{ SITE_INSTAGRAM_URL }}" class="contact-social__link" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+          </svg>
+        </a>
+        {% endif %}
+        {% if SITE_TELEGRAM_URL %}
+        <a href="{{ SITE_TELEGRAM_URL }}" class="contact-social__link" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/>
+          </svg>
+        </a>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    <nav class="contact-links" aria-label="{% trans 'Корисні розділи' %}">
+      <a href="{% url 'pages:delivery' %}" class="contact-links__item">{% trans "Доставка" %}</a>
+      <a href="{% url 'pages:payment' %}" class="contact-links__item">{% trans "Оплата" %}</a>
+      <a href="{% url 'services:list' %}" class="contact-links__item">{% trans "Сервіс-центр" %}</a>
+      <a href="{% url 'pages:returns' %}" class="contact-links__item">{% trans "Повернення" %}</a>
+    </nav>
+
   </div>
 </div>
 {% endblock %}

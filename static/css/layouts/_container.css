@@ -13,5 +13,53 @@
     display: grid;
     grid-template-rows: auto 1fr auto;
     min-height: 100dvh;
+    min-width: 0;
+  }
+
+  .page-body {
+    display: block;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+
+    @media (min-width: 769px) {
+      display: grid;
+      grid-template-columns: var(--catalog-nav-w) minmax(0, 1fr);
+      align-items: start;
+      align-content: start;
+    }
+  }
+
+  .page-body__nav {
+    display: none;
+
+    @media (min-width: 769px) {
+      display: block;
+      grid-column: 1;
+      grid-row: 1;
+      align-self: start;
+      position: sticky;
+      top: var(--header-h);
+      width: var(--catalog-nav-w);
+      z-index: calc(var(--z-sticky) - 1);
+      pointer-events: none;
+    }
+  }
+
+  .page-body__main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+
+    @media (min-width: 769px) {
+      grid-column: 2;
+      grid-row: 1;
+    }
+  }
+
+  #main-content {
+    min-width: 0;
   }
 }

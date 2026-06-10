@@ -38,7 +38,7 @@ class LiqPayProvider:
             "public_key": settings.LIQPAY_PUBLIC_KEY,
             "action": "pay",
             "paytype": self._paytype(order.payment_method),
-            "amount": str(order.total),
+            "amount": str(order.payable_amount),
             "currency": "UAH",
             "description": f"Замовлення #{order.pk}",
             "order_id": str(order.pk),

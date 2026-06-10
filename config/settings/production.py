@@ -1,6 +1,11 @@
 from .base import *  # noqa: F401, F403
 
 DEBUG = False
+
+CSRF_TRUSTED_ORIGINS = env.list(  # noqa: F405
+    "CSRF_TRUSTED_ORIGINS",
+    default=[env("SITE_URL", default="https://svitpc.com.ua")],  # noqa: F405
+)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True
@@ -62,6 +67,8 @@ CSP_FRAME_SRC = (
     "https://www.liqpay.ua",
     "https://pay.mbnk.biz",
     "https://secure.wayforpay.com",
+    "https://www.google.com",
+    "https://maps.google.com",
 )
 CSP_FORM_ACTION = ("'self'", "https://www.liqpay.ua", "https://secure.wayforpay.com")
 

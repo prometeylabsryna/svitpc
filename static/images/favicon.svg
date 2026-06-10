@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="SvitPC">
+  <defs>
+    <linearGradient id="bg" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0fa2f0"/>
+      <stop offset="1" stop-color="#0d8fd6"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="16" y1="4" x2="16" y2="18" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#bg)"/>
+  <rect width="32" height="32" rx="8" fill="url(#shine)"/>
+  <path
+    d="M21.2 11.4c0-2.35-1.95-3.9-5.55-3.9-3.2 0-5.25 1.2-5.65 3.15h-3.1c.55-3.75 3.65-5.65 8.75-5.65 5.35 0 8.6 2.15 8.6 5.75 0 2.65-1.55 4.35-5.1 5.05l-2.35.45c-2.85.55-3.75 1.35-3.75 2.85 0 1.75 1.65 2.95 4.85 2.95 3.35 0 5.35-1.35 5.75-3.55h3.1c-.5 4.05-3.75 6.15-8.85 6.15-5.45 0-8.75-2.45-8.75-6.25 0-2.95 1.75-4.85 5.45-5.55l2.4-.5c2.55-.5 3.35-1.2 3.35-2.55z"
+    fill="#fff"/>
+  <circle cx="24.5" cy="7.5" r="1.35" fill="#fff" fill-opacity=".85"/>
+</svg>

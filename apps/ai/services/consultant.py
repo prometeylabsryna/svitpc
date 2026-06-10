@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 
-from django.http import StreamingHttpResponse
-
 SYSTEM_PROMPT = """Ти — AI-консультант інтернет-магазину СвітПК (комп'ютерна техніка, периферія, канцтовари).
 
 Твої спеціалізації:
@@ -33,11 +31,23 @@ COMPATIBILITY_PROMPT = """Перевір сумісність наступних
 
 def stream_consultant(user_message: str):
     """Yield SSE events from the LLM stream."""
-    from apps.ai.services.llm import get_llm
+    from apps.ai.services.llm import LLMNotConfiguredError, get_llm
 
-    llm = get_llm()
-    for chunk in llm.stream(user_message, system=SYSTEM_PROMPT):
-        yield f"data: {json.dumps({'text': chunk})}\n\n"
+    try:
+        llm = get_llm()
+    except LLMNotConfiguredError:
+        yield f"data: {json.dumps({'error': 'AI-сервіс не налаштовано. Зверніться до адміністратора.'})}\n\n"
+        yield "data: [DONE]\n\n"
+        return
+
+    try:
+        for chunk in llm.stream(user_message, system=SYSTEM_PROMPT):
+            yield f"data: {json.dumps({'text': chunk})}\n\n"
+    except Exception as exc:
+        import logging
+
+        logging.getLogger(__name__).error("consultant stream failed: %s", exc)
+        yield f"data: {json.dumps({'error': 'Не вдалося отримати відповідь. Спробуйте пізніше.'})}\n\n"
     yield "data: [DONE]\n\n"
 
 
@@ -47,7 +57,7 @@ def check_compatibility(product_ids: list[int]) -> str:
     Returns a text result from the LLM.
     """
     from apps.catalog.models import Product
-    from apps.ai.services.llm import get_llm
+    from apps.ai.services.llm import LLMNotConfiguredError, get_llm
 
     products = Product.objects.filter(pk__in=product_ids).prefetch_related("attributes__attribute")
     if len(products) < 2:
@@ -62,7 +72,10 @@ def check_compatibility(product_ids: list[int]) -> str:
     try:
         llm = get_llm()
         return llm.complete(COMPATIBILITY_PROMPT.format(components=components_text))
+    except LLMNotConfiguredError:
+        return "AI-сервіс не налаштовано. Зверніться до адміністратора."
     except Exception as exc:
         import logging
+
         logging.getLogger(__name__).error("compatibility check failed: %s", exc)
         return "Не вдалося перевірити сумісність."

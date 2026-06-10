@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% load i18n svitpc_tags %}
+
+{% block title %}{% trans "Оплата" %} — {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{% trans "Способи оплати в СвітПК: банківська картка, Google Pay, Apple Pay та оплата при самовивозі. Безпечна онлайн-оплата через LiqPay." %}{% endblock %}
+
+{% block content %}
+<div class="payment-page">
+  <div class="container">
+
+    <nav class="payment-page__breadcrumbs breadcrumbs" aria-label="{% trans 'Навігація' %}">
+      <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
+      <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+      <span class="breadcrumbs__item" aria-current="page">{% trans "Оплата" %}</span>
+    </nav>
+
+    <header class="payment-hero">
+      <h1 class="payment-hero__title">{% trans "Способи оплати" %}</h1>
+      <p class="payment-hero__lead">
+        {% trans "Оберіть зручний спосіб оплати під час оформлення замовлення. Онлайн-платежі захищені протоколом 3D Secure — дані вашої картки не зберігаються на нашому сайті." %}
+      </p>
+    </header>
+
+    <section class="payment-methods" aria-label="{% trans 'Способи оплати' %}">
+
+      <article class="payment-card payment-card--card">
+        <div class="payment-card__badge" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+            <line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+        </div>
+        <h2 class="payment-card__title">{% trans "Банківська картка" %}</h2>
+        <p class="payment-card__lead">
+          {% trans "Visa та Mastercard через захищений платіжний сервіс LiqPay." %}
+        </p>
+        <ul class="payment-card__list">
+          <li>{% trans "Оплата одразу після підтвердження замовлення" %}</li>
+          <li>{% trans "3D Secure — підтвердження SMS-кодом від банку" %}</li>
+          <li>{% trans "Електронний чек на email після успішної оплати" %}</li>
+          <li>{% trans "Замовлення відправляється після зарахування коштів" %}</li>
+        </ul>
+      </article>
+
+      <article class="payment-card payment-card--wallet">
+        <div class="payment-card__badge" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M16 12h.01"/>
+          </svg>
+        </div>
+        <h2 class="payment-card__title">Google Pay / Apple Pay</h2>
+        <p class="payment-card__lead">
+          {% trans "Швидка оплата зі смартфона — без введення реквізитів картки вручну." %}
+        </p>
+        <ul class="payment-card__list">
+          <li>{% trans "Працює на Android (Google Pay) та iPhone (Apple Pay)" %}</li>
+          <li>{% trans "Оплата в один дотик через Face ID або відбиток пальця" %}</li>
+          <li>{% trans "Доступно під час оформлення замовлення на сайті" %}</li>
+        </ul>
+      </article>
+
+      <article class="payment-card payment-card--pickup">
+        <div class="payment-card__badge" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <h2 class="payment-card__title">{% trans "Оплата при самовивозі" %}</h2>
+        <p class="payment-card__lead">
+          {% trans "Заберіть замовлення в магазині та оплатіть на місці — готівкою або карткою." %}
+        </p>
+        <ul class="payment-card__list">
+          <li>{% trans "Без комісії за доставку" %}</li>
+          <li>{% trans "Можливість перевірити товар перед оплатою" %}</li>
+          <li>{% trans "Консультація менеджера на місці" %}</li>
+        </ul>
+        <div class="payment-card__address">
+          <h3 class="payment-card__address-label">{% trans "Адреса магазину" %}</h3>
+          <p class="payment-card__address-text">{{ SITE_ADDRESS }}</p>
+          <p class="payment-card__hours">{% trans "Пн–Пт: 9:00–19:00, Сб: 10:00–17:00, Нд: вихідний" %}</p>
+          <a
+            href="{{ SITE_MAPS_URL }}"
+            class="payment-card__map-link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {% trans "Відкрити в Google Maps" %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
+        </div>
+      </article>
+
+    </section>
+
+    <section class="payment-steps" aria-labelledby="payment-steps-heading">
+      <h2 class="payment-steps__title" id="payment-steps-heading">{% trans "Як оплатити замовлення онлайн" %}</h2>
+      <ol class="payment-steps__list">
+        <li class="payment-steps__item">
+          <span class="payment-steps__num" aria-hidden="true">1</span>
+          <span class="payment-steps__label">{% trans "Додайте товари до кошика та перейдіть до оформлення" %}</span>
+        </li>
+        <li class="payment-steps__item">
+          <span class="payment-steps__num" aria-hidden="true">2</span>
+          <span class="payment-steps__label">{% trans "Вкажіть контакти та спосіб доставки" %}</span>
+        </li>
+        <li class="payment-steps__item">
+          <span class="payment-steps__num" aria-hidden="true">3</span>
+          <span class="payment-steps__label">{% trans "Оберіть спосіб оплати та підтвердіть замовлення" %}</span>
+        </li>
+        <li class="payment-steps__item">
+          <span class="payment-steps__num" aria-hidden="true">4</span>
+          <span class="payment-steps__label">{% trans "На сторінці LiqPay введіть дані картки та підтвердіть оплату" %}</span>
+        </li>
+        <li class="payment-steps__item">
+          <span class="payment-steps__num" aria-hidden="true">5</span>
+          <span class="payment-steps__label">{% trans "Отримайте підтвердження на email — ми відправимо замовлення" %}</span>
+        </li>
+      </ol>
+    </section>
+
+    <section class="payment-info" aria-label="{% trans 'Корисна інформація' %}">
+      <div class="payment-info__item">
+        <span class="payment-info__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </span>
+        <div>
+          <h3 class="payment-info__title">{% trans "Безпека платежів" %}</h3>
+          <p class="payment-info__text">
+            {% trans "Усі онлайн-транзакції проходять через сертифікований платіжний шлюз LiqPay. Ми не зберігаємо номери карток — дані обробляються банком-емітентом." %}
+          </p>
+        </div>
+      </div>
+
+      <div class="payment-info__item">
+        <span class="payment-info__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </span>
+        <div>
+          <h3 class="payment-info__title">{% trans "Терміни зарахування" %}</h3>
+          <p class="payment-info__text">
+            {% trans "Онлайн-оплата зараховується миттєво. Замовлення відправляється після підтвердження оплати." %}
+          </p>
+        </div>
+      </div>
+
+      <div class="payment-info__item">
+        <span class="payment-info__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </span>
+        <div>
+          <h3 class="payment-info__title">{% trans "Питання щодо оплати?" %}</h3>
+          <p class="payment-info__text">
+            <a href="tel:{{ SITE_PHONE }}">{{ SITE_PHONE }}</a><br>
+            <a href="mailto:{{ SITE_EMAIL }}">{{ SITE_EMAIL }}</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div class="payment-cta">
+      <p class="payment-cta__text">{% trans "Готові оформити замовлення?" %}</p>
+      <div class="payment-cta__actions">
+        <a href="{% url 'catalog:home' %}" class="btn btn--primary btn--lg">{% trans "Перейти до каталогу" %}</a>
+        <a href="{% url 'pages:delivery' %}" class="btn btn--secondary btn--lg">{% trans "Способи доставки" %}</a>
+      </div>
+    </div>
+
+    {% if page and page|localized:'content' %}
+    <div class="payment-page__content page-content">
+      {{ page|localized:'content'|safe }}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

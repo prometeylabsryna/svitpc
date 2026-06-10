@@ -1,0 +1,15 @@
+{% load i18n %}
+
+<span id="header-account" hx-swap-oob="outerHTML">
+  {% include "customers/partials/header_account.html" %}
+</span>
+
+<li id="mobile-menu-account" hx-swap-oob="outerHTML">
+  {% include "customers/partials/mobile_menu_account.html" %}
+</li>
+
+{% if product %}
+<div id="reviews-container" hx-swap-oob="outerHTML">
+  {% include "reviews/_product_reviews_inner.html" %}
+</div>
+{% endif %}

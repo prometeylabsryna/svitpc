@@ -18,12 +18,15 @@ def on_repair_status_change(
         # Store initial status; optionally notify admin about new request
         _prev_status[instance.pk] = instance.status
         from django.conf import settings
+
+        from apps.core.models import SiteSettings
         from apps.notifications.service import send_notification
+
         if settings.TELEGRAM_ADMIN_CHAT_ID:
             ctx = {
                 "req": instance,
                 "status_label": instance.get_status_display_uk(),
-                "site_phone": getattr(settings, "SITE_PHONE", "+380000000000"),
+                "site_phone": SiteSettings.load().phone,
             }
             send_notification(
                 "telegram",

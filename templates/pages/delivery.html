@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load i18n svitpc_tags %}
+
+{% block title %}{% trans "Доставка" %} — {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{% trans "Доставка замовлень СвітПК: Нова Пошта та безкоштовний самовивіз з магазину. Оформіть замовлення онлайн — ми надішлемо у зручний для вас спосіб." %}{% endblock %}
+
+{% block content %}
+<div class="delivery-page">
+  <div class="container">
+
+    <nav class="delivery-page__breadcrumbs breadcrumbs" aria-label="{% trans 'Навігація' %}">
+      <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
+      <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+      <span class="breadcrumbs__item" aria-current="page">{% trans "Доставка" %}</span>
+    </nav>
+
+    <header class="delivery-hero">
+      <h1 class="delivery-hero__title">{% trans "Доставка замовлень" %}</h1>
+      <p class="delivery-hero__lead">
+        {% trans "Ми відправляємо техніку та комплектуючі по всій Україні. Оберіть зручний спосіб доставки під час оформлення замовлення — вартість розраховується автоматично." %}
+      </p>
+    </header>
+
+    <section class="delivery-methods" aria-label="{% trans 'Способи доставки' %}">
+
+      <article class="delivery-card delivery-card--np">
+        <div class="delivery-card__badge" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <rect x="1" y="3" width="15" height="13" rx="1"/>
+            <path d="M16 8h4l3 3v5h-7V8z"/>
+            <circle cx="5.5" cy="18.5" r="2.5"/>
+            <circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+        </div>
+        <h2 class="delivery-card__title">{% trans "Нова Пошта" %}</h2>
+        <p class="delivery-card__lead">
+          {% trans "Найпопулярніший спосіб — доставка у відділення або поштомат «Нової Пошти» у вашому місті." %}
+        </p>
+        <ul class="delivery-card__list">
+          <li>{% trans "Доставка по всій Україні" %}</li>
+          <li>{% trans "Відправлення зазвичай у день замовлення або наступного робочого дня" %}</li>
+          <li>{% trans "SMS-повідомлення та номер ТТН для відстеження посилки" %}</li>
+          <li>{% trans "Можлива оплата при отриманні (накладений платіж)" %}</li>
+        </ul>
+      </article>
+
+      <article class="delivery-card delivery-card--pickup">
+        <div class="delivery-card__badge" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <h2 class="delivery-card__title">{% trans "Самовивіз" %}</h2>
+        <p class="delivery-card__lead">
+          {% trans "Заберіть замовлення безкоштовно у нашому магазині — швидко, без черг на пошті та з можливістю одразу перевірити товар." %}
+        </p>
+        <ul class="delivery-card__list">
+          <li>{% trans "Безкоштовно" %}</li>
+          <li>{% trans "Готовність до видачі — після підтвердження менеджером" %}</li>
+          <li>{% trans "Консультація та огляд товару на місці" %}</li>
+          <li>{% trans "Зручна парковка біля магазину" %}</li>
+        </ul>
+        <div class="delivery-card__address">
+          <h3 class="delivery-card__address-label">{% trans "Адреса магазину" %}</h3>
+          <p class="delivery-card__address-text">{{ SITE_ADDRESS }}</p>
+          <p class="delivery-card__hours">{% trans "Пн–Пт: 9:00–19:00, Сб: 10:00–17:00, Нд: вихідний" %}</p>
+          <a
+            href="{{ SITE_MAPS_URL }}"
+            class="delivery-card__map-link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {% trans "Відкрити на карті" %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
+        </div>
+      </article>
+
+    </section>
+
+    <section class="delivery-steps" aria-labelledby="delivery-steps-heading">
+      <h2 class="delivery-steps__title" id="delivery-steps-heading">{% trans "Як оформити доставку" %}</h2>
+      <ol class="delivery-steps__list">
+        <li class="delivery-steps__item">
+          <span class="delivery-steps__num" aria-hidden="true">1</span>
+          <span class="delivery-steps__label">{% trans "Додайте товари до кошика" %}</span>
+        </li>
+        <li class="delivery-steps__item">
+          <span class="delivery-steps__num" aria-hidden="true">2</span>
+          <span class="delivery-steps__label">{% trans "Оберіть спосіб доставки та адресу" %}</span>
+        </li>
+        <li class="delivery-steps__item">
+          <span class="delivery-steps__num" aria-hidden="true">3</span>
+          <span class="delivery-steps__label">{% trans "Оплатіть онлайн або при отриманні" %}</span>
+        </li>
+        <li class="delivery-steps__item">
+          <span class="delivery-steps__num" aria-hidden="true">4</span>
+          <span class="delivery-steps__label">{% trans "Отримайте SMS з номером відстеження" %}</span>
+        </li>
+      </ol>
+    </section>
+
+    <section class="delivery-info" aria-label="{% trans 'Корисна інформація' %}">
+      <div class="delivery-info__item">
+        <span class="delivery-info__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </span>
+        <div>
+          <h3 class="delivery-info__title">{% trans "Терміни відправлення" %}</h3>
+          <p class="delivery-info__text">
+            {% trans "Замовлення, оформлені до 15:00 у робочий день, зазвичай передаємо перевізнику того ж дня. У вихідні та святкові дні — наступного робочого дня." %}
+          </p>
+        </div>
+      </div>
+
+      <div class="delivery-info__item">
+        <span class="delivery-info__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+        </span>
+        <div>
+          <h3 class="delivery-info__title">{% trans "Надійна упаковка" %}</h3>
+          <p class="delivery-info__text">
+            {% trans "Кожне замовлення ретельно пакуємо, щоб техніка доїхала цілою та неушкодженою — особливо важливо для моніторів, ноутбуків та комплектуючих." %}
+          </p>
+        </div>
+      </div>
+
+      <div class="delivery-info__item">
+        <span class="delivery-info__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </span>
+        <div>
+          <h3 class="delivery-info__title">{% trans "Питання щодо доставки?" %}</h3>
+          <p class="delivery-info__text">
+            <a href="tel:{{ SITE_PHONE }}">{{ SITE_PHONE }}</a><br>
+            <a href="mailto:{{ SITE_EMAIL }}">{{ SITE_EMAIL }}</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div class="delivery-cta">
+      <p class="delivery-cta__text">{% trans "Готові оформити замовлення?" %}</p>
+      <div class="delivery-cta__actions">
+        <a href="{% url 'catalog:home' %}" class="btn btn--primary btn--lg">{% trans "Перейти до каталогу" %}</a>
+        <a href="{% url 'pages:payment' %}" class="btn btn--secondary btn--lg">{% trans "Способи оплати" %}</a>
+      </div>
+    </div>
+
+    {% if page and page|localized:'content' %}
+    <div class="delivery-page__content page-content">
+      {{ page|localized:'content'|safe }}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

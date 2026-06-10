@@ -1,10 +1,10 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, TabularInline
 
 from .models import NovaPoshtaCity, NovaPoshtaWarehouse
 
 
-class NovaPoshtaWarehouseInline(admin.TabularInline):
+class NovaPoshtaWarehouseInline(TabularInline):
     model = NovaPoshtaWarehouse
     extra = 0
     fields = ("number", "name", "ref", "type")

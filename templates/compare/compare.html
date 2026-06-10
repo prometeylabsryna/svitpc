@@ -3,51 +3,169 @@
 {% block title %}{% trans "Порівняння товарів" %}{% endblock %}
 {% block content %}
 <div class="container compare">
-  <h1 class="compare__title">{% trans "Порівняння товарів" %}</h1>
+  <div class="compare__head">
+    <h1 class="compare__title">{% trans "Порівняння товарів" %}</h1>
+    {% if products %}
+    <button
+      type="button"
+      class="btn btn--ghost btn--sm compare__clear"
+      data-compare-clear
+      hx-post="{% url 'compare:clear' %}"
+      hx-swap="none">
+      {% trans "Очистити все" %}
+    </button>
+    {% endif %}
+  </div>
   {% if products %}
-  <table class="compare__table">
-    <thead>
-      <tr>
-        <th class="compare__th-label">{% trans "Характеристика" %}</th>
-        {% for p in products %}
-        <th class="compare__th-product">
-          <a href="{{ p.get_absolute_url }}" class="compare__product-name">{{ p.name|truncatewords:6 }}</a>
-          <div class="compare__product-price">{{ p.price|currency }}</div>
-        </th>
-        {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td class="compare__td">{% trans "Бренд" %}</td>
-        {% for p in products %}<td class="compare__td compare__td--center">{{ p.brand.name|default:"—" }}</td>{% endfor %}
-      </tr>
-      <tr>
-        <td class="compare__td">{% trans "Артикул" %}</td>
-        {% for p in products %}<td class="compare__td compare__td--center">{{ p.sku|default:"—" }}</td>{% endfor %}
-      </tr>
-      <tr>
-        <td class="compare__td">{% trans "Наявність" %}</td>
-        {% for p in products %}
-        <td class="compare__td compare__td--center {% if p.is_available %}compare__td--available{% else %}compare__td--unavailable{% endif %}">
-          {% if p.is_available %}✓{% else %}✗{% endif %}
-        </td>
-        {% endfor %}
-      </tr>
+  <div class="compare__panel compare__panel--desktop">
+    <div class="compare__scroll" tabindex="0" role="region" aria-label="{% trans 'Таблиця порівняння' %}">
+      <table class="compare__table">
+        <thead>
+          <tr>
+            <th class="compare__th-label">{% trans "Характеристика" %}</th>
+            {% for p in products %}
+            <th class="compare__th-product">
+              <button
+                type="button"
+                class="compare__remove"
+                data-compare-remove
+                hx-post="{% url 'compare:toggle' p.pk %}"
+                hx-swap="none"
+                aria-label="{% blocktrans with name=p.name %}Прибрати {{ name }} з порівняння{% endblocktrans %}">
+                <span aria-hidden="true">×</span>
+              </button>
+              <a href="{{ p.get_absolute_url }}" class="compare__product-name">{{ p.name|truncatewords:6 }}</a>
+              <div class="compare__product-price">{{ p.price|currency }}</div>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="compare__td">{% trans "Бренд" %}</td>
+            {% for p in products %}
+            <td class="compare__td compare__td--center">
+              {% if p.brand %}{{ p.brand|localized:"name"|default:"—" }}{% else %}—{% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="compare__td">{% trans "Артикул" %}</td>
+            {% for p in products %}<td class="compare__td compare__td--center">{{ p.sku|default:"—" }}</td>{% endfor %}
+          </tr>
+          <tr>
+            <td class="compare__td">{% trans "Наявність" %}</td>
+            {% for p in products %}
+            <td class="compare__td compare__td--center {% if p.is_available %}compare__td--available{% else %}compare__td--unavailable{% endif %}">
+              {% if p.is_available %}✓{% else %}✗{% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% for group in attr_groups %}
+          {% if group.name %}
+          <tr class="compare__tr-group">
+            <td class="compare__td compare__td--group-label" colspan="{{ products|length|add:1 }}">{{ group.name }}</td>
+          </tr>
+          {% endif %}
+          {% for row in group.rows %}
+          <tr>
+            <td class="compare__td">{{ row.name }}</td>
+            {% for val in row.values %}<td class="compare__td compare__td--center">{{ val }}</td>{% endfor %}
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="compare__panel compare__panel--mobile">
+    <ul class="compare-mobile__products">
+      {% for p in products %}
+      <li class="compare-mobile__product compare-mobile__product--{{ forloop.counter }}">
+        <span class="compare-mobile__index" aria-hidden="true">{{ forloop.counter }}</span>
+        <div class="compare-mobile__product-body">
+          <a href="{{ p.get_absolute_url }}" class="compare-mobile__name">{{ p.name|truncatewords:8 }}</a>
+          <div class="compare-mobile__price">{{ p.price|currency }}</div>
+        </div>
+        <button
+          type="button"
+          class="compare-mobile__remove"
+          data-compare-remove
+          hx-post="{% url 'compare:toggle' p.pk %}"
+          hx-swap="none"
+          aria-label="{% blocktrans with name=p.name %}Прибрати {{ name }} з порівняння{% endblocktrans %}">
+          <span aria-hidden="true">×</span>
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <div class="compare-mobile__specs">
+      <section class="compare-mobile__row">
+        <h2 class="compare-mobile__label">{% trans "Бренд" %}</h2>
+        <ul class="compare-mobile__values">
+          {% for p in products %}
+          <li class="compare-mobile__value compare-mobile__value--{{ forloop.counter }}">
+            <span class="compare-mobile__value-index" aria-hidden="true">{{ forloop.counter }}</span>
+            <span class="compare-mobile__value-text">
+              {% if p.brand %}{{ p.brand|localized:"name"|default:"—" }}{% else %}—{% endif %}
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+
+      <section class="compare-mobile__row">
+        <h2 class="compare-mobile__label">{% trans "Артикул" %}</h2>
+        <ul class="compare-mobile__values">
+          {% for p in products %}
+          <li class="compare-mobile__value compare-mobile__value--{{ forloop.counter }}">
+            <span class="compare-mobile__value-index" aria-hidden="true">{{ forloop.counter }}</span>
+            <span class="compare-mobile__value-text">{{ p.sku|default:"—" }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+
+      <section class="compare-mobile__row">
+        <h2 class="compare-mobile__label">{% trans "Наявність" %}</h2>
+        <ul class="compare-mobile__values">
+          {% for p in products %}
+          <li class="compare-mobile__value compare-mobile__value--{{ forloop.counter }}">
+            <span class="compare-mobile__value-index" aria-hidden="true">{{ forloop.counter }}</span>
+            <span class="compare-mobile__value-text {% if p.is_available %}compare-mobile__value-text--available{% else %}compare-mobile__value-text--unavailable{% endif %}">
+              {% if p.is_available %}{% trans "В наявності" %}{% else %}{% trans "Немає в наявності" %}{% endif %}
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+
       {% for group in attr_groups %}
-      <tr class="compare__tr-group">
-        <td class="compare__td compare__td--group-label" colspan="{{ products|length|add:1 }}">{{ group.name }}</td>
-      </tr>
+      {% if group.name %}
+      <h3 class="compare-mobile__group">{{ group.name }}</h3>
+      {% endif %}
       {% for row in group.rows %}
-      <tr>
-        <td class="compare__td">{{ row.name }}</td>
-        {% for val in row.values %}<td class="compare__td compare__td--center">{{ val }}</td>{% endfor %}
-      </tr>
+      <section class="compare-mobile__row">
+        <h2 class="compare-mobile__label">{{ row.name }}</h2>
+        <ul class="compare-mobile__values">
+          {% for val in row.values %}
+          <li class="compare-mobile__value compare-mobile__value--{{ forloop.counter }}">
+            <span class="compare-mobile__value-index" aria-hidden="true">{{ forloop.counter }}</span>
+            <span class="compare-mobile__value-text">{{ val }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
       {% endfor %}
       {% endfor %}
-    </tbody>
-  </table>
+    </div>
+  </div>
   {% else %}
+  {% trans "Досліджую…" as svitik_title %}
+  {% trans "Додайте товари з каталогу — порівняйте характеристики та оберіть найкращий варіант." as svitik_message %}
+  {% include "components/svitik_hint.html" with variant="search" mascot="search" title=svitik_title message=svitik_message compact=True %}
   <p class="page-empty">{% trans "Немає товарів для порівняння. Додайте товари з каталогу." %}</p>
   {% endif %}
 </div>

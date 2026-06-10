@@ -29,6 +29,7 @@ class TestCart:
         cart = Cart(make_request())
         assert cart.item_count == 0
         assert cart.total == Decimal("0")
+        assert isinstance(cart.total, Decimal)
 
     def test_remove_item(self):
         from apps.cart.cart import Cart, CART_SESSION_KEY
@@ -58,6 +59,29 @@ class TestCart:
 
         cart = Cart(request)
         assert cart.total == Decimal("400.00")
+
+    def test_peek_returns_snapshot(self):
+        from apps.cart.cart import Cart, CART_SESSION_KEY
+
+        session_data = {
+            "3": {"qty": 2, "price": "75.00", "name": "Y", "slug": "y", "image_url": ""}
+        }
+        request = MagicMock()
+        request.session.get = lambda key, default=None: session_data if key == CART_SESSION_KEY else default
+        request.session.__setitem__ = MagicMock()
+
+        cart = Cart(request)
+        item = cart.peek(3)
+        assert item is not None
+        assert item["product_id"] == 3
+        assert item["qty"] == 2
+        assert item["price"] == Decimal("75.00")
+
+    def test_peek_missing_returns_none(self):
+        from apps.cart.cart import Cart
+
+        cart = Cart(make_request())
+        assert cart.peek(999) is None
 
     def test_iter_yields_items_with_subtotal(self):
         from apps.cart.cart import Cart, CART_SESSION_KEY

@@ -1,0 +1,6 @@
+{% load i18n %}
+{% if user.is_authenticated %}
+<a href="{% url 'customers:dashboard' %}" class="mobile-menu__quick-link">{% trans "Кабінет" %}</a>
+{% else %}
+<a href="{% url 'customers:login' %}" class="mobile-menu__quick-link">{% trans "Увійти" %}</a>
+{% endif %}

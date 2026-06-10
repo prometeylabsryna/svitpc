@@ -1,0 +1,106 @@
+@layer components {
+  .timer {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: center;
+  }
+
+  .timer__block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--clr-primary-50);
+    color: var(--clr-primary-700);
+    border: 1px solid var(--clr-primary-300);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    min-width: 3rem;
+  }
+
+  .timer__num {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .timer__label {
+    font-size: var(--text-xs);
+    opacity: 0.75;
+    text-transform: uppercase;
+  }
+
+  .timer__expired {
+    color: var(--clr-text-muted);
+    font-size: var(--text-sm);
+  }
+
+  .promo-timer {
+    background: var(--clr-surface);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    text-align: center;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .product-info__promotion {
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-primary-300);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .promotion-label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--clr-primary-700);
+    margin-bottom: var(--space-2);
+  }
+
+  .promotion-timer {
+    justify-content: flex-start;
+  }
+
+  .product-card__promo-timer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgb(0 0 0 / 0.68);
+    padding: var(--space-1) var(--space-2) var(--space-2);
+    z-index: 3;
+  }
+
+  .product-card__promo-label {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: var(--space-1);
+    text-align: center;
+  }
+
+  .product-card__promo-timer .timer {
+    gap: var(--space-1);
+    justify-content: center;
+  }
+
+  .product-card__promo-timer .timer__block {
+    padding: 3px 5px;
+    min-width: 1.75rem;
+    background: rgb(255 255 255 / 0.12);
+    border-color: rgb(255 255 255 / 0.35);
+    color: #fff;
+  }
+
+  .product-card__promo-timer .timer__num {
+    font-size: 0.8125rem;
+    color: #fff;
+  }
+
+  .product-card__promo-timer .timer__label {
+    font-size: 0.5rem;
+    color: rgb(255 255 255 / 0.75);
+  }
+}

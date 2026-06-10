@@ -1,0 +1,78 @@
+{% load i18n %}
+<div class="modal-dialog modal-dialog--auth" role="document">
+  <div class="modal-sheet auth-form--modal">
+    <div class="modal-sheet__handle" aria-hidden="true"></div>
+
+    <header class="modal-sheet__header">
+      <div class="modal-sheet__title-row">
+        <h2 class="modal-sheet__title">{% trans "Реєстрація" %}</h2>
+        <button type="button" class="modal-sheet__close" data-modal-close aria-label="{% trans 'Закрити' %}">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="20" height="20"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <p class="modal-sheet__hint">{% trans "Створіть акаунт, щоб залишити відгук про товар." %}</p>
+    </header>
+
+    <form
+      id="register-modal-form"
+      method="post"
+      novalidate
+      class="modal-sheet__body auth-form__form"
+      hx-post="{% url 'customers:register_modal' %}"
+      hx-target="#modal-container"
+      hx-swap="innerHTML"
+      hx-disabled-elt="find button[type='submit']">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% if product_id %}<input type="hidden" name="product_id" value="{{ product_id }}">{% endif %}
+      {% if form.errors %}
+      <div class="auth-form__alert" role="alert">
+        <p class="form-error">{% trans "Не вдалося зареєструватись. Перевірте поля форми." %}</p>
+      </div>
+      {% endif %}
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="modal_first_name">{% trans "Ім'я" %} *</label>
+          <input class="form-input{% if form.first_name.errors %} is-invalid{% endif %}" id="modal_first_name" name="first_name" type="text" value="{{ form.first_name.value|default:'' }}" autocomplete="given-name" required autofocus>
+          {% if form.first_name.errors %}<span class="form-error">{{ form.first_name.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="modal_last_name">{% trans "Прізвище" %}</label>
+          <input class="form-input" id="modal_last_name" name="last_name" type="text" value="{{ form.last_name.value|default:'' }}">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="modal_email">{% trans "Email" %} *</label>
+        <input class="form-input{% if form.email.errors %} is-invalid{% endif %}" id="modal_email" name="email" type="email" value="{{ form.email.value|default:'' }}" autocomplete="email" required>
+        {% if form.email.errors %}<span class="form-error">{{ form.email.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="modal_phone">{% trans "Телефон" %} *</label>
+        <input class="form-input{% if form.phone.errors %} is-invalid{% endif %}" id="modal_phone" name="phone" type="tel" value="{{ form.phone.value|default:'' }}" required>
+        {% if form.phone.errors %}<span class="form-error">{{ form.phone.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="modal_birth_date">{% trans "Дата народження" %} *</label>
+        <input class="form-input{% if form.birth_date.errors %} is-invalid{% endif %}" id="modal_birth_date" name="birth_date" type="date" value="{{ form.birth_date.value|default:'' }}" max="{{ today }}" required>
+        {% if form.birth_date.errors %}<span class="form-error">{{ form.birth_date.errors.0 }}</span>{% endif %}
+      </div>
+      {% trans "Пароль" as password_label %}
+      {% include "components/form_password_field.html" with field_id="modal_password1" field_name="password1" label=password_label required=True invalid=form.password1.errors hint=form.password1.help_text errors=form.password1.errors minlength=8 autocomplete="new-password" %}
+      {% trans "Пароль ще раз" as password2_label %}
+      {% include "components/form_password_field.html" with field_id="modal_password2" field_name="password2" label=password2_label required=True invalid=form.password2.errors errors=form.password2.errors minlength=8 autocomplete="new-password" %}
+      {% if form.non_field_errors %}
+      <p class="form-error" role="alert">{{ form.non_field_errors.0 }}</p>
+      {% endif %}
+    </form>
+
+    <footer class="modal-sheet__footer">
+      <button type="submit" form="register-modal-form" class="btn btn--primary btn--full btn--lg">
+        {% trans "Зареєструватись" %}
+      </button>
+      <p class="auth-form__footer">
+        {% trans "Вже є акаунт?" %}
+        <a href="{% url 'customers:login' %}?next={{ next|urlencode }}">{% trans "Увійти" %}</a>
+      </p>
+    </footer>
+  </div>
+</div>

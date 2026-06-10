@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import re
+
 from django import template
 
+from apps.core.text import unescape_legacy_html
 from apps.core.utils import ideal_cols
 
 register = template.Library()
@@ -16,6 +19,20 @@ def grid_cols_class(count: int, max_cols: int = 3) -> str:
     """Return a CSS class for the card grid (card_skill algorithm)."""
     cols = ideal_cols(int(count), int(max_cols))
     return _CLASS_MAP.get(cols, "grid-cols-3")
+
+
+@register.filter(name="display_text")
+def display_text(value: object) -> str:
+    """Show catalog text without OpenCart HTML entities (``&#039;`` → ``'``)."""
+    return unescape_legacy_html(str(value) if value is not None else "")
+
+
+@register.filter(name="localized")
+def localized(obj: object, field: str) -> str:
+    """Bilingual DB field: ``name`` / ``name_en`` or modeltranslation accessors."""
+    from apps.core.i18n import localized_field
+
+    return localized_field(obj, field)
 
 
 @register.filter(name="currency")
@@ -84,3 +101,46 @@ def discount_percent(price: object, old_price: object) -> int:
     except (TypeError, ValueError, ZeroDivisionError):
         pass
     return 0
+
+
+@register.filter(name="phone_digits")
+def phone_digits(value: object) -> str:
+    """Strip non-digits from a phone string for messenger deep links."""
+    return re.sub(r"\D", "", str(value or ""))
+
+
+def _messenger_phone_digits(value: object) -> str:
+    digits = phone_digits(value)
+    if len(digits) == 10 and digits.startswith("0"):
+        return f"38{digits}"
+    return digits
+
+
+@register.simple_tag
+def svitik_mascot(variant: str = "tip", mascot: str = "") -> str:
+    """Static URL for a Pan Svitik mascot pose."""
+    from django.templatetags.static import static
+
+    from apps.core.svitik import SVITIK_ASSET_VERSION, svitik_mascot_file
+
+    filename = svitik_mascot_file(variant=variant, mascot=mascot or None)
+    return f"{static(f'images/{filename}')}?v={SVITIK_ASSET_VERSION}"
+
+
+@register.simple_tag
+def svitik_mascot_intrinsic(variant: str = "tip", mascot: str = "") -> dict[str, int]:
+    """Width/height of a mascot PNG for layout hints."""
+    from apps.core.svitik import svitik_mascot_dims, svitik_mascot_file
+
+    filename = svitik_mascot_file(variant=variant, mascot=mascot or None)
+    width, height = svitik_mascot_dims(filename) or (0, 0)
+    return {"width": width, "height": height}
+
+
+@register.filter(name="viber_chat_url")
+def viber_chat_url(value: object) -> str:
+    """Build a Viber deep link from a phone string."""
+    digits = _messenger_phone_digits(value)
+    if not digits:
+        return ""
+    return f"viber://chat?number=%2B{digits}"

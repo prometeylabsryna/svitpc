@@ -2,7 +2,39 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 
-from .models import InfoPage
+from .models import InfoPage, ReturnRequest
+
+
+@admin.register(ReturnRequest)
+class ReturnRequestAdmin(ModelAdmin):
+    list_display = (
+        "full_name",
+        "order_number",
+        "phone",
+        "reason",
+        "status",
+        "created_at",
+    )
+    list_filter = ("status", "reason", "created_at")
+    search_fields = ("full_name", "order_number", "phone")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {
+            "fields": (
+                "full_name",
+                "order_number",
+                "phone",
+                "reason",
+                "description",
+                "photo",
+                "status",
+            ),
+        }),
+        (_("Службове"), {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",),
+        }),
+    )
 
 
 @admin.register(InfoPage)

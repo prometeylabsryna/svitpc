@@ -10,7 +10,7 @@
   "@type": "Organization",
   "name": "{{ SITE_NAME }}",
   "url": "{{ SITE_URL }}",
-  "logo": "{{ SITE_URL }}{% static 'images/logo.svg' %}",
+  "logo": "{{ SITE_URL }}{% static 'images/logo-header.png' %}",
   "contactPoint": {
     "@type": "ContactPoint",
     "telephone": "{{ SITE_PHONE }}",
@@ -44,18 +44,17 @@
 {% block content %}
 <div class="container">
 
-  {# Hero banner #}
-  <section class="hero" aria-label="{% trans 'Головний банер' %}">
-    <div class="hero__inner">
-      <span class="hero__eyebrow">{% trans "Офіційні постачальники" %}</span>
-      <h1 class="hero__title">{% trans "Комп'ютерна техніка та комплектуючі" %}</h1>
-      <p class="hero__subtitle">{% trans "Широкий асортимент від провідних брендів з гарантією та швидкою доставкою по всій Україні" %}</p>
-      <div class="hero__actions">
-        <a href="{% url 'catalog:new_products' %}" class="btn btn--primary btn--lg">{% trans "Новинки" %}</a>
-        <a href="{% url 'catalog:hit_products' %}" class="btn btn--secondary btn--lg">{% trans "Хіти продажів" %}</a>
-      </div>
-    </div>
-  </section>
+  <div
+    id="svitik-welcome"
+    hidden
+    data-svitik-welcome
+    data-svitik-mascot="welcome"
+    data-svitik-title="{% trans 'Привіт! Я Пан Світик!' %}"
+    data-svitik-message="{% trans 'Допомагаю робити розумні покупки та накопичувати бонусні монети разом із СвітПК!' %}"
+    data-svitik-variant="welcome">
+  </div>
+
+  {% include "catalog/partials/home_ads.html" %}
 
   {# Top categories #}
   {% if top_categories %}
@@ -66,8 +65,8 @@
     <div class="categories-grid">
       {% for cat in top_categories %}
       <a href="{{ cat.get_absolute_url }}" class="category-card">
-        {% if cat.icon %}<img src="{{ cat.icon.url }}" alt="" aria-hidden="true" loading="lazy">{% endif %}
-        <span>{{ cat.name }}</span>
+        {% include "catalog/partials/category_icon.html" with category=cat %}
+        <span>{{ cat|localized:"name" }}</span>
       </a>
       {% endfor %}
     </div>
@@ -113,7 +112,7 @@
   <section aria-labelledby="sale-heading" class="section-block">
     <div class="section-heading">
       <h2 class="section-heading__title" id="sale-heading">{% trans "Акції та знижки" %}</h2>
-      <a href="{% url 'promotions:list' %}" class="section-heading__link">{% trans "Всі акції →" %}</a>
+      <a href="{% url 'catalog:sale_products' %}" class="section-heading__link">{% trans "Всі акції →" %}</a>
     </div>
     {% with count=sale_products|length %}
     <div class="card-grid {{ count|grid_cols_class:3 }}">
@@ -132,6 +131,13 @@
       <a href="{% url 'services:list' %}" class="section-heading__link">{% trans "Всі послуги →" %}</a>
     </div>
     <div class="promo-strip">
+      {% for service in home_services %}
+      <div class="promo-banner">
+        <span class="promo-banner__tag">{{ service.category|localized:'name' }}</span>
+        <p class="promo-banner__title">{{ service|localized:'name' }}</p>
+        <a href="{{ service.get_absolute_url }}" class="btn btn--primary btn--sm promo-banner__cta">{% trans "Детальніше" %}</a>
+      </div>
+      {% empty %}
       <div class="promo-banner">
         <span class="promo-banner__tag">{% trans "Ремонт" %}</span>
         <p class="promo-banner__title">{% trans "Ремонт ноутбуків та ПК" %}</p>
@@ -147,12 +153,10 @@
         <p class="promo-banner__title">{% trans "Відновлення даних" %}</p>
         <a href="{% url 'services:list' %}" class="btn btn--primary btn--sm promo-banner__cta">{% trans "Детальніше" %}</a>
       </div>
+      {% endfor %}
     </div>
   </section>
 
 </div>
-
-{# HTMX modal container #}
-<div id="modal-container" role="dialog" aria-live="polite"></div>
 
 {% endblock %}

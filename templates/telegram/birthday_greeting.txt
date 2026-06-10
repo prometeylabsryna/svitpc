@@ -1,11 +1,9 @@
-🎂 <b>З Днем народження, {{ customer.first_name|default:customer.email }}!</b>
+{% load i18n %}🎂 <b>{% blocktrans with name=customer.first_name|default:customer.email %}З Днем народження, {{ name }}!{% endblocktrans %}</b>
 
-Команда СвітПК вітає вас із цим святом!
+{% trans "Команда СвітПК вітає вас із цим святом!" %}
 
-🎁 <b>Ваш подарунок:</b>
-Промокод на <b>10% знижку</b>: <code>{{ coupon.code }}</code>
-Дійсний до {{ coupon.valid_to|date:"d.m.Y" }}
+🎁 <b>{% trans "Ваш подарунок:" %}</b>
+{% blocktrans with code=coupon.code valid_to=coupon.valid_to|date:"d.m.Y" %}Промокод на 10% знижку: {{ code }}
+Дійсний до {{ valid_to }}{% endblocktrans %}
 
-💰 На ваш бонусний рахунок нараховано <b>+{{ bonus_amount }} грн</b>
-
-Скористайтесь на <a href="https://svitpc.ua">svitpc.ua</a>
+{% trans "Скористайтесь на svitpc.ua" %}

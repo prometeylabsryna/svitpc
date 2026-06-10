@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from abc import ABC, abstractmethod
 from typing import Iterator
@@ -9,6 +10,25 @@ from typing import Iterator
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+class LLMNotConfiguredError(RuntimeError):
+    """Raised when LLM_API_KEY is missing from environment."""
+
+
+def is_llm_configured() -> bool:
+    return bool(getattr(settings, "LLM_API_KEY", "").strip())
+
+
+def parse_llm_json(raw: str) -> dict:
+    """Parse JSON from LLM output, tolerating markdown code fences."""
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("```", 2)[1]
+        if text.startswith("json"):
+            text = text[4:]
+        text = text.strip()
+    return json.loads(text)
 
 
 class LLMProvider(ABC):
@@ -43,13 +63,17 @@ class OpenAIProvider(LLMProvider):
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
-        with self._client.stream("POST", "/chat/completions", json={"model": self._model, "messages": messages, "stream": True}) as resp:
+        with self._client.stream(
+            "POST",
+            "/chat/completions",
+            json={"model": self._model, "messages": messages, "stream": True},
+        ) as resp:
+            resp.raise_for_status()
             for line in resp.iter_lines():
                 if line.startswith("data: "):
                     data = line[6:]
                     if data.strip() == "[DONE]":
                         break
-                    import json
                     try:
                         chunk = json.loads(data)
                         delta = chunk["choices"][0]["delta"].get("content", "")
@@ -60,4 +84,8 @@ class OpenAIProvider(LLMProvider):
 
 
 def get_llm() -> LLMProvider:
+    if not is_llm_configured():
+        raise LLMNotConfiguredError(
+            "LLM_API_KEY is not set. Add it to .env (see .env.example)."
+        )
     return OpenAIProvider()

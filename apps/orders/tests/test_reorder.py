@@ -60,24 +60,29 @@ def test_reorder_adds_to_cart(client, order, customer):
 
 
 @pytest.mark.django_db
-def test_bonus_signal_fires_on_completed_status(order, completed_status):
-    """Signal should trigger accrue_order_bonuses when status becomes completed."""
-    from unittest.mock import patch
+def test_bonus_signal_accrues_on_completed_status(order, customer, completed_status):
+    """Completed status should credit coins synchronously after commit."""
+    from apps.orders.models import OrderStatus
 
-    with patch("apps.loyalty.tasks.accrue_order_bonuses.delay") as mock_delay:
-        order.status = completed_status
-        order.save(update_fields=["status"])
-        mock_delay.assert_called_once_with(order.pk)
+    pending = OrderStatus.objects.create(name="Нове", is_completed=False, sort_order=0)
+    order.status = pending
+    order.save(update_fields=["status"])
+
+    order.status = completed_status
+    order.save(update_fields=["status"])
+
+    customer.refresh_from_db()
+    assert customer.bonus_balance == Decimal("1")
 
 
 @pytest.mark.django_db
-def test_bonus_not_fired_on_non_completed_status(db, order):
-    """Signal should NOT trigger accrue for non-completed status."""
+def test_bonus_not_fired_on_non_completed_status(db, order, customer):
+    """Signal should NOT accrue coins for non-completed status."""
     from apps.orders.models import OrderStatus
-    from unittest.mock import patch
 
     pending = OrderStatus.objects.create(name="В обробці", is_completed=False)
-    with patch("apps.loyalty.tasks.accrue_order_bonuses.delay") as mock_delay:
-        order.status = pending
-        order.save(update_fields=["status"])
-        mock_delay.assert_not_called()
+    order.status = pending
+    order.save(update_fields=["status"])
+
+    customer.refresh_from_db()
+    assert customer.bonus_balance == Decimal("0")

@@ -1,8 +1,8 @@
 /**
  * Shipping module:
- * - Delivery type toggle (NP / Ukrposhta / pickup)
+ * - Delivery type toggle (NP / pickup)
  * - City/warehouse autocomplete via event delegation
- * - HTMX warehouse include update on city selection
+ * - HTMX delivery cost refresh
  */
 
 export const initShipping = (root = document) => {
@@ -15,29 +15,38 @@ const _initDeliveryToggle = (root) => {
   if (!form) return;
 
   const npSection = root.getElementById("delivery-np-section");
-  const upSection = root.getElementById("delivery-up-section");
   const pickupSection = root.getElementById("delivery-pickup-section");
+  const npCost = root.getElementById("delivery-cost-container");
 
   const show = (el) => el?.classList.remove("delivery-section--hidden");
   const hide = (el) => el?.classList.add("delivery-section--hidden");
 
   const toggle = (type) => {
     if (type === "nova_poshta") {
-      show(npSection); hide(upSection); hide(pickupSection);
-    } else if (type === "ukrposhta") {
-      hide(npSection); show(upSection); hide(pickupSection);
+      show(npSection); hide(pickupSection);
+      show(npCost);
     } else if (type === "pickup") {
-      hide(npSection); hide(upSection); show(pickupSection);
+      hide(npSection); show(pickupSection);
+      hide(npCost);
     }
+    _setSectionFields(root, npSection, type === "nova_poshta");
+    _setSectionFields(root, pickupSection, type === "pickup");
   };
 
   form.querySelectorAll("input[name='delivery_type']").forEach((radio) => {
     radio.addEventListener("change", () => toggle(radio.value));
   });
 
-  // Initial state on page load
   const checked = form.querySelector("input[name='delivery_type']:checked");
   if (checked) toggle(checked.value);
+};
+
+const _setSectionFields = (root, section, enabled) => {
+  if (!section) return;
+  section.querySelectorAll("input, textarea, select").forEach((field) => {
+    if (field.name === "delivery_type") return;
+    field.disabled = !enabled;
+  });
 };
 
 const _initAutocomplete = (root) => {
@@ -46,14 +55,20 @@ const _initAutocomplete = (root) => {
     if (cityBtn) {
       const cityInput = root.getElementById("city");
       const cityRef = root.getElementById("city_ref");
+      const whInput = root.getElementById("warehouse");
+      const whRef = root.getElementById("warehouse_ref");
       if (cityInput) cityInput.value = cityBtn.dataset.cityName;
       if (cityRef) {
         cityRef.value = cityBtn.dataset.cityRef;
-        // Re-trigger HTMX on city_ref change so warehouse list refreshes
         cityRef.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      const container = root.getElementById("city-results");
-      if (container) container.innerHTML = "";
+      if (whInput) whInput.value = "";
+      if (whRef) whRef.value = "";
+      const cityContainer = root.getElementById("city-results");
+      if (cityContainer) cityContainer.innerHTML = "";
+      const whContainer = root.getElementById("warehouse-results");
+      if (whContainer) whContainer.innerHTML = "";
+      whInput?.dispatchEvent(new Event("input", { bubbles: true }));
       return;
     }
 

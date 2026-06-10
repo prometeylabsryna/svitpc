@@ -40,6 +40,20 @@ class Cart:
             self._cart[key]["qty"] += qty
         self._save()
 
+    def peek(self, product_id: int) -> dict | None:
+        """Return cart line snapshot without mutating the cart."""
+        item = self._cart.get(str(product_id))
+        if not item:
+            return None
+        return {
+            "product_id": product_id,
+            "qty": item["qty"],
+            "price": Decimal(item["price"]),
+            "name": item["name"],
+            "slug": item["slug"],
+            "image_url": item["image_url"],
+        }
+
     def remove(self, product_id: int) -> None:
         key = str(product_id)
         self._cart.pop(key, None)
@@ -75,7 +89,10 @@ class Cart:
 
     @property
     def total(self) -> Decimal:
-        return sum(Decimal(i["price"]) * i["qty"] for i in self._cart.values())
+        return sum(
+            (Decimal(i["price"]) * i["qty"] for i in self._cart.values()),
+            Decimal("0"),
+        )
 
     @property
     def item_count(self) -> int:

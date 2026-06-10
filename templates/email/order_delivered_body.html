@@ -1,22 +1,23 @@
+{% load i18n %}
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="{{ LANGUAGE_CODE|default:'uk' }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Замовлення доставлено</title>
+  <title>{% trans "Замовлення доставлено" %}</title>
 </head>
 <body style="font-family: sans-serif; color: #111; max-width: 580px; margin: 0 auto; padding: 24px;">
-  <h2>Замовлення #{{ order.pk }} доставлено!</h2>
-  <p>Шановний(а) {{ order.first_name }}!</p>
-  <p>Ваше замовлення вже чекає на вас у відділенні.</p>
+  <h2>{% blocktrans with order_id=order.pk %}Замовлення #{{ order_id }} доставлено!{% endblocktrans %}</h2>
+  <p>{% blocktrans with name=order.first_name %}Шановний(а) {{ name }}!{% endblocktrans %}</p>
+  <p>{% trans "Ваше замовлення вже чекає на вас у відділенні." %}</p>
   <table style="width:100%; border-collapse:collapse; margin: 16px 0;">
-    <tr><td style="padding:6px 0; color:#555;">Доставка:</td><td>{{ order.get_delivery_type_display }}</td></tr>
-    {% if order.ttn %}<tr><td style="padding:6px 0; color:#555;">ТТН:</td><td>{{ order.ttn }}</td></tr>{% endif %}
-    {% if order.up_barcode %}<tr><td style="padding:6px 0; color:#555;">Штрихкод УП:</td><td>{{ order.up_barcode }}</td></tr>{% endif %}
-    <tr><td style="padding:6px 0; color:#555;">Відділення:</td><td>{{ order.city }} — {{ order.warehouse }}</td></tr>
+    <tr><td style="padding:6px 0; color:#555;">{% trans "Доставка:" %}</td><td>{{ order.get_delivery_type_display }}</td></tr>
+    {% if order.ttn %}<tr><td style="padding:6px 0; color:#555;">{% trans "ТТН:" %}</td><td>{{ order.ttn }}</td></tr>{% endif %}
+    {% if order.up_barcode %}<tr><td style="padding:6px 0; color:#555;">{% trans "Штрихкод УП:" %}</td><td>{{ order.up_barcode }}</td></tr>{% endif %}
+    <tr><td style="padding:6px 0; color:#555;">{% trans "Відділення:" %}</td><td>{{ order.city }} — {{ order.warehouse }}</td></tr>
   </table>
-  <p>Дякуємо за покупку в <strong>СвітПК</strong>!</p>
+  <p>{% trans "Дякуємо за покупку в СвітПК!" %}</p>
   <hr style="border:none; border-top:1px solid #eee; margin:24px 0;">
-  <p style="color:#888; font-size:13px;">СвітПК — комп'ютерна техніка та електроніка</p>
+  <p style="color:#888; font-size:13px;">{% trans "СвітПК — комп'ютерна техніка та електроніка" %}</p>
 </body>
 </html>

@@ -58,13 +58,34 @@ class NovaPoshtaClient:
         addresses = resp.get("data", [{}])
         return addresses[0].get("Addresses", []) if addresses else []
 
+    def search_warehouses(self, city_ref: str, query: str = "", limit: int = 20) -> list[dict]:
+        """Fetch warehouses for autocomplete (single API page)."""
+        city_ref = (city_ref or "").strip()
+        if not city_ref or not self._key:
+            return []
+
+        props: dict = {"CityRef": city_ref, "Limit": str(limit), "Page": "1"}
+        if query:
+            props["FindByString"] = query
+        resp = self._post("AddressGeneral", "getWarehouses", props)
+        return resp.get("data", [])[:limit]
+
     def get_warehouses(self, city_ref: str, query: str = "") -> list[dict]:
-        resp = self._post("AddressGeneral", "getWarehouses", {
-            "CityRef": city_ref,
-            "FindByString": query,
-            "Limit": 50,
-        })
-        return resp.get("data", [])
+        if query:
+            return self.search_warehouses(city_ref, query, limit=500)
+
+        props: dict = {"CityRef": city_ref, "Limit": "500", "Page": "1"}
+        warehouses: list[dict] = []
+        while True:
+            resp = self._post("AddressGeneral", "getWarehouses", props)
+            batch = resp.get("data", [])
+            if not batch:
+                break
+            warehouses.extend(batch)
+            if len(batch) < int(props["Limit"]):
+                break
+            props["Page"] = str(int(props["Page"]) + 1)
+        return warehouses
 
     def create_ttn(self, order) -> str | None:
         """Create TTN (waybill) for an order. Returns IntDocNumber or None."""
@@ -97,6 +118,7 @@ class NovaPoshtaClient:
             "SeatsAmount": "1",
             "Description": f"Замовлення #{order.pk}",
             "Cost": str(int(total)),
+            "ServiceType": "WarehouseWarehouse",
             "CitySender": sender_city_ref,
             "Sender": sender_ref,
             "SenderAddress": sender_wh_ref,
@@ -105,11 +127,8 @@ class NovaPoshtaClient:
             "CityRecipient": order.city_ref,
             "RecipientAddress": order.warehouse_ref,
             "RecipientsPhone": order.phone,
-            "Recipient": {
-                "FirstName": order.first_name,
-                "LastName": order.last_name,
-                "Phone": order.phone,
-            },
+            "RecipientName": f"{order.first_name} {order.last_name}".strip(),
+            "RecipientType": "PrivatePerson",
         }
         resp = self._post("InternetDocument", "save", props)
         if resp.get("success") and resp.get("data"):
@@ -128,7 +147,7 @@ class NovaPoshtaClient:
     def sync_cities_to_db(self) -> int:
         """Download all cities and save to NovaPoshtaCity model."""
         from apps.shipping.models import NovaPoshtaCity
-        resp = self._post("Address", "getCities", {"Page": 1, "Limit": 50000})
+        resp = self._post("Address", "getCities", {"Page": "1", "Limit": "50000"})
         cities = resp.get("data", [])
         objs = [
             NovaPoshtaCity(

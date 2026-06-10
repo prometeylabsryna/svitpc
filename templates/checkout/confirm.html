@@ -5,6 +5,11 @@
 <div class="container container--narrow checkout-confirm">
   <h1 class="checkout-confirm__title">{% trans "Перевірте замовлення" %}</h1>
 
+  {% if checkout_coin_hint %}
+  {% trans "Бонус за замовлення" as svitik_title %}
+  {% include "components/svitik_hint.html" with variant="checkout" mascot="coins" title=svitik_title hint_parts=checkout_coin_hint_parts message=checkout_coin_hint coins=checkout_coin_coins coins_after_delivery=True compact=True %}
+  {% endif %}
+
   <div class="checkout-confirm__sections">
 
     <section class="checkout-confirm__section">
@@ -34,7 +39,6 @@
           <dt>{% trans "Спосіб" %}</dt>
           <dd>
             {% if step1.delivery_type == "nova_poshta" %}{% trans "Нова Пошта" %}
-            {% elif step1.delivery_type == "ukrposhta" %}{% trans "Укрпошта" %}
             {% elif step1.delivery_type == "pickup" %}{% trans "Самовивіз" %}
             {% else %}{{ step1.delivery_type }}{% endif %}
           </dd>
@@ -101,9 +105,33 @@
         </div>
         {% endfor %}
       </div>
+      <dl class="checkout-confirm__totals">
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Товари" %}</dt>
+          <dd>{% if loyalty %}{{ loyalty.subtotal|currency }}{% else %}{{ cart.total|currency }}{% endif %}</dd>
+        </div>
+        {% if loyalty and loyalty.discount %}
+        <div class="checkout-confirm__row checkout-confirm__row--discount">
+          <dt>{% trans "Знижка (промокод)" %}</dt>
+          <dd>−{{ loyalty.discount|currency }}</dd>
+        </div>
+        {% endif %}
+        {% if loyalty and loyalty.coupon_code %}
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Промокод" %}</dt>
+          <dd>{{ loyalty.coupon_code }}</dd>
+        </div>
+        {% endif %}
+        {% if delivery_cost %}
+        <div class="checkout-confirm__row">
+          <dt>{% trans "Доставка" %}</dt>
+          <dd>{{ delivery_cost|currency }}</dd>
+        </div>
+        {% endif %}
+      </dl>
       <div class="checkout-confirm__total">
-        <span>{% trans "Разом:" %}</span>
-        <strong>{{ cart.total|currency }}</strong>
+        <span>{% trans "До сплати:" %}</span>
+        <strong>{% if payable_total %}{{ payable_total|currency }}{% elif loyalty %}{{ loyalty.total|currency }}{% else %}{{ cart.total|currency }}{% endif %}</strong>
       </div>
     </section>
 

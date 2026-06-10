@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SvitPC\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-18 13:08+0300\n"
+"POT-Creation-Date: 2026-05-28 13:43+0300\n"
 "PO-Revision-Date: 2026-05-18 13:00+0300\n"
 "Last-Translator: SvitPC <info@svitpc.ua>\n"
 "Language-Team: English\n"
@@ -15,11 +15,28 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "Невірний формат product_ids"
+msgstr "Invalid product_ids format"
+
+msgid "Потрібно як мінімум 2 товари"
+msgstr "At least 2 products required"
+
+msgid "Товар додано до кошика"
+msgstr "Product added to cart"
+
+#, python-format
+msgid "%(n)d товар(ів) додано до кошика."
+msgstr "%(n)d item(s) added to cart."
+
 msgid "Товарів"
 msgstr "Products"
 
 msgid "Згенерувати AI-опис категорій"
 msgstr "Generate AI descriptions for categories"
+
+msgid "LLM_API_KEY не налаштовано в .env — додайте ключ OpenAI-сумісного API."
+msgstr ""
+"LLM_API_KEY is not configured in .env — add an OpenAI-compatible API key."
 
 msgid "Вміст"
 msgstr "Content"
@@ -42,11 +59,44 @@ msgstr "Generate SEO (AI)"
 msgid "SEO-генерацію поставлено в чергу"
 msgstr "SEO generation queued"
 
+msgid "Згенерувати повні описи (AI)"
+msgstr "Generate full descriptions (AI)"
+
+msgid "Генерацію описів поставлено в чергу"
+msgstr "Description generation queued"
+
+msgid "Згенерувати короткі описи (AI)"
+msgstr "Generate short descriptions (AI)"
+
+msgid "Генерацію коротких описів поставлено в чергу"
+msgstr "Short description generation queued"
+
+msgid "Покращити характеристики (AI)"
+msgstr "Improve specifications (AI)"
+
+msgid "Покращення характеристик поставлено в чергу"
+msgstr "Specification improvement queued"
+
 msgid "Позначити Новинками"
 msgstr "Mark as New Arrivals"
 
 msgid "Позначити Хітами"
 msgstr "Mark as Bestsellers"
+
+msgid "Brain: синхронізувати (ціни, залишки, фото, опції)"
+msgstr "Brain: sync (prices, stock, photos, options)"
+
+msgid "Повну інкрементальну синхронізацію Brain поставлено в чергу Celery"
+msgstr "Full incremental Brain sync queued in Celery"
+
+msgid "Brain: оновити ціни та залишки"
+msgstr "Brain: update prices and stock"
+
+msgid "Оновлення цін і залишків Brain поставлено в чергу"
+msgstr "Brain price and stock update queued"
+
+msgid "Brain: приховувати без залишку"
+msgstr "Brain: hide when out of stock"
 
 msgid "Назва"
 msgstr "Name"
@@ -297,8 +347,32 @@ msgstr "Messages"
 msgid "Повідомлення чату"
 msgstr "Chat messages"
 
+msgid "Некоректна сума бонусів."
+msgstr "Invalid bonus amount."
+
+msgid "Перевірте промокод або бонуси та спробуйте знову."
+msgstr "Check your promo code or bonuses and try again."
+
 msgid "Замовлення в 1 клік"
 msgstr "One-click order"
+
+msgid "Прибрано з порівняння"
+msgstr "Removed from comparison"
+
+msgid "Додано до порівняння"
+msgstr "Added to comparison"
+
+msgid "У порівнянні вже максимум 4 товари"
+msgstr "Comparison already has the maximum of 4 products"
+
+msgid "Порівняння очищено"
+msgstr "Comparison cleared"
+
+msgid "СвітПК"
+msgstr "SvitPC"
+
+msgid "Текст повідомлення"
+msgstr "Message text"
 
 msgid "Особиста інформація"
 msgstr "Personal information"
@@ -306,11 +380,21 @@ msgstr "Personal information"
 msgid "Бонуси та підписки"
 msgstr "Bonuses & subscriptions"
 
+msgid "Месенджери"
+msgstr "Messengers"
+
 msgid "Права доступу"
 msgstr "Access rights"
 
 msgid "Дати"
 msgstr "Dates"
+
+msgid "Надіслати Telegram-повідомлення"
+msgstr "Send Telegram message"
+
+#, python-format
+msgid "Надіслано: %(sent)d. Без Telegram ID або з помилкою: %(skipped)d."
+msgstr "Sent: %(sent)d. Missing Telegram ID or failed: %(skipped)d."
 
 msgid "Ім'я"
 msgstr "First name"
@@ -323,6 +407,15 @@ msgstr "Phone"
 
 msgid "Дата народження"
 msgstr "Date of birth"
+
+msgid "Мінімум 8 символів."
+msgstr "At least 8 characters."
+
+msgid "Введіть коректний номер телефону."
+msgstr "Enter a valid phone number."
+
+msgid "Дата народження не може бути в майбутньому."
+msgstr "Date of birth cannot be in the future."
 
 msgid "Email"
 msgstr "Email"
@@ -396,8 +489,9 @@ msgstr "Address"
 msgid "Адреси"
 msgstr "Addresses"
 
-msgid "Реєстрація успішна! Ласкаво просимо!"
-msgstr "Registration successful! Welcome!"
+#, python-format
+msgid "Вітаю, %(name)s!"
+msgstr "Welcome, %(name)s!"
 
 msgid "Профіль оновлено"
 msgstr "Profile updated"
@@ -428,6 +522,12 @@ msgstr "Reset usage counter"
 msgid "Лічильник скинуто"
 msgstr "Counter reset"
 
+msgid "Зміна балансу"
+msgstr "Balance change"
+
+msgid "Додатне значення — нарахування, від'ємне — списання."
+msgstr "Positive value — accrual, negative — deduction."
+
 msgid "Нарахування"
 msgstr "Accrual"
 
@@ -451,6 +551,9 @@ msgstr "Bonus transaction"
 
 msgid "Бонусні транзакції"
 msgstr "Bonus transactions"
+
+msgid "Порожньо — промокод для всіх; заповнено — лише для цього клієнта"
+msgstr "Empty — promo code for everyone; filled — only for this customer"
 
 msgid "Код"
 msgstr "Code"
@@ -500,6 +603,26 @@ msgstr "p256dh"
 msgid "auth"
 msgstr "auth"
 
+msgid "СвітПК — повідомлення"
+msgstr "SvitPC — notification"
+
+msgid "СвітПК — замовлення прийнято"
+msgstr "SvitPC — order received"
+
+#, python-format
+msgid "Замовлення №%(pk)s успішно оформлено"
+msgstr "Order #%(pk)s placed successfully"
+
+msgid "СвітПК — статус замовлення"
+msgstr "SvitPC — order status"
+
+#, python-format
+msgid "Замовлення №%(pk)s: %(status)s"
+msgstr "Order #%(pk)s: %(status)s"
+
+msgid "СвітПК — акція!"
+msgstr "SvitPC — promotion!"
+
 msgid "Назва (EN)"
 msgstr "Name (EN)"
 
@@ -533,9 +656,6 @@ msgstr "Installment"
 msgid "Нова Пошта"
 msgstr "Nova Post"
 
-msgid "Укрпошта"
-msgstr "Ukrposhta"
-
 msgid "Самовивіз"
 msgstr "Self-pickup"
 
@@ -557,8 +677,8 @@ msgstr "Bonuses used"
 msgid "Коментар"
 msgstr "Comment"
 
-msgid "ТТН"
-msgstr "Tracking number"
+msgid "ТТН (НП)"
+msgstr "Tracking number (NP)"
 
 msgid "Чек"
 msgstr "Receipt"
@@ -586,10 +706,6 @@ msgstr "Customer notified"
 
 msgid "Запис статусу"
 msgstr "Status record"
-
-#, python-format
-msgid "%(n)d товар(ів) додано до кошика."
-msgstr "%(n)d item(s) added to cart."
 
 msgid "Товари зі старого замовлення недоступні."
 msgstr "Products from the previous order are unavailable."
@@ -624,6 +740,9 @@ msgstr "Provider"
 msgid "Валюта"
 msgstr "Currency"
 
+msgid "Ключ ідемпотентності"
+msgstr "Idempotency key"
+
 msgid "Відповідь провайдера"
 msgstr "Provider response"
 
@@ -638,6 +757,49 @@ msgstr "Activate selected promotions"
 
 msgid "Деактивувати обрані акції"
 msgstr "Deactivate selected promotions"
+
+msgid "Надіслати push-повідомлення про акцію"
+msgstr "Send push notification about promotion"
+
+#, python-format
+msgid "Push-розсилку поставлено в чергу: %(n)d акцій"
+msgstr "Push campaign queued: %(n)d promotions"
+
+msgid "Рекомендований розмір зображення"
+msgstr "Recommended image size"
+
+msgid "Для обраної кількості колонок"
+msgstr "For the selected number of columns"
+
+msgid ""
+"Завантажуйте банери з позицією «Головна» у розділі «Банери». Один банер — "
+"широка смуга (20:7), трохи вища за ряд із 4 плиток. На мобільному при 2–4 "
+"колонках — 3:4."
+msgstr ""
+
+msgid "Банери"
+msgstr "Banners"
+
+msgid "Переглянути банери для головної"
+msgstr "View home page banners"
+
+msgid "Додати банер"
+msgstr "Add banner"
+
+msgid "Підказка для головної"
+msgstr "Home page hint"
+
+msgid "Розмір для головної"
+msgstr "Home page size"
+
+msgid "Рекомендований розмір"
+msgstr "Recommended size"
+
+msgid "зараз на головній"
+msgstr "currently on home page"
+
+msgid "колонки"
+msgstr "columns"
 
 msgid "Активувати обрані банери"
 msgstr "Activate selected banners"
@@ -657,6 +819,17 @@ msgstr "Promotion"
 msgid "Акції"
 msgstr "Promotions"
 
+msgid "Кількість банерів у рядку"
+msgstr "Banners per row"
+
+msgid ""
+"Скільки рекламних зображень показувати одночасно на головній сторінці "
+"(десктоп)."
+msgstr ""
+
+msgid "Реклама на головній"
+msgstr "Home page advertising"
+
 msgid "Головна"
 msgstr "Home"
 
@@ -672,8 +845,11 @@ msgstr "Link"
 msgid "Банер"
 msgstr "Banner"
 
-msgid "Банери"
-msgstr "Banners"
+msgid "✅ Схвалити відгуки"
+msgstr "✅ Approve reviews"
+
+msgid "🚫 Відхилити відгуки"
+msgstr "🚫 Reject reviews"
 
 msgid "Оцінка"
 msgstr "Rating"
@@ -687,8 +863,20 @@ msgstr "Approved"
 msgid "Відгуки"
 msgstr "Reviews"
 
+msgid "Увійдіть або зареєструйтесь, щоб залишити відгук."
+msgstr "Sign in or register to leave a review."
+
+msgid "Оберіть оцінку від 1 до 5"
+msgstr "Select a rating from 1 to 5"
+
 msgid "Будь ласка, заповніть всі поля"
 msgstr "Please fill in all fields"
+
+msgid "Заявка"
+msgstr "Request"
+
+msgid "Внутрішнє"
+msgstr "Internal"
 
 msgid "Позначити «В роботі»"
 msgstr "Mark as \"In progress\""
@@ -699,11 +887,59 @@ msgstr "Mark as \"Ready for pickup\""
 msgid "Позначити «Видана»"
 msgstr "Mark as \"Issued\""
 
+msgid "Товар і продаж"
+msgstr "Product and sale"
+
+msgid "Інше"
+msgstr "Other"
+
+msgid "RMA"
+msgstr "RMA"
+
+msgid "Серійний номер"
+msgstr "Serial number"
+
+msgid "Дефект"
+msgstr "Defect"
+
+msgid "Клієнт¹"
+msgstr "Customer¹"
+
+msgid "Доставка²"
+msgstr "Delivery²"
+
+msgid "Службове"
+msgstr "Internal"
+
+msgid "Зберегти"
+msgstr "Save"
+
+msgid "Відправити"
+msgstr "Submit"
+
+msgid "Вкажіть серійний номер або позначте «Без серійного номера»."
+msgstr "Enter a serial number or check «Without serial number»."
+
+msgid "Оберіть або вкажіть товар."
+msgstr "Select or enter a product."
+
+msgid "Опишіть дефект."
+msgstr "Describe the defect."
+
+msgid "Заповніть усі поля клієнта¹."
+msgstr "Fill in all customer fields¹."
+
+msgid "Заповніть усі поля доставки²."
+msgstr "Fill in all delivery fields²."
+
 msgid "Категорія послуг"
 msgstr "Service category"
 
 msgid "Категорії послуг"
 msgstr "Service categories"
+
+msgid "Опис (EN)"
+msgstr "Description (EN)"
 
 msgid "Послуга"
 msgstr "Service"
@@ -762,6 +998,103 @@ msgstr "Service request"
 msgid "Заявки сервісного центру"
 msgstr "Service requests"
 
+msgid "Товар гарантійний"
+msgstr "Product under warranty"
+
+msgid "Гарантія закінчилась"
+msgstr "Warranty expired"
+
+msgid "Brain API"
+msgstr "Brain API"
+
+msgid "Код товару"
+msgstr "Product code"
+
+msgid "Документ продажу"
+msgstr "Sale document"
+
+msgid "Дата продажу"
+msgstr "Sale date"
+
+msgid "Гарантія до"
+msgstr "Warranty until"
+
+msgid "Гарантія, міс"
+msgstr "Warranty, months"
+
+msgid "ID замовлення Brain"
+msgstr "Brain order ID"
+
+msgid "Примітки"
+msgstr "Notes"
+
+msgid "Серійні номери"
+msgstr "Serial numbers"
+
+msgid "Чернетка"
+msgstr "Draft"
+
+msgid "Відправлена"
+msgstr "Submitted"
+
+msgid "В обробці"
+msgstr "In progress"
+
+msgid "Завершена"
+msgstr "Completed"
+
+msgid "Інша"
+msgstr "Other"
+
+msgid "№ RMA"
+msgstr "RMA No."
+
+msgid "Без серійного номера"
+msgstr "Without serial number"
+
+msgid "Гарантійний"
+msgstr "Under warranty"
+
+msgid "Опис дефекту"
+msgstr "Defect description"
+
+msgid "ПІБ клієнта"
+msgstr "Customer full name"
+
+msgid "Телефон клієнта"
+msgstr "Customer phone"
+
+msgid "Email клієнта"
+msgstr "Customer email"
+
+msgid "Адреса клієнта"
+msgstr "Customer address"
+
+#| msgid "Спосіб доставки"
+msgid "Служба доставки"
+msgstr "Delivery service"
+
+msgid "Номер накладної СД"
+msgstr "Carrier waybill number"
+
+msgid "Дата накладної СД"
+msgstr "Carrier waybill date"
+
+msgid "Створив"
+msgstr "Created by"
+
+msgid "Запис серійного номера"
+msgstr "Serial number record"
+
+msgid "Дата відправки"
+msgstr "Submitted at"
+
+msgid "Заявка на гарантію"
+msgstr "Warranty claim"
+
+msgid "Заявки на гарантію"
+msgstr "Warranty claims"
+
 msgid "Ref"
 msgstr "Ref"
 
@@ -780,11 +1113,44 @@ msgstr "Number"
 msgid "Відділення НП"
 msgstr "NP branch"
 
+msgid "Вкажіть ім'я."
+msgstr "Enter your first name."
+
+msgid "Вкажіть прізвище."
+msgstr "Enter your last name."
+
+msgid "Вкажіть телефон."
+msgstr "Enter your phone number."
+
+msgid "Оберіть місто доставки."
+msgstr "Select a delivery city."
+
+msgid "Оберіть місто зі списку підказок."
+msgstr "Select a city from the suggestions."
+
+msgid "Оберіть відділення Нової Пошти."
+msgstr "Select a Nova Post branch."
+
+msgid "Вкажіть місто доставки."
+msgstr "Enter a delivery city."
+
+msgid "Індекс має містити 5 цифр."
+msgstr "Postcode must contain 5 digits."
+
+msgid "Оберіть спосіб доставки."
+msgstr "Select a delivery method."
+
 msgid "Бажаний товар"
 msgstr "Wished product"
 
 msgid "Список бажань"
 msgstr "Wishlist"
+
+msgid "Товар додано до бажаних"
+msgstr "Product added to wishlist"
+
+msgid "Прибрано з бажаних"
+msgstr "Removed from wishlist"
 
 msgid "Сторінку не знайдено"
 msgstr "Page not found"
@@ -795,20 +1161,117 @@ msgstr "It may have been moved or deleted."
 msgid "На головну"
 msgstr "Go to home"
 
+msgid "Помилка сервера — СвітПК"
+msgstr "Server error — SvitPC"
+
+msgid "Помилка сервера"
+msgstr "Server error"
+
+msgid "Вибачте, виникла помилка. Ми вже працюємо над її виправленням."
+msgstr "Sorry, something went wrong. We are already working on a fix."
+
+msgid "Обрано %(counter)s клієнта."
+msgid_plural "Обрано %(counter)s клієнтів."
+msgstr[0] "%(counter)s customer selected."
+msgstr[1] "%(counter)s customers selected."
+
+msgid "Надіслати"
+msgstr "Send"
+
+msgid "Скасувати"
+msgstr "Cancel"
+
 msgid "AI-консультант"
 msgstr "AI consultant"
 
 msgid ""
-"Задайте питання про вибір техніки, сумісність комплектуючих, характеристики."
+"AI-консультант СвітПК — підбір ноутбуків, комплектуючих, перевірка "
+"сумісності компонентів"
 msgstr ""
-"Ask a question about choosing equipment, component compatibility, "
-"specifications."
+"SvitPC AI consultant — laptop and component selection, compatibility checks"
 
-msgid "Запитайте..."
-msgstr "Ask..."
+msgid "Помилка з'єднання. Спробуйте ще раз."
+msgstr "Connection error. Please try again."
 
-msgid "Надіслати"
-msgstr "Send"
+msgid "Не вдалося отримати відповідь. Спробуйте пізніше."
+msgstr "Could not get a response. Please try later."
+
+msgid "Помилка мережі. Перевірте підключення."
+msgstr "Network error. Check your connection."
+
+msgid "Перевіряю сумісність…"
+msgstr "Checking compatibility…"
+
+msgid "Помилка перевірки"
+msgstr "Check failed"
+
+msgid "Помилка мережі"
+msgstr "Network error"
+
+msgid ""
+"Розкажи детальніше про товар: __NAME__. Які характеристики важливі і чи "
+"підійде він для типових задач?"
+msgstr ""
+"Tell me more about the product: __NAME__. What specs matter and is it "
+"suitable for typical tasks?"
+
+msgid ""
+"Підбір ноутбуків, комплектуючих, консультація з вибору техніки та перевірка "
+"сумісності компонентів."
+msgstr ""
+"Laptop and component selection, tech buying advice, and compatibility checks."
+
+msgid "Режими консультанта"
+msgstr "Consultant modes"
+
+msgid "Консультант"
+msgstr "Consultant"
+
+msgid "Сумісність"
+msgstr "Compatibility"
+
+msgid "Швидкі запити"
+msgstr "Quick prompts"
+
+msgid "Підібрати ноутбук до 30 000 ₴"
+msgstr "Find a laptop under 30,000 UAH"
+
+msgid "Ігровий ПК до 50 000 ₴"
+msgstr "Gaming PC under 50,000 UAH"
+
+msgid "Ноутбук для навчання"
+msgstr "Laptop for studying"
+
+msgid "Яку відеокарту обрати?"
+msgstr "Which graphics card should I choose?"
+
+msgid "Офісний ПК — що потрібно?"
+msgstr "Office PC — what do I need?"
+
+msgid "Порекомендуй принтер для дому"
+msgstr "Recommend a home printer"
+
+msgid "Ваше питання"
+msgstr "Your question"
+
+msgid "Запитайте про ноутбук, GPU, сумісність..."
+msgstr "Ask about laptops, GPUs, compatibility..."
+
+msgid "ID товарів для перевірки"
+msgstr "Product IDs to check"
+
+msgid ""
+"Введіть ID товарів через кому або пробіл (мінімум 2). ID видно в адресному "
+"рядку сторінки товару або в адмінці."
+msgstr ""
+"Enter product IDs separated by commas or spaces (minimum 2). IDs appear in "
+"the product page URL or in the admin."
+
+msgid "Наприклад: 101, 245, 378"
+msgstr "E.g.: 101, 245, 378"
+
+msgid "Перевірити"
+msgstr "Check"
 
 msgid "Інтернет-магазин СвітПК"
 msgstr "SvitPC Online Store"
@@ -819,6 +1282,9 @@ msgid ""
 msgstr ""
 "SvitPC — computers, components, laptops, printers, stationery and service "
 "centre"
+
+msgid "Каталог товарів"
+msgstr "Product catalog"
 
 msgid "Кошик"
 msgstr "Cart"
@@ -847,9 +1313,6 @@ msgstr "Remove"
 msgid "Навігація"
 msgstr "Navigation"
 
-msgid "Всі бренди"
-msgstr "All brands"
-
 msgid "Закрити"
 msgstr "Close"
 
@@ -871,38 +1334,29 @@ msgstr "Newest first"
 msgid "Популярні"
 msgstr "Popular"
 
+msgid "Рейтинг"
+msgstr "Rating"
+
 msgid "Назва: А→Я"
 msgstr "Name: A→Z"
+
+msgid "Всі бренди"
+msgstr "All brands"
 
 msgid "Інтернет-магазин комп'ютерної техніки"
 msgstr "Computer equipment online store"
 
-msgid "Головний банер"
-msgstr "Main banner"
-
-msgid "Офіційні постачальники"
-msgstr "Official suppliers"
-
-msgid "Комп'ютерна техніка та комплектуючі"
-msgstr "Computer equipment and components"
-
-msgid ""
-"Широкий асортимент від провідних брендів з гарантією та швидкою доставкою по "
-"всій Україні"
-msgstr ""
-"Wide range from leading brands with warranty and fast delivery across Ukraine"
+msgid "Категорії товарів"
+msgstr "Product categories"
 
 msgid "Новинки"
 msgstr "New arrivals"
 
-msgid "Хіти продажів"
-msgstr "Bestsellers"
-
-msgid "Категорії товарів"
-msgstr "Product categories"
-
 msgid "Всі новинки →"
 msgstr "All new arrivals →"
+
+msgid "Хіти продажів"
+msgstr "Bestsellers"
 
 msgid "Всі хіти →"
 msgstr "All bestsellers →"
@@ -967,6 +1421,15 @@ msgstr "More filters"
 msgid "Менше фільтрів"
 msgstr "Fewer filters"
 
+msgid "Реклама"
+msgstr "Advertising"
+
+msgid "Комп'ютерна техніка та комплектуючі"
+msgstr "Computer equipment and components"
+
+msgid "Навігація банерів"
+msgstr "Banner navigation"
+
 msgid "Сторінки"
 msgstr "Pages"
 
@@ -978,6 +1441,15 @@ msgstr "Next"
 
 msgid "Товарів не знайдено. Спробуйте змінити фільтри."
 msgstr "No products found. Try changing the filters."
+
+msgid "Підкатегорії"
+msgstr "Subcategories"
+
+msgid "Більше підкатегорій"
+msgstr "More subcategories"
+
+msgid "Менше підкатегорій"
+msgstr "Fewer subcategories"
 
 msgid "Фотографії товару"
 msgstr "Product photos"
@@ -1018,6 +1490,12 @@ msgstr "Wishlist"
 msgid "Порівняти"
 msgstr "Compare"
 
+msgid "Запитати AI-консультанта про цей товар"
+msgstr "Ask the AI consultant about this product"
+
+msgid "Запитати AI"
+msgstr "Ask AI"
+
 msgid "Характеристики"
 msgstr "Specifications"
 
@@ -1033,8 +1511,56 @@ msgstr "Loading..."
 msgid "Схожі товари"
 msgstr "Related products"
 
+msgid "Акційні кампанії та спецпропозиції →"
+msgstr "Promotions and special offers →"
+
 msgid "Товарів не знайдено."
 msgstr "No products found."
+
+msgid "Дякуємо! Менеджер відповість найближчим часом."
+msgstr "Thank you! A manager will reply shortly."
+
+msgid "Онлайн-консультант"
+msgstr "Online consultant"
+
+msgid ""
+"Скористайтесь чат-кнопкою внизу сторінки для швидкого зв'язку з менеджером."
+msgstr ""
+"Use the chat button at the bottom of the page to contact a manager quickly."
+
+msgid "Підтвердження замовлення"
+msgstr "Order confirmation"
+
+msgid "Перевірте замовлення"
+msgstr "Review your order"
+
+msgid "Контактні дані"
+msgstr "Contact details"
+
+msgid "Спосіб"
+msgstr "Method"
+
+msgid "Індекс"
+msgstr "Postcode"
+
+msgid "Оплата карткою (Visa/Mastercard)"
+msgstr "Card payment (Visa/Mastercard)"
+
+msgid "Післяплата (при отриманні)"
+msgstr "Cash on delivery"
+
+#, python-format
+msgid "Розстрочка 0%%"
+msgstr "0%% installment"
+
+msgid "Знижка (промокод)"
+msgstr "Discount (promo code)"
+
+msgid "Бонуси"
+msgstr "Bonuses"
+
+msgid "Назад"
+msgstr "Back"
 
 msgid "Ваше ім'я"
 msgstr "Your name"
@@ -1063,6 +1589,15 @@ msgstr "Start typing the name..."
 msgid "Оберіть відділення..."
 msgstr "Select branch..."
 
+msgid "Самовивіз з нашого магазину:"
+msgstr "Pickup from our store:"
+
+msgid "м. Дніпро, пр. Д. Яворницького 1"
+msgstr "Dnipro, 1 D. Yavornytskyi Ave."
+
+msgid "Пн–Пт 9:00–19:00, Сб 10:00–17:00"
+msgstr "Mon–Fri 9:00–19:00, Sat 10:00–17:00"
+
 msgid "Коментар до замовлення"
 msgstr "Order comment"
 
@@ -1075,8 +1610,54 @@ msgstr "Checkout — Payment"
 msgid "Оберіть спосіб оплати"
 msgstr "Select payment method"
 
-msgid "Назад"
-msgstr "Back"
+msgid "Оплата карткою"
+msgstr "Card payment"
+
+msgid "Visa / Mastercard через LiqPay"
+msgstr "Visa / Mastercard via LiqPay"
+
+msgid "Швидка оплата з Google"
+msgstr "Fast checkout with Google"
+
+msgid "Швидка оплата з Apple"
+msgstr "Fast checkout with Apple"
+
+msgid "Оплата при отриманні на Новій Пошті"
+msgstr "Pay on delivery via Nova Post"
+
+msgid "Миттєва розстрочка"
+msgstr "Instant installment"
+
+#, python-format
+msgid "Розстрочка 0%% через LiqPay Installment"
+msgstr "0%% installment via LiqPay Installment"
+
+msgid "Промокод і бонуси"
+msgstr "Promo code and bonuses"
+
+msgid "Наприклад: BDAY-XXXXXXXX"
+msgstr "Example: BDAY-XXXXXXXX"
+
+msgid "Доступно бонусів:"
+msgstr "Available bonuses:"
+
+msgid "Списати бонуси"
+msgstr "Redeem bonuses"
+
+msgid "Сума бонусів (грн)"
+msgstr "Bonus amount (UAH)"
+
+msgid "Максимум для цього замовлення:"
+msgstr "Maximum for this order:"
+
+msgid "Увійдіть"
+msgstr "Sign in"
+
+msgid ", щоб списати бонуси."
+msgstr " to redeem bonuses."
+
+msgid "До сплати"
+msgstr "Amount due"
 
 msgid "Підтвердити"
 msgstr "Confirm"
@@ -1097,8 +1678,18 @@ msgstr "My orders"
 msgid "Порівняння товарів"
 msgstr "Product comparison"
 
+msgid "Очистити все"
+msgstr "Clear all"
+
+msgid "Таблиця порівняння"
+msgstr "Comparison table"
+
 msgid "Характеристика"
 msgstr "Specification"
+
+#, python-format
+msgid "Прибрати %(name)s з порівняння"
+msgstr "Remove %(name)s from comparison"
 
 msgid "Наявність"
 msgstr "Availability"
@@ -1106,11 +1697,61 @@ msgstr "Availability"
 msgid "Немає товарів для порівняння. Додайте товари з каталогу."
 msgstr "No products to compare. Add products from the catalog."
 
+msgid "Навігація кабінету"
+msgstr "Account navigation"
+
+msgid "Кабінет"
+msgstr "Account"
+
+msgid "Профіль"
+msgstr "Profile"
+
+msgid "Вийти"
+msgstr "Sign out"
+
+msgid "Увійти"
+msgstr "Sign in"
+
+msgid "Вихід з акаунту"
+msgstr "Sign out"
+
+#, python-format
+msgid ""
+"\n"
+"          Чи точно ви хочете вийти з акаунту %(account)s?\n"
+"        "
+msgstr ""
+
+msgid "Ні"
+msgstr "No"
+
+msgid "Так"
+msgstr "Yes"
+
+msgid "Відкрити чат з консультантом"
+msgstr "Open chat with consultant"
+
+msgid "Закрити чат"
+msgstr "Close chat"
+
+msgid "Привіт! Напишіть ваше запитання, і менеджер відповість якнайшвидше."
+msgstr ""
+"Hello! Send your question and a manager will reply as soon as possible."
+
+msgid "Ваше повідомлення…"
+msgstr "Your message…"
+
+msgid "Введіть повідомлення"
+msgstr "Enter a message"
+
 msgid ""
 "Комп'ютерна техніка, комплектуючі, ноутбуки, принтери та послуги сервісного "
 "центру у Вашому місті."
 msgstr ""
 "Computers, components, laptops, printers and service centre in your city."
+
+msgid "Акційні кампанії"
+msgstr "Promotions"
 
 msgid "Сервіс-центр"
 msgstr "Service centre"
@@ -1130,8 +1771,17 @@ msgstr "Write to us"
 msgid "Всі права захищені."
 msgstr "All rights reserved."
 
+msgid "Сайт від"
+msgstr "Site by"
+
 msgid "Конфіденційність"
 msgstr "Privacy"
+
+msgid "Показати пароль"
+msgstr "Show password"
+
+msgid "Приховати пароль"
+msgstr "Hide password"
 
 msgid "Меню"
 msgstr "Menu"
@@ -1142,8 +1792,8 @@ msgstr "home"
 msgid "Пошук товарів"
 msgstr "Search products"
 
-msgid "Пошук товарів, артикулів, брендів..."
-msgstr "Search products, SKUs, brands..."
+msgid "Пошук товарів…"
+msgstr "Search products…"
 
 msgid "Пошук"
 msgstr "Search"
@@ -1157,17 +1807,20 @@ msgstr "Customer actions"
 msgid "Порівняння"
 msgstr "Comparison"
 
-msgid "Кабінет"
-msgstr "Account"
-
-msgid "Увійти"
-msgstr "Sign in"
-
 msgid "Навігаційне меню"
 msgstr "Navigation menu"
 
 msgid "Закрити меню"
 msgstr "Close menu"
+
+msgid "Українська"
+msgstr "Ukrainian"
+
+msgid "English"
+msgstr "English"
+
+msgid "Швидка навігація"
+msgstr "Quick navigation"
 
 msgid "Ознаки"
 msgstr "Features"
@@ -1187,17 +1840,56 @@ msgstr "Access temporarily blocked"
 msgid "Забагато невдалих спроб входу. Спробуйте пізніше."
 msgstr "Too many failed login attempts. Try again later."
 
+msgid "Нова адреса"
+msgstr "New address"
+
+msgid "Дім, Робота..."
+msgstr "Home, Work..."
+
+msgid "Зберегти адресу"
+msgstr "Save address"
+
+msgid "Мої адреси"
+msgstr "My addresses"
+
+msgid "Адреси доставки"
+msgstr "Delivery addresses"
+
+msgid "Додати"
+msgstr "Add"
+
+msgid "Основна"
+msgstr "Default"
+
+msgid "Видалити адресу"
+msgstr "Delete address"
+
+msgid "Видалити цю адресу?"
+msgstr "Delete this address?"
+
+msgid "Немає збережених адрес."
+msgstr "No saved addresses."
+
+msgid "Додати першу адресу"
+msgstr "Add your first address"
+
 msgid "Особистий кабінет"
 msgstr "Personal account"
 
 msgid "Привіт"
 msgstr "Hello"
 
-msgid "Профіль"
-msgstr "Profile"
+msgid "Бонусна програма"
+msgstr "Bonus program"
+
+msgid "Мій профіль"
+msgstr "My profile"
 
 msgid "Бонусний баланс:"
 msgstr "Bonus balance:"
+
+msgid "Деталі"
+msgstr "Details"
 
 msgid "Вхід"
 msgstr "Sign in"
@@ -1214,8 +1906,20 @@ msgstr "No account?"
 msgid "Зареєструватись"
 msgstr "Sign up"
 
+msgid "Редагування профілю"
+msgstr "Edit profile"
+
+msgid "Сповіщення"
+msgstr "Notifications"
+
+msgid "Зберегти зміни"
+msgstr "Save changes"
+
 msgid "Реєстрація"
 msgstr "Registration"
+
+msgid "Не вдалося зареєструватись. Перевірте поля форми."
+msgstr "Registration failed. Please check the form fields."
 
 msgid "Пароль ще раз"
 msgstr "Repeat password"
@@ -1223,14 +1927,177 @@ msgstr "Repeat password"
 msgid "Вже є акаунт?"
 msgstr "Already have an account?"
 
-msgid "Разом:"
+msgid "Створіть акаунт, щоб залишити відгук про товар."
+msgstr "Create an account to review this product."
+
+msgid "Вітаємо з Днем народження!"
+msgstr "Happy birthday!"
+
+#| msgid "Дата народження"
+msgid "З Днем народження, %(name)s!"
+msgstr "Happy birthday, %(name)s!"
+
+msgid ""
+"Команда СвітПК щиро вітає вас із цим особливим днем і бажає здоров'я, "
+"успіхів та нових технологічних знахідок!"
+msgstr ""
+
+msgid "Подарунок від нас:"
+msgstr "A gift from us:"
+
+#, python-format
+msgid "Ваш промокод на 10%% знижку:"
+msgstr "Your 10%% discount promo code:"
+
+msgid "Дійсний до:"
+msgstr "Valid until:"
+
+msgid "Бонусів нараховано:"
+msgstr "Bonuses credited:"
+
+#| msgid "Бренд"
+msgid "грн"
+msgstr "UAH"
+
+msgid "Введіть промокод при оформленні замовлення на svitpc.ua"
+msgstr "Enter the promo code at checkout on svitpc.ua"
+
+msgid "СвітПК — комп'ютерна техніка та електроніка."
+msgstr "SvitPC — computers and electronics."
+
+msgid ""
+"Якщо ви не хочете отримувати подібні листи — оновіть налаштування в "
+"особистому кабінеті."
+msgstr ""
+
+#, python-format
+msgid "СвітПК вітає з Днем народження, %(name)s!"
+msgstr "Happy birthday from SvitPC, %(name)s!"
+
+#| msgid "Дякуємо за замовлення!"
+msgid "Дякуємо за замовлення #%(order_id)s"
+msgstr "Thank you for order #%(order_id)s"
+
+#, python-format
+msgid "Шановний(а) %(name)s!"
+msgstr "Dear %(name)s!"
+
+msgid "Ми отримали ваше замовлення і вже обробляємо його."
+msgstr "We have received your order and are processing it."
+
+msgid "Сума:"
 msgstr "Total:"
+
+msgid "Оплата:"
+msgstr "Payment:"
 
 msgid "Доставка:"
 msgstr "Delivery:"
 
+msgid "Відділення:"
+msgstr "Branch:"
+
+msgid "Переглянути замовлення на сайті"
+msgstr "View order on the website"
+
+msgid "СвітПК — комп'ютерна техніка та електроніка"
+msgstr "SvitPC — computers and electronics"
+
+#, python-format
+msgid "СвітПК — замовлення #%(pk)s прийнято"
+msgstr "SvitPC — order #%(pk)s received"
+
+msgid "Замовлення доставлено"
+msgstr "Order delivered"
+
+#| msgid "Замовлення №%(pk)s на суму"
+msgid "Замовлення #%(order_id)s доставлено!"
+msgstr "Order #%(order_id)s has been delivered!"
+
+msgid "Ваше замовлення вже чекає на вас у відділенні."
+msgstr "Your order is waiting for you at the branch."
+
 msgid "ТТН:"
 msgstr "Tracking:"
+
+#| msgid "Штрихкод УкрПошти:"
+msgid "Штрихкод УП:"
+msgstr "UP barcode:"
+
+msgid "Дякуємо за покупку в СвітПК!"
+msgstr "Thank you for shopping at SvitPC!"
+
+#, python-format
+msgid "СвітПК — ваше замовлення #%(pk)s доставлено"
+msgstr "SvitPC — your order #%(pk)s has been delivered"
+
+msgid "Статус замовлення змінено"
+msgstr "Order status updated"
+
+#, python-format
+msgid "Замовлення #%(order_id)s"
+msgstr "Order #%(order_id)s"
+
+msgid "Статус вашого замовлення змінено на:"
+msgstr "Your order status has been updated to:"
+
+msgid "ТТН для відстеження:"
+msgstr "Tracking number:"
+
+msgid "Штрихкод відправлення:"
+msgstr "Shipment barcode:"
+
+msgid "Деталі замовлення на сайті"
+msgstr "Order details on the website"
+
+#, python-format
+msgid "СвітПК — замовлення #%(pk)s: %(status)s"
+msgstr "SvitPC — order #%(pk)s: %(status)s"
+
+msgid "ТТН створено"
+msgstr "Tracking number created"
+
+#| msgid "Замовлення №%(pk)s на суму"
+msgid "Замовлення #%(order_id)s передано на доставку"
+msgstr "Order #%(order_id)s handed over for delivery"
+
+#, python-format
+msgid "Ваше замовлення передано в доставку %(delivery)s."
+msgstr "Your order has been handed over for delivery via %(delivery)s."
+
+msgid "Місто:"
+msgstr "City:"
+
+msgid "Сума замовлення:"
+msgstr "Order total:"
+
+msgid "Вартість доставки:"
+msgstr "Delivery cost:"
+
+msgid "Відслідкувати посилку:"
+msgstr "Track your parcel:"
+
+#, python-format
+msgid "СвітПК — ТТН створено для замовлення #%(pk)s"
+msgstr "SvitPC — tracking number created for order #%(pk)s"
+
+msgid "Поточний баланс"
+msgstr "Current balance"
+
+msgid "Історія нарахувань"
+msgstr "Accrual history"
+
+msgid "Бонусних операцій ще немає."
+msgstr "No bonus transactions yet."
+
+msgid "Разом:"
+msgstr "Total:"
+
+msgid "ТТН (НП):"
+msgstr "Tracking number (NP):"
+
+msgid "Відстежити"
+msgstr "Track"
 
 msgid "Фіскальний чек"
 msgstr "Fiscal receipt"
@@ -1253,6 +2120,34 @@ msgstr "Page"
 msgid "Сторінка в розробці."
 msgstr "Page under development."
 
+msgid "Перехід до оплати"
+msgstr "Proceed to payment"
+
+msgid "Будь ласка, зачекайте. Вас перенаправляють на сторінку оплати..."
+msgstr "Please wait. You are being redirected to the payment page..."
+
+msgid "Перенаправлення..."
+msgstr "Redirecting..."
+
+msgid "Перейти до оплати"
+msgstr "Go to payment"
+
+msgid ""
+"Не вдалося ініціювати оплату. Спробуйте ще раз або оберіть інший спосіб "
+"оплати."
+msgstr ""
+"Could not initiate payment. Try again or choose another payment method."
+
+msgid "Повернутись до вибору оплати"
+msgstr "Back to payment selection"
+
+#, python-format
+msgid "Замовлення №%(pk)s на суму"
+msgstr "Order #%(pk)s for"
+
+msgid "Усі товари зі знижкою →"
+msgstr "All discounted products →"
+
 msgid "До"
 msgstr "Until"
 
@@ -1265,6 +2160,9 @@ msgstr "No reviews yet. Be the first!"
 msgid "Залишити відгук"
 msgstr "Leave a review"
 
+msgid "зірок"
+msgstr "stars"
+
 msgid "Ваш відгук"
 msgstr "Your review"
 
@@ -1273,6 +2171,9 @@ msgstr "Submit review"
 
 msgid "Відгук буде опублікований після модерації."
 msgstr "Your review will be published after moderation."
+
+msgid "Відгуки можуть залишати лише зареєстровані користувачі."
+msgstr "Only registered users can leave reviews."
 
 msgid "Дякуємо за відгук!"
 msgstr "Thank you for your review!"
@@ -1304,14 +2205,230 @@ msgstr "Nothing found. Try a different query or check the spelling."
 msgid "Прайс-лист"
 msgstr "Price list"
 
+msgid ""
+"Ремонт ноутбуків, ПК, принтерів, заправка картриджів, відновлення даних та "
+"інші послуги сервісного центру СвітПК"
+msgstr ""
+"Laptop, PC and printer repair, cartridge refills, data recovery and other "
+"SvitPC service centre services"
+
+msgid "Розділи сервісу"
+msgstr "Service sections"
+
+msgid "Оформлення гарантії"
+msgstr "Warranty registration"
+
 msgid "Послуги незабаром будуть додані."
 msgstr "Services will be added soon."
 
-msgid "Вартість доставки:"
-msgstr "Delivery cost:"
+msgid "Товарів не знайдено"
+msgstr "No products found"
+
+#| msgid "Доступ заблоковано"
+msgid "Доступ обмежено"
+msgstr "Access restricted"
+
+msgid ""
+"Цей розділ доступний лише співробітникам магазину. Увійдіть під обліковим "
+"записом персоналу або зверніться до адміністратора."
+msgstr ""
+
+msgid "Інформація про гарантію"
+msgstr "Warranty information"
+
+msgid "Створення заявки"
+msgstr "Create request"
+
+msgid ""
+"Серійний номер не знайдено в реєстрі. Додайте його в адмінці (Серійні "
+"номери) або виконайте sync_brain_serials."
+msgstr ""
+
+msgid "Дані продажу підставлено"
+msgstr "Sale data filled in"
+
+msgid "Поля заповнено за серійним номером"
+msgstr "Fields filled from serial number"
+
+msgid "Серійний номер не знайдено в реєстрі"
+msgstr "Serial number not found in the registry"
+
+msgid "Помилка конфігурації форми. Перезавантажте сторінку."
+msgstr "Form configuration error. Reload the page."
+
+msgid "Спочатку введіть серійний номер"
+msgstr "Enter a serial number first"
+
+msgid "Помилка мережі. Спробуйте ще раз."
+msgstr "Network error. Please try again."
+
+msgid "Немає доступу. Увійдіть як співробітник (staff)."
+msgstr "Access denied. Sign in as staff."
+
+msgid "Помилка пошуку"
+msgstr "Lookup error"
+
+msgid "Товар обрано"
+msgstr "Product selected"
+
+msgid "Заповнити по СН"
+msgstr "Fill by serial number"
+
+msgid "Знайти продаж"
+msgstr "Find sale"
+
+msgid "Пошук товару"
+msgstr "Search product"
+
+msgid "(макс. 60 символів)"
+msgstr "(max. 60 characters)"
+
+msgid "Дані клієнта"
+msgstr "Customer details"
+
+msgid "Доставка до СЦ"
+msgstr "Delivery to service centre"
+
+msgid "— оберіть —"
+msgstr "— select —"
+
+msgid "(макс. 250 символів)"
+msgstr "(max. 250 characters)"
+
+msgid ""
+"дане поле необхідно заповнити, якщо товар на сервіс передає фіз. особа, якій "
+"його було продано"
+msgstr ""
+
+msgid ""
+"дане поле необхідно заповнити, якщо товар відправляється до сервісного "
+"центру службою доставки"
+msgstr ""
+
+msgid "Заявки на сервіс"
+msgstr "Service requests"
+
+msgid "Створити нову заявку"
+msgstr "Create new request"
+
+msgid "Серійний номер, RMA, товар..."
+msgstr "Serial number, RMA, product..."
+
+msgid "Заявок ще немає."
+msgstr "No requests yet."
 
 msgid "Вартість доставки буде розрахована при оформленні"
 msgstr "Delivery cost will be calculated at checkout"
 
+msgid "Індекс не знайдено. Перевірте правильність."
+msgstr "Postcode not found. Please check and try again."
+
+#, python-format
+msgid ""
+"СвітПК: З Днем народження, %(name)s! Промокод на знижку 10%%: %(code)s (до "
+"%(valid_to)s). +%(bonus)s бонусних грн на рахунок. svitpc.ua"
+msgstr ""
+
+#, python-format
+msgid ""
+"СвітПК: Замовлення №%(pk)s доставлено. Чекає у відділенні: %(city)s, "
+"%(warehouse)s. Дякуємо!"
+msgstr ""
+
+#, python-format
+msgid "СвітПК: замовлення #%(pk)s — «%(status)s». %(url)s%(order_url)s"
+msgstr "SvitPC: order #%(pk)s — «%(status)s». %(url)s%(order_url)s"
+
+#, python-format
+msgid "СвітПК: Замовлення №%(pk)s передано (%(delivery)s). ТТН: %(ttn)s."
+msgstr "SvitPC: Order #%(pk)s shipped (%(delivery)s). Tracking: %(ttn)s."
+
+msgid "Команда СвітПК вітає вас із цим святом!"
+msgstr "The SvitPC team celebrates with you!"
+
+msgid "Ваш подарунок:"
+msgstr "Your gift:"
+
+#, python-format
+msgid ""
+"Промокод на 10%% знижку: %(code)s\n"
+"Дійсний до %(valid_to)s"
+msgstr ""
+
+#, python-format
+msgid "На ваш бонусний рахунок нараховано +%(bonus)s грн"
+msgstr "%(bonus)s UAH credited to your bonus balance"
+
+msgid "Скористайтесь на svitpc.ua"
+msgstr "Use it at svitpc.ua"
+
+#, python-format
+msgid ""
+"З Днем народження, %(name)s!\n"
+"Промокод 10%%: %(code)s (до %(valid_to)s).\n"
+"Бонусів нараховано: +%(bonus)s грн.\n"
+"Сайт: %(url)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"СвітПК: замовлення #%(pk)s прийнято.\n"
+"Сума: %(total)s грн.\n"
+"Деталі: %(url)s%(order_url)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"СвітПК: замовлення #%(pk)s доставлено. Дякуємо за покупку!\n"
+"%(url)s%(order_url)s"
+msgstr ""
+
+#, python-format
+msgid "СвітПК: замовлення #%(pk)s — «%(status)s»."
+msgstr "SvitPC: order #%(pk)s — «%(status)s»."
+
+#| msgid "ТТН:"
+msgid "ТТН: %(ttn)s."
+msgstr "Tracking: %(ttn)s."
+
+#, python-format
+msgid ""
+"СвітПК: замовлення #%(pk)s передано на доставку.\n"
+"ТТН: %(ttn)s.\n"
+"Відстеження: %(url)s%(order_url)s"
+msgstr ""
+
 msgid "Список бажань порожній."
 msgstr "Wishlist is empty."
+
+#~ msgid "Реєстрація успішна! Ласкаво просимо!"
+#~ msgstr "Registration successful! Welcome!"
+
+#~ msgid "Офіційні постачальники"
+#~ msgstr "Official suppliers"
+
+#~ msgid ""
+#~ "Широкий асортимент від провідних брендів з гарантією та швидкою доставкою "
+#~ "по всій Україні"
+#~ msgstr ""
+#~ "Wide range from leading brands with warranty and fast delivery across "
+#~ "Ukraine"
+
+#~ msgid "Вітання"
+#~ msgstr "Greeting"
+
+#~ msgid "Введіть текст у полі telegram_text."
+#~ msgstr "Enter text in the telegram_text field."
+
+#~ msgid "ТТН"
+#~ msgstr "Tracking number"
+
+#~ msgid ""
+#~ "Задайте питання про вибір техніки, сумісність комплектуючих, "
+#~ "характеристики."
+#~ msgstr ""
+#~ "Ask a question about choosing equipment, component compatibility, "
+#~ "specifications."
+
+#~ msgid "Пошук товарів, артикулів, брендів..."
+#~ msgstr "Search products, SKUs, brands..."

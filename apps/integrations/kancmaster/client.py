@@ -12,6 +12,74 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+def _to_https(url: str) -> str:
+    u = url.strip()
+    if u.startswith("//"):
+        return "https:" + u
+    if u.startswith("http://"):
+        return "https" + u[4:]
+    return u
+
+
+def _element_text(el: ET.Element | None) -> str:
+    if el is None:
+        return ""
+    text = (el.text or "").strip()
+    if text:
+        return text
+    return "".join(el.itertext()).strip()
+
+
+def _picture_urls(el: ET.Element) -> list[str]:
+    urls: list[str] = []
+    for pic in el.findall("picture"):
+        if pic.text and pic.text.strip():
+            urls.append(_to_https(pic.text))
+    return urls
+
+
+def _resolve_quantity(el: ET.Element, *, is_offer: bool) -> str:
+    qty_text = el.findtext("quantity")
+    if qty_text is not None and str(qty_text).strip() != "":
+        return str(qty_text).strip()
+    if is_offer:
+        available = (el.get("available") or "true").strip().lower()
+        return "0" if available in ("false", "0", "no") else "1"
+    return "0"
+
+
+def _parse_item_element(
+    el: ET.Element,
+    *,
+    is_offer: bool,
+    category_map: dict[str, str],
+) -> dict[str, str | list[str]]:
+    ext_id = (el.get("id") if is_offer else None) or el.findtext("id", "")
+    ext_id = (ext_id or "").strip()
+
+    cat_name = (el.findtext("category") or "").strip()
+    if not cat_name:
+        cat_id = (el.findtext("categoryId") or "").strip()
+        if cat_id:
+            cat_name = category_map.get(cat_id, "")
+
+    image_urls = _picture_urls(el)
+    description_el = el.find("description")
+
+    return {
+        "id": ext_id,
+        "name": (el.findtext("name") or "").strip(),
+        "price": (el.findtext("price") or "0").strip(),
+        "quantity": _resolve_quantity(el, is_offer=is_offer),
+        "category": cat_name,
+        "brand": (el.findtext("vendor") or "").strip(),
+        "sku": ((el.findtext("article") or el.findtext("barcode") or "")).strip(),
+        "description": _element_text(description_el),
+        "image_url": image_urls[0] if image_urls else "",
+        "image_urls": image_urls,
+    }
+
+
 class KancmasterXMLClient:
     def __init__(self) -> None:
         self._url = settings.KANCMASTER_XML_URL
@@ -30,7 +98,7 @@ class KancmasterXMLClient:
             resp = httpx.get(
                 self._url,
                 params=params or None,
-                timeout=120,
+                timeout=300,
                 follow_redirects=True,
             )
             if resp.status_code == 429:
@@ -50,33 +118,27 @@ class KancmasterXMLClient:
             return None
 
     def parse_products(self, xml_bytes: bytes) -> list[dict]:
-        products = []
+        products: list[dict] = []
         try:
             tree = ET.parse(BytesIO(xml_bytes))
             root = tree.getroot()
-            for item in root.iter("item"):
-                # Collect all <picture> elements; normalise to HTTPS to avoid mixed-content blocks.
-                def _to_https(u: str) -> str:
-                    u = u.strip()
-                    if u.startswith("//"):
-                        return "https:" + u
-                    if u.startswith("http://"):
-                        return "https" + u[4:]
-                    return u
 
-                image_urls = [_to_https(el.text) for el in item.findall("picture") if el.text and el.text.strip()]
-                products.append({
-                    "id": item.findtext("id", ""),
-                    "name": item.findtext("name", ""),
-                    "price": item.findtext("price", "0"),
-                    "quantity": item.findtext("quantity", "0"),
-                    "category": item.findtext("category", ""),
-                    "brand": item.findtext("vendor", ""),
-                    "sku": item.findtext("article", ""),
-                    "description": item.findtext("description", ""),
-                    "image_url": image_urls[0] if image_urls else "",
-                    "image_urls": image_urls,
-                })
+            category_map: dict[str, str] = {}
+            for cat_el in root.iter("category"):
+                cat_id = (cat_el.get("id") or "").strip()
+                name = (cat_el.text or "").strip()
+                if cat_id and name:
+                    category_map[cat_id] = name
+
+            items = list(root.iter("item"))
+            offers = list(root.iter("offer")) if not items else []
+            elements: list[tuple[ET.Element, bool]] = [(el, False) for el in items]
+            elements.extend((el, True) for el in offers)
+
+            for el, is_offer in elements:
+                parsed = _parse_item_element(el, is_offer=is_offer, category_map=category_map)
+                if parsed["id"] and parsed["name"]:
+                    products.append(parsed)
         except Exception as exc:
             logger.error("Kancmaster XML parse error: %s", exc)
         return products

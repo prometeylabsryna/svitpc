@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n analytics_tags %}
 <div class="modal-dialog" role="document">
   <button type="button" class="modal-dialog__close" data-modal-close aria-label="{% trans 'Закрити' %}">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="16" height="16"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -9,4 +9,5 @@
     <p class="page-meta">{% trans "Ми зателефонуємо вам найближчим часом." %}</p>
     <p class="page-meta"><strong>{% trans "Замовлення" %} #{{ order.pk }}</strong></p>
   </div>
+  <meta name="ecommerce-purchase" content="{{ ecommerce_purchase|ecommerce_json|escape }}">
 </div>

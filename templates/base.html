@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f0f4ff">
+  <meta name="theme-color" content="#f7f7f7">
 
-  <title>{% block title %}{% trans "Інтернет-магазин СвітПК" %}{% endblock %} — СвітПК</title>
+  <title>{% block title %}{% trans "Інтернет-магазин СвітПК" %}{% endblock %} — {{ SITE_NAME }}</title>
   <meta name="description" content="{% block meta_description %}{% trans "СвітПК — комп'ютерна техніка, комплектуючі, ноутбуки, принтери, канцтовари та послуги сервісного центру" %}{% endblock %}">
 
   {# Canonical — default: clean URL without query params #}
@@ -23,9 +23,9 @@
   {% endif %}
 
   {# Open Graph #}
-  <meta property="og:site_name" content="СвітПК">
+  <meta property="og:site_name" content="{{ SITE_NAME }}">
   <meta property="og:type" content="{% block og_type %}website{% endblock %}">
-  <meta property="og:title" content="{% block og_title %}СвітПК{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}{{ SITE_NAME }}{% endblock %}">
   <meta property="og:description" content="{% block og_description %}{% trans "СвітПК — комп'ютерна техніка, комплектуючі, ноутбуки, принтери, канцтовари та послуги сервісного центру" %}{% endblock %}">
   <meta property="og:image" content="{% block og_image %}{{ SITE_URL }}{% static 'images/og-default.jpg' %}{% endblock %}">
   <meta property="og:url" content="{{ request.build_absolute_uri }}">
@@ -33,16 +33,19 @@
 
   {# Twitter Cards #}
   <meta name="twitter:card" content="{% block twitter_card %}summary_large_image{% endblock %}">
-  <meta name="twitter:title" content="{% block twitter_title %}СвітПК{% endblock %}">
+  <meta name="twitter:title" content="{% block twitter_title %}{{ SITE_NAME }}{% endblock %}">
   <meta name="twitter:description" content="{% block twitter_description %}{% trans "СвітПК — комп'ютерна техніка, комплектуючі, ноутбуки, принтери, канцтовари та послуги сервісного центру" %}{% endblock %}">
   <meta name="twitter:image" content="{% block twitter_image %}{{ SITE_URL }}{% static 'images/og-default.jpg' %}{% endblock %}">
 
   {# Favicon #}
   <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
-  <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon-32.png' %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon-16.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/apple-touch-icon.png' %}">
 
   {# Web Push VAPID #}
   {% if VAPID_PUBLIC_KEY %}<meta name="vapid-pub" content="{{ VAPID_PUBLIC_KEY }}">{% endif %}
+  <meta name="csrf-token" content="{{ csrf_token }}">
 
   {# DNS prefetch for external resources #}
   <link rel="dns-prefetch" href="https://fonts.googleapis.com">
@@ -52,8 +55,7 @@
   {# Preconnect for critical external resources #}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  {# Space Grotesk — tech display font (also loaded via app.css @import) #}
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  {# PT Sans — loaded async via static/js/modules/fonts.js (non-blocking) #}
 
   {# Preload critical CSS #}
   <link rel="preload" href="{% static 'css/app.css' %}" as="style">
@@ -88,13 +90,20 @@
   {# Header #}
   {% include "components/header.html" %}
 
-  {# Main content #}
-  <main id="main-content">
-    {% block content %}{% endblock %}
-  </main>
+  <div class="page-body">
+    <aside class="page-body__nav" aria-label="{% trans 'Каталог товарів' %}">
+      {% include "components/nav.html" %}
+    </aside>
+    <div class="page-body__main">
+      <main id="main-content">
+        {% block content %}{% endblock %}
+      </main>
+      {% include "components/footer.html" %}
+    </div>
+  </div>
 
-  {# Footer #}
-  {% include "components/footer.html" %}
+  {# Global modal host (HTMX swaps form HTML here) #}
+  <div id="modal-container" role="dialog" aria-live="polite"></div>
 
   {# HTMX — external, defer #}
   <script defer src="{% static 'django_htmx/htmx.min.js' %}"></script>
@@ -103,7 +112,7 @@
 
   {% block extra_js %}{% endblock %}
 
-  {# Live chat widget #}
+  {# Contact shortcut (floating button) #}
   {% include "components/chat_widget.html" %}
 
   {# Mobile bottom navigation bar #}

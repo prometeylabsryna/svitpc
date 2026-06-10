@@ -1,12 +1,14 @@
 from celery import shared_task
 
+from django.conf import settings
+from django.utils.translation import gettext as _
+
+from .dispatch import notify_order_customer
 from .service import send_notification
 
 
 @shared_task
 def notify_new_order(order_pk: int) -> None:
-    from django.conf import settings
-
     from apps.orders.models import Order
 
     try:
@@ -14,21 +16,21 @@ def notify_new_order(order_pk: int) -> None:
     except Order.DoesNotExist:
         return
 
-    ctx = {"order": order}
-
-    if order.email:
-        send_notification("email", order.email, "order_created", ctx)
+    notify_order_customer(
+        order,
+        "order_created",
+        push_title=_("СвітПК — замовлення прийнято"),
+        push_body=_("Замовлення №%(pk)s успішно оформлено") % {"pk": order.pk},
+        push_tag=f"order-new-{order.pk}",
+    )
 
     if settings.TELEGRAM_ADMIN_CHAT_ID:
-        send_notification("telegram", settings.TELEGRAM_ADMIN_CHAT_ID, "order_created_admin", {"order": order})
-
-    if order.customer_id:
-        send_notification("push", order.customer_id, "order_created", {
-            "title": "СвітПК — замовлення прийнято",
-            "body": f"Замовлення №{order.pk} успішно оформлено",
-            "url": f"/orders/{order.pk}/",
-            "tag": f"order-new-{order.pk}",
-        })
+        send_notification(
+            "telegram",
+            settings.TELEGRAM_ADMIN_CHAT_ID,
+            "order_created_admin",
+            {"order": order},
+        )
 
 
 @shared_task
@@ -43,21 +45,14 @@ def notify_order_status(order_pk: int) -> None:
     if not order.status.notify_customer:
         return
 
-    ctx = {"order": order}
-    if order.email:
-        send_notification("email", order.email, "order_status_changed", ctx)
-
-    tg_id = order.customer.telegram_chat_id if order.customer_id else ""
-    if tg_id:
-        send_notification("telegram", tg_id, "order_status_changed", ctx)
-
-    if order.customer_id:
-        send_notification("push", order.customer_id, "order_status_changed", {
-            "title": "СвітПК — статус замовлення",
-            "body": f"Замовлення №{order.pk}: {order.status.name}",
-            "url": f"/orders/{order.pk}/",
-            "tag": f"order-status-{order.pk}",
-        })
+    notify_order_customer(
+        order,
+        "order_status_changed",
+        push_title=_("СвітПК — статус замовлення"),
+        push_body=_("Замовлення №%(pk)s: %(status)s")
+        % {"pk": order.pk, "status": order.status.name},
+        push_tag=f"order-status-{order.pk}",
+    )
 
 
 @shared_task
@@ -71,10 +66,13 @@ def notify_repair_status(request_pk: int) -> None:
     except ServiceRequest.DoesNotExist:
         return
 
+    from apps.core.models import SiteSettings
+
+    site = SiteSettings.load()
     ctx = {
         "req": req,
         "status_label": req.get_status_display_uk(),
-        "site_phone": getattr(settings, "SITE_PHONE", "+380000000000"),
+        "site_phone": site.phone,
     }
 
     if req.telegram_chat_id:
@@ -108,9 +106,9 @@ def notify_promotion_push(promotion_pk: int) -> int:
     count = 0
     for user_pk in user_pks:
         sent = send_notification("push", user_pk, "promotion", {
-            "title": "СвітПК — акція!",
-            "body": promo.name,
-            "url": f"/promotions/{promo.slug}/",
+            "title": _("СвітПК — акція!"),
+            "body": promo.title_uk or str(promo.product),
+            "url": "/promotions/",
             "tag": f"promo-{promo.pk}",
         })
         if sent:

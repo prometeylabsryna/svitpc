@@ -26,7 +26,7 @@ class MonobankProvider:
 
         # Mono Parts: paymentScheme "monoparts" for installments, "payment" for regular
         is_installment = getattr(order, "payment_method", "") == "monobank_parts"
-        amount_kopiiky = int(Decimal(str(order.total)) * 100)
+        amount_kopiiky = int(order.payable_amount * 100)
 
         merchant_info = {
             "reference": str(order.pk),

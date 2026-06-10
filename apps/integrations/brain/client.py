@@ -190,6 +190,49 @@ class BrainAPIClient:
 
     # ── Modified products ────────────────────────────────────────────────────────
 
+    def get_report(
+        self,
+        report_type: str,
+        *,
+        date_from: str = "",
+        date_to: str = "",
+        file_type: str = "xls",
+        order_id: str = "",
+    ) -> bytes | str | None:
+        """Fetch Brain dealer report (e.g. serial_numbers_by_dealer).
+
+        Dates use DD.MM.YYYY. Rate limit: one request per report type per 300s.
+        Returns raw response body (XLS bytes or HTML text).
+        """
+        params: dict[str, str] = {}
+        if date_from:
+            params["date_from"] = date_from
+        if date_to:
+            params["date_to"] = date_to
+        if file_type:
+            params["file_type"] = file_type
+        if order_id:
+            params["orderID"] = order_id
+        sid = self._sid()
+        path = f"/report/{report_type}/{sid}"
+        try:
+            resp = self._http.get(path, params=params or {})
+            resp.raise_for_status()
+            content_type = (resp.headers.get("content-type") or "").lower()
+            if "json" in content_type:
+                data = resp.json()
+                if isinstance(data, dict) and data.get("status") == 0:
+                    logger.warning("Brain report %s → %s", report_type, data.get("error_message"))
+                    return None
+                result = data.get("result") if isinstance(data, dict) else data
+                if isinstance(result, str):
+                    return result.encode()
+                return None
+            return resp.content
+        except Exception as exc:
+            logger.error("Brain report request failed [%s]: %s", report_type, exc)
+            return None
+
     def get_modified_since(
         self,
         modified_time: str,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -57,7 +59,7 @@ class Order(models.Model):
     # Customer info (for guests / snapshot)
     first_name = models.CharField(_("Ім'я"), max_length=100)
     last_name = models.CharField(_("Прізвище"), max_length=100)
-    email = models.EmailField(_("Email"))
+    email = models.EmailField(_("Email"), blank=True)
     phone = models.CharField(_("Телефон"), max_length=20)
 
     # Delivery
@@ -77,6 +79,14 @@ class Order(models.Model):
     delivery_cost = models.DecimalField(_("Доставка"), max_digits=8, decimal_places=2, default=0)
     discount = models.DecimalField(_("Знижка"), max_digits=10, decimal_places=2, default=0)
     bonus_used = models.DecimalField(_("Бонусів використано"), max_digits=10, decimal_places=2, default=0)
+    coupon = models.ForeignKey(
+        "loyalty.Coupon",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+        verbose_name=_("Промокод"),
+    )
     comment = models.TextField(_("Коментар"), blank=True)
 
     # Delivery identifiers
@@ -101,6 +111,11 @@ class Order(models.Model):
     def get_absolute_url(self) -> str:
         from django.urls import reverse
         return reverse("orders:detail", kwargs={"pk": self.pk})
+
+    @property
+    def payable_amount(self) -> Decimal:
+        """Сума до оплати (товари після знижок/бонусів + доставка)."""
+        return (self.total + self.delivery_cost).quantize(Decimal("0.01"))
 
 
 class OrderItem(models.Model):

@@ -1,0 +1,23 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'uk' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% trans "Замовлення прийнято" %}</title>
+</head>
+<body style="font-family: sans-serif; color: #111; max-width: 580px; margin: 0 auto; padding: 24px;">
+  <h2>{% blocktrans with order_id=order.pk %}Дякуємо за замовлення #{{ order_id }}{% endblocktrans %}</h2>
+  <p>{% blocktrans with name=order.first_name %}Шановний(а) {{ name }}!{% endblocktrans %}</p>
+  <p>{% trans "Ми отримали ваше замовлення і вже обробляємо його." %}</p>
+  <table style="width:100%; border-collapse:collapse; margin: 16px 0;">
+    <tr><td style="padding:6px 0; color:#555;">{% trans "Сума:" %}</td><td><strong>{{ order.total }} {% trans "грн" %}</strong></td></tr>
+    <tr><td style="padding:6px 0; color:#555;">{% trans "Оплата:" %}</td><td>{{ order.get_payment_method_display }}</td></tr>
+    <tr><td style="padding:6px 0; color:#555;">{% trans "Доставка:" %}</td><td>{{ order.get_delivery_type_display }}{% if order.city %} — {{ order.city }}{% endif %}</td></tr>
+    {% if order.warehouse %}<tr><td style="padding:6px 0; color:#555;">{% trans "Відділення:" %}</td><td>{{ order.warehouse }}</td></tr>{% endif %}
+  </table>
+  <p><a href="{{ site_url }}{{ order.get_absolute_url }}">{% trans "Переглянути замовлення на сайті" %}</a></p>
+  <hr style="border:none; border-top:1px solid #eee; margin:24px 0;">
+  <p style="color:#888; font-size:13px;">{% trans "СвітПК — комп'ютерна техніка та електроніка" %}</p>
+</body>
+</html>

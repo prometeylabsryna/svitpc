@@ -1,1 +1,1 @@
-СвітПК — ТТН створено для замовлення #{{ order.pk }}
+{% load i18n %}{% blocktrans with pk=order.pk %}СвітПК — ТТН створено для замовлення #{{ pk }}{% endblocktrans %}

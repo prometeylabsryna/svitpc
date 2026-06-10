@@ -198,7 +198,7 @@
     &:focus {
       outline: none;
       border-color: var(--clr-primary-500);
-      box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+      box-shadow: 0 0 0 2px rgba(var(--clr-accent-rgb), 0.15);
     }
   }
 

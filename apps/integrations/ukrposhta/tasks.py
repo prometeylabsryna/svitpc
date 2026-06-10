@@ -13,22 +13,21 @@ logger = logging.getLogger(__name__)
 def create_up_shipment_for_order(order_pk: int) -> None:
     """Create Ukrposhta shipment for an order and save barcode."""
     from apps.integrations.ukrposhta.client import UkrPoshtaClient
-    from apps.notifications.service import send_notification
+    from apps.notifications.dispatch import notify_order_customer
     from apps.orders.models import Order
+    from apps.shipping.dispatch import order_ready_for_shipment
 
     try:
         order = Order.objects.get(pk=order_pk)
+        if not order_ready_for_shipment(order) or order.up_barcode:
+            return
         client = UkrPoshtaClient()
         barcode = client.create_shipment(order)
         if barcode:
             order.up_barcode = barcode
             order.save(update_fields=["up_barcode"])
             logger.info("UP barcode %s saved for order #%s", barcode, order_pk)
-            ctx = {"order": order, "ttn": barcode}
-            if order.email:
-                send_notification("email", order.email, "ttn_created", ctx)
-            if order.phone:
-                send_notification("sms", order.phone, "ttn_created", ctx)
+            notify_order_customer(order, "ttn_created", extra_context={"ttn": barcode})
     except Exception as exc:
         logger.error("create_up_shipment_for_order #%s: %s", order_pk, exc)
 
@@ -37,7 +36,7 @@ def create_up_shipment_for_order(order_pk: int) -> None:
 def update_up_delivery_statuses() -> None:
     """Periodically check Ukrposhta delivery statuses for active orders."""
     from apps.integrations.ukrposhta.client import UkrPoshtaClient
-    from apps.notifications.service import send_notification
+    from apps.notifications.dispatch import notify_order_customer
     from apps.orders.models import Order, OrderStatus
 
     client = UkrPoshtaClient()
@@ -58,27 +57,15 @@ def update_up_delivery_statuses() -> None:
             info = client.track(order.up_barcode)
             if not info:
                 continue
-            # UkrPoshta statusCode 41 = delivered (UA)
-            status_code = str(info.get("eventName", "") or info.get("status", ""))
-            is_delivered = "41" in status_code or "DELIVERED" in status_code.upper()
 
-            if is_delivered and delivered_status and order.status_id != delivered_status.pk:
+            if client.is_delivered(info) and delivered_status and order.status_id != delivered_status.pk:
                 order.status = delivered_status
                 order.save(update_fields=["status"])
                 if order.status.notify_customer:
-                    if order.email:
-                        send_notification(
-                            channel="email",
-                            recipient=order.email,
-                            template_name="order_delivered",
-                            context={"order": order, "barcode": order.up_barcode},
-                        )
-                    if order.phone:
-                        send_notification(
-                            channel="sms",
-                            recipient=order.phone,
-                            template_name="order_delivered",
-                            context={"order": order, "barcode": order.up_barcode},
-                        )
+                    notify_order_customer(
+                        order,
+                        "order_delivered",
+                        extra_context={"ttn": order.up_barcode, "barcode": order.up_barcode},
+                    )
         except Exception as exc:
             logger.error("update_up_delivery_statuses order #%s: %s", order.pk, exc)

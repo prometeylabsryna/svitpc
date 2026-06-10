@@ -10,6 +10,7 @@ from celery import shared_task
 from .services import (
     apply_detail_to_product,
     brain_hide_out_of_stock_enabled,
+    brain_sale_old_price,
     build_category_map_from_db,
     sync_brain_categories,
     sync_product_options,
@@ -93,7 +94,9 @@ def sync_products() -> None:
 
             for item in items:
                 brain_id = item.get("productID")
-                name = (item.get("name") or "").strip()
+                from apps.catalog.ru_localization import localize_ru_to_uk
+
+                name = localize_ru_to_uk((item.get("name") or "").strip())
                 if not brain_id or not name:
                     continue
 
@@ -111,10 +114,16 @@ def sync_products() -> None:
                 stock = brain_stock_from_detail(item)
                 sku = (item.get("articul") or item.get("product_code") or "").strip()
                 cat_ids = [local_cat.pk] if local_cat else []
-                final_price = apply_markup(price_raw, brand.pk if brand else None, cat_ids)
+                brand_id = brand.pk if brand else None
+                final_price = apply_markup(price_raw, brand_id, cat_ids)
+                old_price = brain_sale_old_price(item, price_raw, brand_id, cat_ids) if price_raw > 0 else None
                 slug_base = _slug(name, allow_unicode=True) or f"brain-p-{brain_id}"
                 slug = unique_product_slug(slug_base, brain_id)
-                main_img = item.get("medium_image") or item.get("large_image") or ""
+                from apps.catalog.gallery import normalize_brain_image_url
+
+                main_img = normalize_brain_image_url(
+                    item.get("medium_image") or item.get("large_image") or "",
+                )
                 visible = brain_visibility(stock, hide_default)
 
                 with transaction.atomic():
@@ -126,6 +135,7 @@ def sync_products() -> None:
                             "slug": slug,
                             "brand": brand,
                             "price": final_price,
+                            "old_price": old_price,
                             "purchase_price": price_raw,
                             "stock": stock,
                             "sku": sku,
@@ -138,6 +148,7 @@ def sync_products() -> None:
                         product.categories.set([local_cat])
                     if created:
                         sync_product_options(client, product, brain_id)
+                    if created or not main_img:
                         sync_product_pictures(client, product, brain_id, name)
 
             offset += len(items)
@@ -145,6 +156,10 @@ def sync_products() -> None:
                 break
 
     logger.info("Brain sync_products completed: %d top categories processed", len(top_cats))
+
+    from apps.catalog.tasks import translate_to_english
+
+    translate_to_english.delay(what="products", with_descriptions=True)
 
 
 # ── sync_prices ───────────────────────────────────────────────────────────────
@@ -263,8 +278,12 @@ def sync_images() -> None:
             continue
         detail = client.get_product(brain_id)
         main_img = ""
+        from apps.catalog.gallery import normalize_brain_image_url
+
         if detail:
-            main_img = (detail.get("medium_image") or detail.get("large_image") or "").strip()
+            main_img = normalize_brain_image_url(
+                detail.get("medium_image") or detail.get("large_image") or "",
+            )
         if main_img:
             from apps.catalog.models import Product
 
@@ -370,6 +389,42 @@ def backfill_metadata() -> None:
     ).count()
     logger.info(
         "Brain backfill_metadata: %d updated, ~%d without brand remain",
+        updated,
+        remaining,
+    )
+
+
+@shared_task
+def backfill_images() -> None:
+    """Pull Brain photos for products missing a displayable image."""
+    from apps.catalog.gallery import filter_products_missing_display_image, resolve_product_image_url
+    from apps.catalog.models import Product
+
+    client = _brain_client()
+    base = Product.objects.filter(source=Product.SOURCE_BRAIN).exclude(external_id__in=["", "0"])
+    qs = (
+        filter_products_missing_display_image(base)
+        .only("pk", "external_id", "name", "image_url", "image")
+        .prefetch_related("images")
+        .order_by("pk")[:_BACKFILL_CHUNK]
+    )
+
+    updated = 0
+    for product in qs:
+        try:
+            brain_id = int(product.external_id)
+        except (TypeError, ValueError):
+            continue
+        if brain_id <= 0:
+            continue
+        sync_product_pictures(client, product, brain_id, product.name)
+        product.refresh_from_db()
+        if resolve_product_image_url(product):
+            updated += 1
+
+    remaining = filter_products_missing_display_image(base).count()
+    logger.info(
+        "Brain backfill_images: %d gained photos, ~%d still without image remain",
         updated,
         remaining,
     )

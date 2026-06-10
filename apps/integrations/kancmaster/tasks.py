@@ -6,68 +6,258 @@ import logging
 from decimal import Decimal, InvalidOperation
 
 from celery import shared_task
+from django.db.models import Q
 from django.utils.text import slugify
 
 from .client import KancmasterXMLClient
 
 logger = logging.getLogger(__name__)
 
+_PROGRESS_EVERY = 2000
 
-def _get_or_create_category(name: str) -> "Category | None":  # type: ignore[name-defined]
-    from apps.catalog.models import Category
 
-    if not name:
-        return None
-    cat = Category.objects.filter(kancmaster_name=name).first()
-    if cat:
+class _SyncContext:
+    """In-memory caches to avoid repeated DB lookups during full feed import."""
+
+    def __init__(self) -> None:
+        from apps.catalog.models import Brand, Category, Product
+
+        self._Category = Category
+        self._Brand = Brand
+        self._category_by_name: dict[str, Category] = {}
+        for cat in Category.objects.only("pk", "name", "slug", "kancmaster_name"):
+            if cat.kancmaster_name:
+                self._category_by_name[cat.kancmaster_name] = cat
+            self._category_by_name[cat.name] = cat
+        self._brand_by_name: dict[str, Brand] = {
+            b.name: b for b in Brand.objects.only("pk", "name", "slug")
+        }
+        self._existing_slugs: set[str] = set(Product.objects.values_list("slug", flat=True))
+        self._products: dict[str, Product] = {
+            p.external_id: p
+            for p in Product.objects.filter(source=Product.SOURCE_KANCMASTER).prefetch_related(
+                "images"
+            )
+        }
+
+    def get_or_create_category(self, name: str) -> "Category | None":  # type: ignore[name-defined]
+        from apps.catalog.ru_localization import localize_ru_to_uk
+
+        raw = name.strip()
+        if not raw:
+            return None
+        display = localize_ru_to_uk(raw)
+        cached = self._category_by_name.get(raw) or self._category_by_name.get(display)
+        if cached:
+            if display and cached.name != display:
+                cached.name = display
+                cached.save(update_fields=["name", "name_en"])
+            if not cached.kancmaster_name:
+                cached.kancmaster_name = raw
+                cached.save(update_fields=["kancmaster_name"])
+            self._category_by_name[raw] = cached
+            self._category_by_name[display] = cached
+            return cached
+
+        slug_base = slugify(display, allow_unicode=True) or f"kanc-{abs(hash(raw))}"
+        slug = slug_base
+        i = 1
+        while slug in self._existing_slugs or self._Category.objects.filter(slug=slug).exists():
+            slug = f"{slug_base}-{i}"
+            i += 1
+
+        cat = self._Category.objects.create(name=display, slug=slug, kancmaster_name=raw)
+        self._existing_slugs.add(slug)
+        self._category_by_name[raw] = cat
+        self._category_by_name[display] = cat
         return cat
-    cat = Category.objects.filter(name=name).first()
-    if cat:
-        cat.kancmaster_name = name
-        cat.save(update_fields=["kancmaster_name"])
-        return cat
-    slug_base = slugify(name, allow_unicode=True) or f"kanc-{abs(hash(name))}"
-    slug = slug_base
-    i = 1
-    while Category.objects.filter(slug=slug).exists():
-        slug = f"{slug_base}-{i}"
-        i += 1
-    cat = Category.objects.create(name=name, slug=slug, kancmaster_name=name)
-    return cat
+
+    def get_or_create_brand(self, brand_name: str) -> "Brand | None":  # type: ignore[name-defined]
+        from apps.catalog.ru_localization import localize_ru_to_uk
+
+        brand_name = localize_ru_to_uk(brand_name.strip())
+        if not brand_name:
+            return None
+        brand = self._brand_by_name.get(brand_name)
+        if brand:
+            return brand
+        brand = self._Brand.objects.filter(name=brand_name).first()
+        if brand:
+            self._brand_by_name[brand_name] = brand
+            return brand
+        base_slug = slugify(brand_name, allow_unicode=True) or f"brand-{abs(hash(brand_name))}"
+        slug = base_slug
+        suffix = 1
+        while self._Brand.objects.filter(slug=slug).exists():
+            slug = f"{base_slug}-{suffix}"
+            suffix += 1
+        brand = self._Brand.objects.create(name=brand_name, slug=slug)
+        self._brand_by_name[brand_name] = brand
+        return brand
+
+    def unique_slug(self, name: str, ext_id: str) -> str:
+        base = slugify(name, allow_unicode=True) or f"kanc-{ext_id}"
+        if base not in self._existing_slugs:
+            self._existing_slugs.add(base)
+            return base
+        slug = f"{base}-{ext_id}"
+        if slug not in self._existing_slugs:
+            self._existing_slugs.add(slug)
+            return slug
+        counter = 1
+        while True:
+            candidate = f"{slug}-{counter}"
+            if candidate not in self._existing_slugs:
+                self._existing_slugs.add(candidate)
+                return candidate
+            counter += 1
+
+    def get_product(self, ext_id: str) -> "Product | None":  # type: ignore[name-defined]
+        return self._products.get(ext_id)
+
+    def remember_product(self, prod: "Product") -> None:  # type: ignore[name-defined]
+        self._products[prod.external_id] = prod
+
+
+def _external_gallery_qs(prod: "Product"):  # type: ignore[name-defined]
+    """Gallery rows without a locally uploaded file (ImageField stored as '', not NULL)."""
+    return prod.images.filter(Q(image="") | Q(image__isnull=True))
 
 
 def _sync_gallery(prod: "Product", image_urls: list[str]) -> None:  # type: ignore[name-defined]
     """Sync ProductImage gallery rows for additional pictures (index 1+)."""
     from apps.catalog.models import ProductImage
 
-    extra_urls = image_urls[1:]  # index 0 is already stored on Product.image_url
+    extra_urls = list(dict.fromkeys(image_urls[1:]))
+    url_only = _external_gallery_qs(prod)
     if not extra_urls:
-        # Remove stale gallery entries if feed no longer provides extra images
-        prod.images.exclude(image__isnull=False).delete()
+        url_only.delete()
         return
 
-    existing = {img.image_url: img for img in prod.images.filter(image__isnull=True)}
-    incoming = set(extra_urls)
+    ordered = list(url_only.order_by("sort_order"))
+    current_urls = [img.image_url for img in ordered]
+    current_orders = [img.sort_order for img in ordered]
+    expected_orders = list(range(1, len(extra_urls) + 1))
+    if current_urls == extra_urls and current_orders == expected_orders:
+        return
 
-    # Remove entries no longer in feed
-    for url, img in existing.items():
-        if url not in incoming:
-            img.delete()
+    reserved_orders = set(
+        prod.images.exclude(Q(image="") | Q(image__isnull=True)).values_list("sort_order", flat=True)
+    )
+    url_only.delete()
 
-    # Add new entries
-    for i, url in enumerate(extra_urls):
-        if url not in existing:
-            prod.images.create(image_url=url, sort_order=i + 1)
+    to_create: list[ProductImage] = []
+    sort_order = 1
+    for url in extra_urls:
+        while sort_order in reserved_orders:
+            sort_order += 1
+        to_create.append(ProductImage(product=prod, image_url=url, sort_order=sort_order))
+        reserved_orders.add(sort_order)
+        sort_order += 1
+
+    if to_create:
+        ProductImage.objects.bulk_create(to_create)
+
+
+def _apply_item(ctx: _SyncContext, item: dict) -> str:
+    """Upsert one feed item. Returns 'created', 'updated', or 'skipped'."""
+    from django.db import transaction
+
+    from apps.catalog.models import Product
+    from apps.catalog.services import apply_markup
+
+    from apps.catalog.ru_localization import localize_ru_to_uk
+
+    ext_id = (item.get("id") or "").strip()
+    name = localize_ru_to_uk((item.get("name") or "").strip())
+    if not ext_id or not name:
+        return "skipped"
+
+    try:
+        price = Decimal(str(item.get("price") or "0").replace(",", "."))
+    except InvalidOperation:
+        price = Decimal("0")
+
+    try:
+        qty = int(item.get("quantity") or 0)
+    except (ValueError, TypeError):
+        qty = 0
+
+    description = localize_ru_to_uk((item.get("description") or "").strip())
+    image_url = (item.get("image_url") or "").strip()
+    image_urls: list[str] = item.get("image_urls") or ([image_url] if image_url else [])
+    sku = (item.get("sku") or "").strip()
+    brand = ctx.get_or_create_brand((item.get("brand") or "").strip())
+    category = ctx.get_or_create_category((item.get("category") or "").strip())
+    cat_ids = [category.pk] if category else []
+    final_price = apply_markup(price, brand.pk if brand else None, cat_ids)
+
+    prod = ctx.get_product(ext_id)
+    if prod is not None:
+        from apps.catalog.content_translation import clear_en_if_uk_changed
+
+        clear_en_if_uk_changed(prod, "name", name)
+        prod.name = name
+        prod.price = final_price
+        prod.purchase_price = price
+        prod.stock = qty
+        prod.is_visible = qty > 0
+        if image_url:
+            prod.image_url = image_url
+        if description:
+            clear_en_if_uk_changed(prod, "description", description)
+            prod.description = description
+        if sku:
+            prod.sku = sku
+        if brand:
+            prod.brand = brand
+        prod.save(
+            update_fields=[
+                "name",
+                "price",
+                "purchase_price",
+                "stock",
+                "is_visible",
+                "image_url",
+                "description",
+                "name_en",
+                "description_en",
+                "sku",
+                "brand",
+            ]
+        )
+        if category:
+            prod.categories.set([category])
+        _sync_gallery(prod, image_urls)
+        return "updated"
+
+    slug = ctx.unique_slug(name, ext_id)
+    with transaction.atomic():
+        prod = Product.objects.create(
+            source=Product.SOURCE_KANCMASTER,
+            external_id=ext_id,
+            name=name,
+            slug=slug,
+            price=final_price,
+            purchase_price=price,
+            stock=qty,
+            sku=sku,
+            brand=brand,
+            description=description,
+            image_url=image_url,
+            is_visible=qty > 0,
+        )
+        if category:
+            prod.categories.set([category])
+        _sync_gallery(prod, image_urls)
+    ctx.remember_product(prod)
+    return "created"
 
 
 @shared_task
 def sync_all() -> None:
     """Full Kancmaster XML sync: upsert all products, update descriptions/categories."""
-    from django.db import transaction
-    from django.utils.text import slugify as _slug
-
-    from apps.catalog.models import Brand, Product
-    from apps.catalog.services import apply_markup
+    from apps.catalog.models import Product
 
     client = KancmasterXMLClient()
     xml = client.fetch_xml()
@@ -76,113 +266,56 @@ def sync_all() -> None:
         return
 
     items = client.parse_products(xml)
-    logger.info("Kancmaster: %d products in feed", len(items))
+    total = len(items)
+    logger.info("Kancmaster: %d products in feed", total)
 
+    ctx = _SyncContext()
     created_count = 0
     updated_count = 0
     error_count = 0
+    skipped_count = 0
 
-    for item in items:
+    for index, item in enumerate(items, start=1):
         ext_id = (item.get("id") or "").strip()
         name = (item.get("name") or "").strip()
-        if not ext_id or not name:
-            continue
-
         try:
-            try:
-                price = Decimal(str(item.get("price") or "0").replace(",", "."))
-            except InvalidOperation:
-                price = Decimal("0")
-
-            try:
-                qty = int(item.get("quantity") or 0)
-            except (ValueError, TypeError):
-                qty = 0
-
-            description = (item.get("description") or "").strip()
-            image_url = (item.get("image_url") or "").strip()
-            image_urls: list[str] = item.get("image_urls") or ([image_url] if image_url else [])
-            sku = (item.get("sku") or "").strip()
-            brand_name = (item.get("brand") or "").strip()
-            cat_name = (item.get("category") or "").strip()
-
-            brand = None
-            if brand_name:
-                brand_slug = _slug(brand_name, allow_unicode=True) or f"brand-{abs(hash(brand_name))}"
-                brand, _ = Brand.objects.get_or_create(name=brand_name, defaults={"slug": brand_slug})
-
-            category = _get_or_create_category(cat_name) if cat_name else None
-            cat_ids = [category.pk] if category else []
-
-            final_price = apply_markup(price, brand.pk if brand else None, cat_ids)
-
-            try:
-                prod = Product.objects.get(source=Product.SOURCE_KANCMASTER, external_id=ext_id)
-                prod.name = name
-                prod.price = final_price
-                prod.purchase_price = price
-                prod.stock = qty
-                prod.is_visible = qty > 0
-                if image_url:
-                    prod.image_url = image_url
-                if description:
-                    prod.description = description
-                if sku:
-                    prod.sku = sku
-                if brand:
-                    prod.brand = brand
-                prod.save(update_fields=[
-                    "name", "price", "purchase_price", "stock", "is_visible",
-                    "image_url", "description", "sku", "brand",
-                ])
-                if category:
-                    prod.categories.add(category)
-                _sync_gallery(prod, image_urls)
-                updated_count += 1
-
-            except Product.DoesNotExist:
-                slug_base = _slug(name, allow_unicode=True) or f"kanc-{ext_id}"
-                slug = slug_base
-                counter = 1
-                while Product.objects.filter(slug=slug).exists():
-                    slug = f"{slug_base}-{counter}"
-                    counter += 1
-                with transaction.atomic():
-                    prod = Product.objects.create(
-                        source=Product.SOURCE_KANCMASTER,
-                        external_id=ext_id,
-                        name=name,
-                        slug=slug,
-                        price=final_price,
-                        purchase_price=price,
-                        stock=qty,
-                        sku=sku,
-                        brand=brand,
-                        description=description,
-                        image_url=image_url,
-                        is_visible=qty > 0,
-                    )
-                    if category:
-                        prod.categories.add(category)
-                    _sync_gallery(prod, image_urls)
+            result = _apply_item(ctx, item)
+            if result == "created":
                 created_count += 1
-
+            elif result == "updated":
+                updated_count += 1
+            else:
+                skipped_count += 1
         except Exception as exc:  # noqa: BLE001
-            logger.error("Kancmaster: failed to sync item id=%s name=%r: %s", ext_id, name, exc, exc_info=True)
+            logger.error(
+                "Kancmaster: failed to sync item id=%s name=%r: %s",
+                ext_id,
+                name,
+                exc,
+                exc_info=True,
+            )
             error_count += 1
 
+        if index % _PROGRESS_EVERY == 0:
+            logger.info("Kancmaster: progress %d/%d", index, total)
+
     logger.info(
-        "Kancmaster sync done: %d created, %d updated, %d errors",
-        created_count, updated_count, error_count,
+        "Kancmaster sync done: %d created, %d updated, %d skipped, %d errors",
+        created_count,
+        updated_count,
+        skipped_count,
+        error_count,
     )
 
-    # Deactivate products that are no longer present in the feed
     seen_ids = {(item.get("id") or "").strip() for item in items if (item.get("id") or "").strip()}
     deactivated = (
-        Product.objects
-        .filter(source=Product.SOURCE_KANCMASTER, is_visible=True)
+        Product.objects.filter(source=Product.SOURCE_KANCMASTER, is_visible=True)
         .exclude(external_id__in=seen_ids)
         .update(is_visible=False, stock=0)
     )
     if deactivated:
         logger.info("Kancmaster: deactivated %d products removed from feed", deactivated)
+
+    from apps.catalog.tasks import translate_to_english
+
+    translate_to_english.delay(what="products", with_descriptions=True)

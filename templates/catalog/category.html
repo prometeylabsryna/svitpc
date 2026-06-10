@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% load i18n svitpc_tags %}
+{% load i18n svitpc_tags analytics_tags %}
 
-{% block title %}{{ category.seo_title|default:category.name }}{% endblock %}
-{% block meta_description %}{{ category.seo_description|default:category.name }}{% endblock %}
+{% block title %}{{ category.seo_title|default:category|localized:"name" }}{% endblock %}
+{% block meta_description %}{{ category.seo_description|default:category|localized:"name" }}{% endblock %}
 {% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ category.get_absolute_url }}{% endblock %}
-{% block og_title %}{{ category.seo_title|default:category.name }}{% endblock %}
-{% block og_description %}{{ category.seo_description|default:category.name }}{% endblock %}
+{% block og_title %}{{ category.seo_title|default:category|localized:"name" }}{% endblock %}
+{% block og_description %}{{ category.seo_description|default:category|localized:"name" }}{% endblock %}
 {% block og_image %}{% if category.image %}{{ request.scheme }}://{{ request.get_host }}{{ category.image.url }}{% endif %}{% endblock %}
 
 {% block jsonld %}
@@ -25,16 +25,17 @@
 {% endblock %}
 
 {% block content %}
+<meta name="ecommerce-list" content="{{ ecommerce_list|ecommerce_json|escape }}">
 <div class="container">
   {# Breadcrumbs #}
   <nav class="breadcrumbs" aria-label="{% trans 'Навігація' %}">
     <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
     {% for ancestor in category.get_ancestors %}
     <span class="breadcrumbs__sep" aria-hidden="true">›</span>
-    <span class="breadcrumbs__item"><a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name }}</a></span>
+    <span class="breadcrumbs__item"><a href="{{ ancestor.get_absolute_url }}">{{ ancestor|localized:"name" }}</a></span>
     {% endfor %}
     <span class="breadcrumbs__sep" aria-hidden="true">›</span>
-    <span class="breadcrumbs__item" aria-current="page">{{ category.name }}</span>
+    <span class="breadcrumbs__item" aria-current="page">{{ category|localized:"name" }}</span>
   </nav>
 
   <div class="catalog-page">
@@ -54,10 +55,15 @@
     </div>
 
     <div class="catalog-main">
-      <h1 class="catalog-main__title">{{ category.name }}</h1>
+      <h1 class="catalog-main__title">{{ category|localized:"name" }}</h1>
+      {% trans "Чудова техніка!" as svitik_title %}
+      {% trans "Оберіть фільтри або сортування — допоможу знайти саме те, що потрібно." as svitik_message %}
+      {% include "components/svitik_hint.html" with variant="tip" mascot="tech" title=svitik_title message=svitik_message compact=True %}
       {% if category.description %}
-      <div class="category-description">{{ category.description|safe }}</div>
+      <div class="category-description">{{ category|localized:"description"|safe }}</div>
       {% endif %}
+
+      {% include "catalog/partials/subcategories.html" %}
 
       {# Sort bar #}
       <div class="sort-bar catalog-sort-bar">
@@ -92,5 +98,4 @@
     </div>
   </div>
 </div>
-<div id="modal-container" role="dialog" aria-live="polite"></div>
 {% endblock %}

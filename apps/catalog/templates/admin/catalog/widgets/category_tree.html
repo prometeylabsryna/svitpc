@@ -1,0 +1,38 @@
+{% load i18n %}
+<div class="category-tree" data-category-tree>
+  <div class="category-tree__toolbar">
+    <input
+      type="search"
+      class="category-tree__search"
+      data-category-tree-search
+      placeholder="{% trans 'Пошук категорії…' %}"
+      autocomplete="off"
+    >
+    <p class="category-tree__hint">{% trans "Оберіть одну або кілька категорій. Використовуйте пошук за назвою або шляхом." %}</p>
+  </div>
+  <ul class="category-tree__list" data-category-tree-list>
+    {% for node in widget.nodes %}
+      <li
+        class="category-tree__item"
+        data-category-tree-item
+        data-label="{{ node.path|lower }}"
+        style="--category-level: {{ node.level }}"
+      >
+        <label class="category-tree__label">
+          <input
+            type="checkbox"
+            name="{{ widget.name }}"
+            value="{{ node.pk }}"
+            {% if node.selected %}checked{% endif %}
+          >
+          <span class="category-tree__path">{{ node.path }}</span>
+        </label>
+      </li>
+    {% empty %}
+      <li class="category-tree__empty">{% trans "Активних категорій не знайдено." %}</li>
+    {% endfor %}
+  </ul>
+  <p class="category-tree__empty category-tree__no-results" data-category-tree-empty hidden>
+    {% trans "За вашим запитом категорій не знайдено." %}
+  </p>
+</div>

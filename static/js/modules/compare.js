@@ -4,36 +4,83 @@
  * when initAll() is called after HTMX swaps.
  */
 
+const pulseActive = (elt) => {
+  elt.classList.remove("is-animating");
+  void elt.offsetWidth;
+  elt.classList.add("is-animating");
+  elt.addEventListener("animationend", () => elt.classList.remove("is-animating"), { once: true });
+};
+
+/** Apply active state to all toggles for the same product. */
+const setCompareActive = (elt, active) => {
+  if (!elt?.hasAttribute("data-compare-toggle")) return;
+
+  const productId = elt.dataset.productId;
+  const targets = productId
+    ? document.querySelectorAll(`[data-compare-toggle][data-product-id="${productId}"]`)
+    : [elt];
+
+  targets.forEach((btn) => {
+    btn.classList.toggle("is-active", active);
+    btn.setAttribute("aria-pressed", String(active));
+    if (active) pulseActive(btn);
+  });
+};
+
+const parseHxTrigger = (xhr) => {
+  try {
+    const trigger = xhr?.getResponseHeader?.("HX-Trigger");
+    return trigger ? JSON.parse(trigger) : null;
+  } catch {
+    return null;
+  }
+};
+
 // No per-element setup needed; delegation handles dynamically added buttons.
 const initCompare = (_root = document) => {};
 
-// Single module-level listener.
-// Server returns 204 + HX-Trigger: {"compareUpdated": N}
+const isCompareToggle = (elt) => elt?.hasAttribute("data-compare-toggle");
+
+// Optimistic UI before request completes.
+document.addEventListener("htmx:beforeRequest", (e) => {
+  const elt = e.detail?.elt;
+  if (!isCompareToggle(elt)) return;
+  const next = elt.getAttribute("aria-pressed") !== "true";
+  setCompareActive(elt, next);
+});
+
+// Server returns 204 + HX-Trigger: {"compareUpdated": N, "compareActive": bool}
 document.addEventListener("htmx:afterRequest", (e) => {
   const xhr = e.detail?.xhr;
   const elt = e.detail?.elt;
-  if (!xhr || !elt?.hasAttribute("data-compare-toggle")) return;
-  if (xhr.status < 200 || xhr.status >= 300) return;
+  const isCompareAction =
+    isCompareToggle(elt) ||
+    elt?.hasAttribute("data-compare-remove") ||
+    elt?.hasAttribute("data-compare-clear");
+  if (!xhr || !isCompareAction) return;
 
-  try {
-    const trigger = xhr.getResponseHeader?.("HX-Trigger");
-    if (!trigger) return;
-    const data = JSON.parse(trigger);
+  const data = parseHxTrigger(xhr);
+  const ok = xhr.status >= 200 && xhr.status < 300;
 
-    if ("compareUpdated" in data) {
-      const count = data.compareUpdated;
-      document.querySelectorAll("[data-compare-count]").forEach((el) => {
-        el.textContent = count;
-        el.hidden = count === 0;
-      });
-      // Toggle active state on the clicked button.
-      // If count increased the product was added; if decreased — removed.
-      // Simplest reliable signal: just toggle the class on success.
-      elt.classList.toggle("is-active");
+  if (isCompareToggle(elt)) {
+    if (!ok) {
+      setCompareActive(elt, elt.getAttribute("aria-pressed") !== "true");
+      return;
     }
-  } catch {
-    // malformed header — ignore
+    if (data && "compareActive" in data) {
+      setCompareActive(elt, Boolean(data.compareActive));
+    }
+  } else if (!ok) {
+    return;
   }
+
+  if (!data || !("compareUpdated" in data)) return;
+
+  const count = data.compareUpdated;
+  document.querySelectorAll("[data-compare-count]").forEach((el) => {
+    el.textContent = count;
+    el.hidden = count === 0;
+  });
 });
 
 export { initCompare };

@@ -7,28 +7,6 @@
 <div class="container page-section">
   <h1 class="page-title">{% trans "Кошик" %}</h1>
 
-  {% if cart.item_count > 0 %}
-  <div class="cart-layout">
-    <div id="cart-items">
-      {% include "cart/cart_items.html" %}
-    </div>
-
-    <aside class="cart-summary">
-      <h2 class="cart-summary__title">{% trans "Разом" %}</h2>
-      <div class="cart-summary__total">
-        <span>{% trans "До сплати:" %}</span>
-        <span id="cart-total">{{ cart.total|currency }}</span>
-      </div>
-      <a href="{% url 'checkout:step1' %}" class="btn btn--primary btn--full btn--lg">{% trans "Оформити замовлення" %}</a>
-      <a href="{% url 'catalog:home' %}" class="btn btn--ghost btn--full cart-summary__continue">{% trans "Продовжити покупки" %}</a>
-    </aside>
-  </div>
-
-  {% else %}
-  <div class="cart-empty">
-    <p class="cart-empty__title">{% trans "Кошик порожній" %}</p>
-    <a href="{% url 'catalog:home' %}" class="btn btn--primary">{% trans "Перейти до каталогу" %}</a>
-  </div>
-  {% endif %}
+  {% include "cart/cart_body.html" %}
 </div>
 {% endblock %}

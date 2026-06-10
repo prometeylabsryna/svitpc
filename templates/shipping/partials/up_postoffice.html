@@ -1,0 +1,8 @@
+{% load i18n %}
+{% if office %}
+<span class="form-hint up-postoffice-info">
+  {% trans "Відділення:" %} <strong>{{ office.detailedInfo|default:office.city }}</strong>
+</span>
+{% elif error == "not_found" %}
+<span class="form-error" role="alert">{% trans "Індекс не знайдено. Перевірте правильність." %}</span>
+{% endif %}

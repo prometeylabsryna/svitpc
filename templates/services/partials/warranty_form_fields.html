@@ -1,0 +1,213 @@
+{% load i18n %}
+<form
+  id="warranty-claim-form"
+  method="post"
+  action="{% url 'services:warranty_list' %}"
+  class="warranty-form"
+  data-warranty-lookup-url="{% url 'services:warranty_serial_lookup' %}"
+  data-warranty-product-pick-template="{% url 'services:warranty_product_pick' 0 %}"
+  data-i18n-serial-not-found="{% trans 'Серійний номер не знайдено в реєстрі. Перевірте правильність введення або зверніться до нас.' %}"
+  data-i18n-sale-filled="{% trans 'Дані продажу підставлено' %}"
+  data-i18n-fields-filled="{% trans 'Поля заповнено за серійним номером' %}"
+  data-i18n-serial-not-found-short="{% trans 'Серійний номер не знайдено в реєстрі' %}"
+  data-i18n-config-error="{% trans 'Помилка конфігурації форми. Перезавантажте сторінку.' %}"
+  data-i18n-enter-serial="{% trans 'Спочатку введіть серійний номер' %}"
+  data-i18n-network-error="{% trans 'Помилка мережі. Спробуйте ще раз.' %}"
+  data-i18n-access-denied="{% trans 'Немає доступу до пошуку.' %}"
+  data-i18n-lookup-error="{% trans 'Помилка пошуку' %}"
+  data-i18n-product-picked="{% trans 'Товар обрано' %}"
+  novalidate
+>
+  {% csrf_token %}
+  <input type="hidden" name="action" id="warranty-form-action" value="submit">
+  <input type="hidden" name="product_serial_id" id="warranty-product-serial-id" value="">
+  {{ form.product }}
+
+  <div class="warranty-form__row warranty-form__row--serial">
+    <div class="form-field warranty-form__serial-field">
+      <label class="form-label" for="id_serial_number">
+        {% trans "Серійний номер" %} <span class="form-required" aria-hidden="true">*</span>
+      </label>
+      <div class="warranty-form__serial-actions">
+        <input
+          class="form-input{% if form.serial_number.errors %} is-invalid{% endif %}"
+          id="id_serial_number"
+          name="serial_number"
+          type="text"
+          value="{{ form.serial_number.value|default:'' }}"
+          data-warranty-serial
+        >
+        <button type="button" class="btn btn--ghost btn--sm" data-warranty-fill-sn>
+          {% trans "Заповнити по СН" %}
+        </button>
+        {% if request.user.is_staff %}
+        <button type="button" class="btn btn--ghost btn--sm" data-warranty-find-sale>
+          {% trans "Знайти продаж" %}
+        </button>
+        {% endif %}
+      </div>
+      {% if form.serial_number.errors %}<p class="form-error">{{ form.serial_number.errors.0 }}</p>{% endif %}
+    </div>
+    <label class="form-check warranty-form__no-sn">
+      <input
+        type="checkbox"
+        name="without_serial_number"
+        id="id_without_serial_number"
+        {% if form.without_serial_number.value %}checked{% endif %}
+        data-warranty-no-serial
+      >
+      <span>{% trans "Без серійного номера" %}</span>
+    </label>
+  </div>
+
+  <p class="warranty-form__lookup-msg" data-warranty-lookup-msg hidden></p>
+
+  <div class="form-field">
+    <label class="form-label" for="id_product_name">
+      {% trans "Товар" %} <span class="form-required" aria-hidden="true">*</span>
+    </label>
+    <div class="warranty-form__product-row">
+      <input
+        class="form-input{% if form.product_name.errors %} is-invalid{% endif %}"
+        id="id_product_name"
+        name="product_name"
+        type="text"
+        value="{{ form.product_name.value|default:'' }}"
+        placeholder="{% trans 'Пошук товару' %}"
+        data-warranty-product-search
+        hx-get="{% url 'services:warranty_product_search' %}"
+        hx-trigger="input changed delay:350ms"
+        hx-target="#warranty-product-results"
+        hx-swap="innerHTML"
+        hx-include="[name='product_name']"
+        autocomplete="off"
+      >
+      <span class="warranty-form__meta">
+        <span>{% trans "Код товару" %}:</span>
+        <input class="form-input form-input--inline" name="product_code" id="id_product_code" value="{{ form.product_code.value|default:'' }}" readonly>
+      </span>
+      <span class="warranty-form__meta">
+        <span>{% trans "Артикул" %}:</span>
+        <input class="form-input form-input--inline" name="articul" id="id_articul" value="{{ form.articul.value|default:'' }}" readonly>
+      </span>
+    </div>
+    <div id="warranty-product-results" class="autocomplete-results"></div>
+    {% if form.product_name.errors %}<p class="form-error">{{ form.product_name.errors.0 }}</p>{% endif %}
+  </div>
+
+  <div class="warranty-form__row warranty-form__row--2col">
+    <div class="form-field">
+      <label class="form-label" for="id_sale_document">{% trans "Документ продажу" %}</label>
+      <input class="form-input" id="id_sale_document" name="sale_document" type="text" value="{{ form.sale_document.value|default:'' }}" data-warranty-sale-doc>
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="id_sale_date">{% trans "від" %}</label>
+      <input class="form-input" id="id_sale_date" name="sale_date" type="date" value="{{ form.sale_date.value|default:'' }}" data-warranty-sale-date>
+    </div>
+  </div>
+
+  <div class="form-field">
+    <label class="form-label" for="id_warranty_until">{% trans "Гарантія до" %}</label>
+    <input
+      class="form-input warranty-form__warranty-date"
+      id="id_warranty_until"
+      name="warranty_until"
+      type="date"
+      value="{{ form.warranty_until.value|default:'' }}"
+      data-warranty-until
+      readonly
+    >
+    <p class="warranty-form__warranty-status" data-warranty-status hidden></p>
+  </div>
+
+  <div class="form-field">
+    <label class="form-label" for="id_defect_description">
+      {% trans "Опис дефекту" %} <span class="form-required" aria-hidden="true">*</span>
+      <span class="form-hint">{% trans "(макс. 60 символів)" %}</span>
+    </label>
+    <textarea
+      class="form-input{% if form.defect_description.errors %} is-invalid{% endif %}"
+      id="id_defect_description"
+      name="defect_description"
+      maxlength="60"
+      rows="3"
+    >{{ form.defect_description.value|default:'' }}</textarea>
+    {% if form.defect_description.errors %}<p class="form-error">{{ form.defect_description.errors.0 }}</p>{% endif %}
+  </div>
+
+  <fieldset class="warranty-form__fieldset">
+    <legend>{% trans "Дані клієнта" %}<sup>1</sup></legend>
+    <div class="warranty-form__row warranty-form__row--2col">
+      <div class="form-field">
+        <label class="form-label" for="id_client_name">{% trans "ПІБ клієнта" %}</label>
+        <input class="form-input{% if form.client_name.errors %} is-invalid{% endif %}" id="id_client_name" name="client_name" type="text" value="{{ form.client_name.value|default:'' }}">
+        {% if form.client_name.errors %}<p class="form-error">{{ form.client_name.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="id_client_phone">{% trans "Телефон клієнта" %}</label>
+        <input class="form-input{% if form.client_phone.errors %} is-invalid{% endif %}" id="id_client_phone" name="client_phone" type="tel" value="{{ form.client_phone.value|default:'' }}">
+        {% if form.client_phone.errors %}<p class="form-error">{{ form.client_phone.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+    <div class="warranty-form__row warranty-form__row--2col">
+      <div class="form-field">
+        <label class="form-label" for="id_client_email">{% trans "Email клієнта" %}</label>
+        <input class="form-input{% if form.client_email.errors %} is-invalid{% endif %}" id="id_client_email" name="client_email" type="email" value="{{ form.client_email.value|default:'' }}">
+        {% if form.client_email.errors %}<p class="form-error">{{ form.client_email.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="id_client_address">{% trans "Адреса клієнта" %}</label>
+        <input class="form-input{% if form.client_address.errors %} is-invalid{% endif %}" id="id_client_address" name="client_address" type="text" value="{{ form.client_address.value|default:'' }}">
+        {% if form.client_address.errors %}<p class="form-error">{{ form.client_address.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="warranty-form__fieldset">
+    <legend>{% trans "Доставка до СЦ" %}<sup>2</sup></legend>
+    <div class="form-field">
+      <label class="form-label" for="id_delivery_service">{% trans "Служба доставки" %}</label>
+      <select class="form-input{% if form.delivery_service.errors %} is-invalid{% endif %}" id="id_delivery_service" name="delivery_service">
+        <option value="">{% trans "— оберіть —" %}</option>
+        {% for value, label in form.fields.delivery_service.choices %}
+        {% if value %}
+        <option value="{{ value }}"{% if form.delivery_service.value == value %} selected{% endif %}>{{ label }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+      {% if form.delivery_service.errors %}<p class="form-error">{{ form.delivery_service.errors.0 }}</p>{% endif %}
+    </div>
+    <div class="warranty-form__row warranty-form__row--2col">
+      <div class="form-field">
+        <label class="form-label" for="id_waybill_number">{% trans "Номер накладної СД" %}</label>
+        <input class="form-input{% if form.waybill_number.errors %} is-invalid{% endif %}" id="id_waybill_number" name="waybill_number" type="text" value="{{ form.waybill_number.value|default:'' }}">
+        {% if form.waybill_number.errors %}<p class="form-error">{{ form.waybill_number.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="id_waybill_date">{% trans "Дата накладної СД" %}</label>
+        <input class="form-input{% if form.waybill_date.errors %} is-invalid{% endif %}" id="id_waybill_date" name="waybill_date" type="date" value="{{ form.waybill_date.value|default:'' }}">
+        {% if form.waybill_date.errors %}<p class="form-error">{{ form.waybill_date.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="form-field">
+    <label class="form-label" for="id_comment">
+      {% trans "Коментар" %}
+      <span class="form-hint">{% trans "(макс. 250 символів)" %}</span>
+    </label>
+    <textarea class="form-input" id="id_comment" name="comment" maxlength="250" rows="4">{{ form.comment.value|default:'' }}</textarea>
+  </div>
+
+  <p class="warranty-form__footnotes">
+    <sup>1</sup> {% trans "дане поле необхідно заповнити, якщо товар на сервіс передає фіз. особа, якій його було продано" %}<br>
+    <sup>2</sup> {% trans "дане поле необхідно заповнити, якщо товар відправляється до сервісного центру службою доставки" %}
+  </p>
+
+  <div class="warranty-form__footer">
+    <button type="submit" class="btn btn--primary" data-warranty-action="submit">{% trans "Відправити заявку" %}</button>
+    {% if request.user.is_staff %}
+    <button type="submit" class="btn btn--ghost" data-warranty-action="save">{% trans "Зберегти чернетку" %}</button>
+    {% endif %}
+  </div>
+</form>

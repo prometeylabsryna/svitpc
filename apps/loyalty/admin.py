@@ -5,11 +5,13 @@ from __future__ import annotations
 import secrets
 import string
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 
+from .forms import BonusAdjustmentForm
 from .models import BonusTransaction, Coupon
+from .services import LoyaltyError
 
 
 def _generate_code(length: int = 10) -> str:
@@ -19,13 +21,14 @@ def _generate_code(length: int = 10) -> str:
 
 @admin.register(Coupon)
 class CouponAdmin(ModelAdmin):
-    list_display = ("code", "discount_type", "discount_value", "used_count", "max_uses", "is_active", "valid_to")
+    list_display = ("code", "customer", "source", "discount_type", "discount_value", "used_count", "max_uses", "is_active", "valid_to")
+    autocomplete_fields = ("customer",)
     list_filter = ("is_active", "discount_type")
     search_fields = ("code",)
     list_editable = ("is_active",)
     readonly_fields = ("used_count",)
     date_hierarchy = "valid_from"
-    actions = ["activate", "deactivate", "generate_codes"]
+    actions = ["activate", "deactivate", "reset_used_count"]
 
     @admin.action(description=_("Активувати обрані промокоди"))
     def activate(self, request, queryset):
@@ -38,7 +41,7 @@ class CouponAdmin(ModelAdmin):
         self.message_user(request, _("Деактивовано: %(n)d") % {"n": updated})
 
     @admin.action(description=_("Скинути лічильник використань"))
-    def generate_codes(self, request, queryset):
+    def reset_used_count(self, request, queryset):
         queryset.update(used_count=0)
         self.message_user(request, _("Лічильник скинуто"))
 
@@ -49,10 +52,34 @@ class BonusTransactionAdmin(ModelAdmin):
     list_filter = ("transaction_type",)
     search_fields = ("customer__email", "customer__phone", "description")
     date_hierarchy = "created_at"
+    autocomplete_fields = ("customer",)
     readonly_fields = ("customer", "order", "transaction_type", "amount", "balance_after", "created_at")
 
-    def has_add_permission(self, request):
+    def get_fieldsets(self, request, obj=None):
+        if obj is None:
+            return [(None, {"fields": ("customer", "amount", "description")})]
+        return [(None, {"fields": self.readonly_fields})]
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        if obj is None:
+            kwargs["form"] = BonusAdjustmentForm
+        return super().get_form(request, obj, change=change, **kwargs)
+
+    def save_model(self, request, obj, form, change) -> None:
+        if change:
+            return
+        try:
+            tx = form.save()
+            obj.pk = tx.pk
+        except LoyaltyError as exc:
+            messages.error(request, exc.message)
+            raise
+
+    def has_add_permission(self, request) -> bool:
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None) -> bool:
         return False
 
-    def has_delete_permission(self, request, obj=None):
+    def has_delete_permission(self, request, obj=None) -> bool:
         return request.user.is_superuser

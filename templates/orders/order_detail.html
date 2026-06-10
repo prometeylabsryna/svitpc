@@ -4,6 +4,15 @@
 {% block content %}
 <div class="container container--narrow page-section">
   <h1 class="page-title">{% trans "Замовлення" %} #{{ order.pk }}</h1>
+  {% if pending_coins %}
+  {% trans "Монети після доставки" as svitik_title %}
+  {% blocktrans with coins=pending_coins asvar svitik_message %}Після доставки цього замовлення на ваш рахунок нарахують {{ coins }} бонусних монет СвітПК.{% endblocktrans %}
+  {% include "components/svitik_hint.html" with variant="success" mascot="coins" title=svitik_title message=svitik_message coins=pending_coins coins_after_delivery=True compact=True %}
+  {% else %}
+  {% trans "Так тримати!" as svitik_title %}
+  {% trans "Слідкуйте за статусом замовлення — ми повідомимо, коли все буде готово." as svitik_message %}
+  {% include "components/svitik_hint.html" with variant="success" mascot="celebrate" title=svitik_title message=svitik_message compact=True %}
+  {% endif %}
   <p class="order-detail__meta">
     {{ order.created_at|date:"d.m.Y H:i" }} ·
     <span class="order-detail__meta-status">{{ order.status.name }}</span>
@@ -27,12 +36,6 @@
     <p>
       {% trans "ТТН (НП):" %} <strong>{{ order.ttn }}</strong>
       — <a href="https://novaposhta.ua/tracking/?cargo_number={{ order.ttn }}" target="_blank" rel="noopener">{% trans "Відстежити" %}</a>
-    </p>
-    {% endif %}
-    {% if order.up_barcode %}
-    <p>
-      {% trans "Штрихкод УкрПошти:" %} <strong>{{ order.up_barcode }}</strong>
-      — <a href="https://track.ukrposhta.ua/tracking_UA.html?barcode={{ order.up_barcode }}" target="_blank" rel="noopener">{% trans "Відстежити" %}</a>
     </p>
     {% endif %}
     {% if order.fiscal_check_url %}<p><a href="{{ order.fiscal_check_url }}" target="_blank">{% trans "Фіскальний чек" %}</a></p>{% endif %}

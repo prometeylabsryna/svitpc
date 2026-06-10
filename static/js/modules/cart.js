@@ -12,25 +12,30 @@ const updateCartBadge = (count) => {
   });
 };
 
+const parseHxTrigger = (xhr) => {
+  try {
+    const trigger = xhr?.getResponseHeader?.("HX-Trigger");
+    return trigger ? JSON.parse(trigger) : null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Element-level init (quantity inputs handled by hx-trigger="change" on the
  * element itself — nothing extra needed here).
  */
 const initCart = (_root = document) => {};
 
-// Single module-level listener: update cart badge from HX-Trigger response header.
-// cart_add_view returns 204 + HX-Trigger: {"cartUpdated": N} — no HTML body.
+// cart_add_view returns 204 + HX-Trigger: {"cartUpdated": N, "toast": …} — no HTML body.
 document.addEventListener("htmx:afterRequest", (e) => {
   const xhr = e.detail?.xhr;
-  if (!xhr) return;
-  try {
-    const trigger = xhr.getResponseHeader?.("HX-Trigger");
-    if (!trigger) return;
-    const data = JSON.parse(trigger);
-    if ("cartUpdated" in data) updateCartBadge(data.cartUpdated);
-  } catch {
-    // malformed header — ignore
-  }
+  if (!xhr || xhr.status < 200 || xhr.status >= 300) return;
+
+  const data = parseHxTrigger(xhr);
+  if (!data) return;
+
+  if ("cartUpdated" in data) updateCartBadge(data.cartUpdated);
 });
 
 export { initCart, updateCartBadge };

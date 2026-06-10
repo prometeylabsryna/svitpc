@@ -1,0 +1,6 @@
+{% load i18n %}
+<nav class="service-tabs" aria-label="{% trans 'Розділи сервісу' %}">
+  <a href="{% url 'services:list' %}" class="service-tabs__link{% if active_tab == 'list' %} is-active{% endif %}">{% trans "Сервісний центр" %}</a>
+  <a href="{% url 'services:prices' %}" class="service-tabs__link{% if active_tab == 'prices' %} is-active{% endif %}">{% trans "Прейскурант" %}</a>
+  <a href="{% url 'services:warranty_list' %}" class="service-tabs__link{% if active_tab == 'warranty' %} is-active{% endif %}">{% trans "Оформлення гарантії" %}</a>
+</nav>

@@ -1,0 +1,15 @@
+{% load catalog_tags %}
+<span class="site-nav__icon" aria-hidden="true">
+  {% if category.icon %}
+  <img
+    class="site-nav__icon-img"
+    src="{{ category.icon.url }}"
+    alt=""
+    width="24"
+    height="24"
+    decoding="async"
+    loading="lazy">
+  {% else %}
+  {% category_nav_icon category %}
+  {% endif %}
+</span>

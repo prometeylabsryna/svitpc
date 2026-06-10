@@ -8,6 +8,7 @@ Usage:
 
 from __future__ import annotations
 
+import html
 import json
 import logging
 import re
@@ -26,9 +27,7 @@ BATCH_SIZE = 500
 RE_INSERT = re.compile(r"^INSERT INTO `([^`]+)` \(([^)]+)\) VALUES (.+);$")
 
 # OpenCart language IDs in this dump: 1 = Russian, 2 = Ukrainian.
-# Per TZ: site supports uk + en only; Russian is NOT needed.
-# Strategy: import lang_id=2 as Ukrainian. lang_id=1 (RU) is used ONLY as fallback
-#           when Ukrainian text is missing for a given record.
+# Prefer Ukrainian; use Russian when UA is missing, then normalize RU→UK.
 LANG_MAP = {"1": "ru", "2": "uk"}
 PRIMARY_LANG = "uk"
 FALLBACK_LANG = "ru"
@@ -148,13 +147,15 @@ def collect_table(filepath: Path, table: str) -> list[dict]:
 
 
 def _pick(desc: dict, *fields: str) -> str:
-    """Return first non-empty value for `fields` from primary lang, else fallback lang."""
+    """Return first non-empty value for *fields* (UA first, then RU fallback)."""
+    from apps.catalog.ru_localization import localize_ru_to_uk
+
     for lang in (PRIMARY_LANG, FALLBACK_LANG):
         bucket = desc.get(lang) or {}
         for f in fields:
-            v = bucket.get(f) or ""
-            if v.strip():
-                return v
+            v = (bucket.get(f) or "").strip()
+            if v:
+                return localize_ru_to_uk(v, allow_api=False)
     return ""
 
 
@@ -180,7 +181,7 @@ class Command(BaseCommand):
         parser.add_argument("--file", required=True, help="Path to .sql backup file")
         parser.add_argument(
             "--steps",
-            default="brands,categories,attrs,filters,products,images,seo,reviews,flags",
+            default="brands,categories,attrs,filters,products,specials,images,seo,reviews,flags",
             help="Comma-separated steps to run",
         )
         parser.add_argument("--dry-run", action="store_true", help="Parse only, do not write to DB")
@@ -209,6 +210,7 @@ class Command(BaseCommand):
             "attrs": self._import_attrs,
             "filters": self._import_filters,
             "products": self._import_products,
+            "specials": self._import_specials,
             "images": self._import_images,
             "seo": self._import_seo,
             "reviews": self._import_reviews,
@@ -354,6 +356,7 @@ class Command(BaseCommand):
 
     def _import_attrs(self) -> None:
         from apps.catalog.models import Attribute, AttributeGroup
+        from apps.catalog.ru_localization import localize_ru_to_uk
 
         groups = collect_table(self._filepath, "oc_attribute_group")
         group_descs = collect_table(self._filepath, "oc_attribute_group_description")
@@ -374,7 +377,8 @@ class Command(BaseCommand):
         for g in groups:
             oc_id = int(g["attribute_group_id"])
             names = gd_map.get(oc_id, {})
-            name = names.get(PRIMARY_LANG) or names.get(FALLBACK_LANG) or f"Group {oc_id}"
+            raw = names.get(PRIMARY_LANG) or names.get(FALLBACK_LANG) or f"Group {oc_id}"
+            name = localize_ru_to_uk(raw, allow_api=False)
             obj, _ = AttributeGroup.objects.update_or_create(
                 oc_id=oc_id, defaults={"name": name, "sort_order": int(g.get("sort_order") or 0)}
             )
@@ -393,7 +397,8 @@ class Command(BaseCommand):
             if not group_pk:
                 continue
             names = ad_map.get(oc_id, {})
-            name = names.get(PRIMARY_LANG) or names.get(FALLBACK_LANG) or f"Attr {oc_id}"
+            raw = names.get(PRIMARY_LANG) or names.get(FALLBACK_LANG) or f"Attr {oc_id}"
+            name = localize_ru_to_uk(raw, allow_api=False)
             Attribute.objects.update_or_create(
                 oc_id=oc_id,
                 defaults={"group_id": group_pk, "name": name, "sort_order": int(a.get("sort_order") or 0)},
@@ -403,6 +408,7 @@ class Command(BaseCommand):
 
     def _import_filters(self) -> None:
         from apps.catalog.models import Filter, FilterGroup
+        from apps.catalog.ru_localization import localize_ru_to_uk
 
         groups = collect_table(self._filepath, "oc_filter_group")
         group_descs = collect_table(self._filepath, "oc_filter_group_description")
@@ -419,7 +425,10 @@ class Command(BaseCommand):
                 if not lang:
                     continue
                 tmp.setdefault(int(d[key_id]), {})[lang] = d.get(value_field) or ""
-            return {k: (v.get(PRIMARY_LANG) or v.get(FALLBACK_LANG) or "") for k, v in tmp.items()}
+            return {
+                k: localize_ru_to_uk(v.get(PRIMARY_LANG) or v.get(FALLBACK_LANG) or "", allow_api=False)
+                for k, v in tmp.items()
+            }
 
         gd_map = lang_pick(group_descs, "filter_group_id", "name")
         fg_map: dict[int, int] = {}
@@ -514,14 +523,22 @@ class Command(BaseCommand):
                 prod_cats.setdefault(pid, []).append(cat_map[cid])
 
         # ── Attributes ──
+        from apps.catalog.ru_localization import localize_ru_to_uk
+
         self.stdout.write("  Collecting product attributes...")
-        prod_attrs: dict[int, list[tuple[int, str]]] = {}
+        prod_attrs: dict[int, dict[int, str]] = {}
         for row in stream_table(self._filepath, "oc_product_attribute"):
             pid = int(row["product_id"])
             aid = attr_map.get(int(row["attribute_id"]))
             lang = LANG_MAP.get(str(row.get("language_id", "")), "")
-            if aid and lang == PRIMARY_LANG:
-                prod_attrs.setdefault(pid, []).append((aid, row.get("text") or ""))
+            if not aid or lang not in (PRIMARY_LANG, FALLBACK_LANG):
+                continue
+            text = (row.get("text") or "").strip()
+            if not text:
+                continue
+            bucket = prod_attrs.setdefault(pid, {})
+            if lang == PRIMARY_LANG or aid not in bucket:
+                bucket[aid] = localize_ru_to_uk(text, allow_api=False)
 
         # ── Filters ──
         self.stdout.write("  Collecting product filters...")
@@ -549,7 +566,7 @@ class Command(BaseCommand):
                 continue
 
             desc = desc_map.get(oc_id, {})
-            name = _pick(desc, "name") or f"Товар {oc_id}"
+            name = html.unescape(_pick(desc, "name") or f"Товар {oc_id}")
 
             seo_kw = seo_keyword_map.get(oc_id, "").strip()
             slug_base = seo_kw or name
@@ -567,6 +584,8 @@ class Command(BaseCommand):
                 purchase = None
 
             apiplus_id = (row.get("apiplus_id") or "").strip()
+            if apiplus_id == "0":
+                apiplus_id = ""
             source = Product.SOURCE_BRAIN if apiplus_id else Product.SOURCE_MANUAL
 
             product = Product(
@@ -624,7 +643,7 @@ class Command(BaseCommand):
             pk = prod_map.get(oc_id)
             if not pk:
                 continue
-            for aid, val in items:
+            for aid, val in items.items():
                 attr_objs.append(ProductAttribute(product_id=pk, attribute_id=aid, value=val))
         ProductAttribute.objects.bulk_create(attr_objs, ignore_conflicts=True, batch_size=2000)
 
@@ -637,6 +656,63 @@ class Command(BaseCommand):
                 filter_objs.append(ProductFilter(product_id=pk, filter_id=fid))
         ProductFilter.objects.bulk_create(filter_objs, ignore_conflicts=True, batch_size=2000)
         self.stdout.write("  Categories/attrs/filters linked")
+
+    def _import_specials(self) -> None:
+        """Apply OpenCart oc_product_special rows as price + old_price."""
+        from datetime import datetime
+        from decimal import Decimal
+
+        from apps.catalog.models import Product
+
+        self.stdout.write("  Collecting product specials...")
+        now = datetime.now()
+        active: dict[int, Decimal] = {}
+
+        for row in stream_table(self._filepath, "oc_product_special"):
+            try:
+                pid = int(row["product_id"])
+                special = Decimal(str(row.get("price") or "0"))
+            except (KeyError, TypeError, ValueError):
+                continue
+            if special <= 0:
+                continue
+
+            for date_key, cmp_now, is_start in (
+                ("date_start", now, True),
+                ("date_end", now, False),
+            ):
+                raw = row.get(date_key)
+                if not raw or str(raw).startswith("0000-00-00"):
+                    continue
+                try:
+                    dt = datetime.fromisoformat(str(raw).replace(" ", "T")[:19])
+                except ValueError:
+                    continue
+                if is_start and dt > cmp_now:
+                    break
+                if not is_start and dt < cmp_now:
+                    break
+            else:
+                if pid not in active or special < active[pid]:
+                    active[pid] = special
+
+        if self._dry_run:
+            self.stdout.write(f"  (dry-run) {len(active)} active specials found")
+            return
+
+        if not active:
+            self.stdout.write("  No active specials in dump")
+            return
+
+        updated = 0
+        for prod in Product.objects.filter(oc_id__in=active.keys()).only("pk", "oc_id", "price"):
+            special = active.get(prod.oc_id)
+            if special is None or special >= prod.price:
+                continue
+            Product.objects.filter(pk=prod.pk).update(price=special, old_price=prod.price)
+            updated += 1
+
+        self.stdout.write(f"  {updated} products updated with special prices")
 
     def _import_images(self) -> None:
         from apps.catalog.models import Product, ProductImage

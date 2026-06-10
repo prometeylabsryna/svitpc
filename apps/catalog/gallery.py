@@ -5,11 +5,19 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from django.db.models import Exists, OuterRef, Q, QuerySet
+
 if TYPE_CHECKING:
     from apps.catalog.models import Product
 
 # Legacy OpenCart paths (e.g. U0582287_2main.jpg) are not served on Brain CDN.
 STALE_NUMBERED_MAIN_RE = re.compile(r"_\d+main\.jpg", re.IGNORECASE)
+# Brain API returns these when a product has no photo; CDN responds with 404.
+PLACEHOLDER_IMAGE_RE = re.compile(r"no-photo(?:-api)?\.(?:png|jpe?g|gif|webp)", re.IGNORECASE)
+
+# Django ORM iregex patterns (keep in sync with the regexes above).
+PLACEHOLDER_URL_IREGEX = r"no-photo(-api)?\.(png|jpe?g|gif|webp)"
+STALE_URL_IREGEX = r"_\d+main\.jpg"
 
 
 def is_stale_gallery_url(url: str) -> bool:
@@ -18,19 +26,81 @@ def is_stale_gallery_url(url: str) -> bool:
     return bool(STALE_NUMBERED_MAIN_RE.search(url))
 
 
+def is_placeholder_image_url(url: str) -> bool:
+    if not url:
+        return False
+    return bool(PLACEHOLDER_IMAGE_RE.search(url))
+
+
+def is_valid_product_image_url(url: str) -> bool:
+    return bool(url) and not is_stale_gallery_url(url) and not is_placeholder_image_url(url)
+
+
+def _invalid_image_url_q(*, field: str = "image_url") -> Q:
+    return Q(**{f"{field}__iregex": PLACEHOLDER_URL_IREGEX}) | Q(
+        **{f"{field}__iregex": STALE_URL_IREGEX},
+    )
+
+
+def _valid_image_url_q(*, field: str = "image_url") -> Q:
+    return Q(**{f"{field}__gt": ""}) & ~_invalid_image_url_q(field=field)
+
+
+def _has_display_image_q() -> Q:
+    from apps.catalog.models import ProductImage
+
+    has_valid_gallery = Exists(
+        ProductImage.objects.filter(product_id=OuterRef("pk")).filter(
+            ~Q(image="") | _valid_image_url_q(field="image_url"),
+        ),
+    )
+    return ~Q(image="") | _valid_image_url_q(field="image_url") | has_valid_gallery
+
+
+def filter_products_with_display_image(qs: QuerySet) -> QuerySet:
+    """Products that resolve to a real photo (upload, valid URL, or gallery)."""
+    return qs.filter(_has_display_image_q())
+
+
+def filter_products_missing_display_image(qs: QuerySet) -> QuerySet:
+    """Products with no displayable photo (placeholder/stale URLs do not count)."""
+    return qs.exclude(_has_display_image_q())
+
+
+def normalize_brain_image_url(url: str) -> str:
+    """Return URL only when Brain CDN serves a real product photo."""
+    u = (url or "").strip()
+    return u if is_valid_product_image_url(u) else ""
+
+
+def resolve_product_image_url(product: Product) -> str:
+    """Best display URL: uploaded file, then main URL, then first valid gallery image."""
+    if product.image:
+        return product.image.url
+    if is_valid_product_image_url(product.image_url):
+        return product.image_url
+    for img in product.images.all():
+        u = img.url
+        if is_valid_product_image_url(u):
+            return u
+    return ""
+
+
 def product_gallery_urls(product: Product) -> list[str]:
-    """Unique display URLs: main first, then extra gallery images (no stale paths)."""
+    """Unique display URLs: main first, then extra gallery images (no stale/placeholder paths)."""
     urls: list[str] = []
     seen: set[str] = set()
 
-    main = product.main_image_url
-    if main and not is_stale_gallery_url(main):
-        urls.append(main)
-        seen.add(main)
-
+    candidates: list[str] = []
+    if product.image:
+        candidates.append(product.image.url)
+    elif product.image_url:
+        candidates.append(product.image_url)
     for img in product.images.all():
-        u = img.url
-        if not u or u in seen or is_stale_gallery_url(u):
+        candidates.append(img.url)
+
+    for u in candidates:
+        if not is_valid_product_image_url(u) or u in seen:
             continue
         seen.add(u)
         urls.append(u)
@@ -39,12 +109,29 @@ def product_gallery_urls(product: Product) -> list[str]:
 
 
 def cleanup_product_gallery(*, dry_run: bool = False) -> dict[str, int]:
-    """Remove stale OpenCart URLs and duplicate ProductImage rows."""
+    """Remove stale OpenCart URLs, Brain placeholders, and duplicate ProductImage rows."""
     from django.db import connection
 
-    from apps.catalog.models import ProductImage
+    from apps.catalog.models import Product, ProductImage
 
-    stats = {"stale_deleted": 0, "dup_url_deleted": 0, "dup_sort_deleted": 0, "main_dup_deleted": 0}
+    stats = {
+        "stale_deleted": 0,
+        "placeholder_main_cleared": 0,
+        "placeholder_gallery_deleted": 0,
+        "dup_url_deleted": 0,
+        "dup_sort_deleted": 0,
+        "main_dup_deleted": 0,
+    }
+
+    placeholder_qs = Product.objects.filter(image_url__iregex=r"no-photo(-api)?\.(png|jpe?g|gif|webp)")
+    stats["placeholder_main_cleared"] = placeholder_qs.count()
+    if not dry_run and stats["placeholder_main_cleared"]:
+        placeholder_qs.update(image_url="")
+
+    placeholder_gallery_qs = ProductImage.objects.filter(image_url__iregex=r"no-photo(-api)?\.(png|jpe?g|gif|webp)")
+    stats["placeholder_gallery_deleted"] = placeholder_gallery_qs.count()
+    if not dry_run and stats["placeholder_gallery_deleted"]:
+        placeholder_gallery_qs.delete()
 
     stale_qs = ProductImage.objects.filter(image_url__iregex=r"_\d+main\.jpg")
     stats["stale_deleted"] = stale_qs.count()

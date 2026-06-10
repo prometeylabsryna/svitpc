@@ -9,9 +9,21 @@
   <section class="ai-consultant"
            data-ai-stream-url="{% url 'ai:consultant_stream' %}"
            data-ai-compat-url="{% url 'ai:compatibility_check' %}"
+           data-i18n-connection-error="{% trans "Помилка з'єднання. Спробуйте ще раз." %}"
+           data-i18n-no-response="{% trans "Не вдалося отримати відповідь. Спробуйте пізніше." %}"
+           data-i18n-network-error="{% trans "Помилка мережі. Перевірте підключення." %}"
+           data-i18n-compat-loading="{% trans "Перевіряю сумісність…" %}"
+           data-i18n-compat-error="{% trans "Помилка перевірки" %}"
+           data-i18n-network-short="{% trans "Помилка мережі" %}"
+           data-i18n-prefill-question="{% blocktrans with name='__NAME__' %}Розкажи детальніше про товар: __NAME__. Які характеристики важливі і чи підійде він для типових задач?{% endblocktrans %}"
            {% if prefill_product %}data-ai-prefill="{{ prefill_product }}"{% endif %}>
 
     <h1 class="ai-consultant__title">{% trans "AI-консультант" %}</h1>
+
+    {% trans "Разом підберемо ідеальний варіант!" as svitik_title %}
+    {% trans "Опишіть задачу — я допоможу знайти техніку під ваш бюджет і потреби." as svitik_message %}
+    {% include "components/svitik_hint.html" with variant="tip" mascot="guide" title=svitik_title message=svitik_message compact=True %}
+
     <p class="ai-consultant__subtitle">
       {% trans "Підбір ноутбуків, комплектуючих, консультація з вибору техніки та перевірка сумісності компонентів." %}
     </p>

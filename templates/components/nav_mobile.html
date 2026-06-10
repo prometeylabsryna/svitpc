@@ -1,10 +1,35 @@
-{% load i18n %}
-<ul>
+{% load i18n svitpc_tags catalog_tags %}
+<ul class="mobile-menu__nav">
   {% for cat in top_categories %}
-  <li><a href="{{ cat.get_absolute_url }}" class="site-nav__item">{{ cat.name }}</a></li>
+  <li class="mobile-menu__nav-item">
+    <a href="{{ cat.get_absolute_url }}" class="site-nav__item site-nav__item--mobile">
+      {% include "catalog/partials/category_icon.html" with category=cat %}
+      <span class="site-nav__label">{{ cat|localized:"name" }}</span>
+    </a>
+    {% with children=cat.children.all %}
+    {% if children %}
+    <ul class="mobile-menu__subnav">
+      {% for sub in children %}
+      <li><a href="{{ sub.get_absolute_url }}" class="mobile-menu__subnav-link">{{ sub|localized:"name" }}</a></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+  </li>
   {% endfor %}
-  <li><a href="{% url 'services:list' %}" class="site-nav__item">{% trans "Сервіс-центр" %}</a></li>
-  <li><a href="{% url 'pages:delivery' %}" class="site-nav__item">{% trans "Доставка" %}</a></li>
-  <li><a href="{% url 'pages:payment' %}" class="site-nav__item">{% trans "Оплата" %}</a></li>
-  <li><a href="{% url 'pages:contact' %}" class="site-nav__item">{% trans "Контакти" %}</a></li>
+  <li class="mobile-menu__nav-item">
+    <a href="{% url 'catalog:sale_products' %}" class="site-nav__item">{% trans "Акції та знижки" %}</a>
+  </li>
+  <li class="mobile-menu__nav-item">
+    <a href="{% url 'services:list' %}" class="site-nav__item">{% trans "Сервіс-центр" %}</a>
+  </li>
+  <li class="mobile-menu__nav-item">
+    <a href="{% url 'pages:delivery' %}" class="site-nav__item">{% trans "Доставка" %}</a>
+  </li>
+  <li class="mobile-menu__nav-item">
+    <a href="{% url 'pages:payment' %}" class="site-nav__item">{% trans "Оплата" %}</a>
+  </li>
+  <li class="mobile-menu__nav-item">
+    <a href="{% url 'pages:contact' %}" class="site-nav__item">{% trans "Контакти" %}</a>
+  </li>
 </ul>

@@ -90,12 +90,13 @@ async def cmd_repair(message: Message) -> None:
 
 @router.message(Command("contact"))
 async def cmd_contact(message: Message) -> None:
-    from django.conf import settings
-    phone = getattr(settings, "SITE_PHONE", "+38000000000")
+    from apps.core.models import SiteSettings
+
+    site = SiteSettings.load()
     await message.answer(
-        f"📞 <b>Магазин СвітПК</b>\n"
-        f"Телефон: {phone}\n"
-        f"Email: info@svitpc.ua\n\n"
+        f"📞 <b>{site.name}</b>\n"
+        f"Телефон: {site.phone}\n"
+        f"Email: {site.email}\n\n"
         f"Або просто напишіть тут — менеджер відповість найближчим часом.",
         parse_mode="HTML",
     )

@@ -1,3 +1,4 @@
+{% load i18n %}
 {% for wh in warehouses %}
 <button type="button"
   class="autocomplete-option"
@@ -5,4 +6,8 @@
   data-warehouse-ref="{{ wh.ref }}">
   {{ wh.name }}
 </button>
+{% empty %}
+{% if request.GET.city_ref %}
+<p class="form-hint autocomplete-empty">{% trans "Відділень не знайдено. Спробуйте номер або вулицю." %}</p>
+{% endif %}
 {% endfor %}

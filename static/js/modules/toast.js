@@ -13,7 +13,9 @@ const createToast = (message, type = "info") => {
   const toast = document.createElement("div");
   toast.className = `toast toast--${type}`;
   toast.setAttribute("role", "alert");
-  toast.innerHTML = `<span>${message}</span>`;
+  const span = document.createElement("span");
+  span.textContent = message;
+  toast.append(span);
   container.appendChild(toast);
 
   const remove = () => toast.remove();
@@ -27,6 +29,12 @@ document.addEventListener("htmx:afterSwap", () => {
     createToast(el.dataset.toast, el.dataset.toastType ?? "info");
     el.remove();
   });
+});
+
+/** HX-Trigger: {"toast": {"message": "…", "type": "success"}} — handled once by HTMX. */
+document.body.addEventListener("toast", (e) => {
+  const { message, type } = e.detail ?? {};
+  if (message) createToast(message, type ?? "info");
 });
 
 export { createToast };

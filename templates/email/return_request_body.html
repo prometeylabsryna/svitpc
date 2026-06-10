@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="uk">
+<body style="font-family: PT Sans, Arial, sans-serif; color: #050505; line-height: 1.5;">
+  <h2 style="color: #0fa2f0;">Нова заявка на повернення або обмін</h2>
+  <table cellpadding="6" cellspacing="0" border="0">
+    <tr><td><strong>ПІБ:</strong></td><td>{{ claim.full_name }}</td></tr>
+    <tr><td><strong>Номер замовлення:</strong></td><td>{{ claim.order_number }}</td></tr>
+    <tr><td><strong>Телефон:</strong></td><td>{{ claim.phone }}</td></tr>
+    <tr><td><strong>Причина:</strong></td><td>{{ claim.get_reason_display }}</td></tr>
+    {% if claim.description %}
+    <tr><td valign="top"><strong>Опис:</strong></td><td>{{ claim.description|linebreaksbr }}</td></tr>
+    {% endif %}
+    <tr><td><strong>Дата:</strong></td><td>{{ claim.created_at }}</td></tr>
+  </table>
+  {% if claim.photo %}
+  <p>До заявки додано фото товару — перегляньте в адмінці.</p>
+  {% endif %}
+</body>
+</html>

@@ -1,1 +1,1 @@
-СвітПК — ваше замовлення #{{ order.pk }} доставлено
+{% load i18n %}{% blocktrans with pk=order.pk %}СвітПК — ваше замовлення #{{ pk }} доставлено{% endblocktrans %}

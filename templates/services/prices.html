@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n static svitpc_tags %}
+{% block title %}{% trans "Прейскурант" %} — {% trans "Сервісний центр" %}{% endblock %}
+{% block meta_description %}{% trans "Актуальні ціни на ремонт ноутбуків, ПК, принтерів, заправку картриджів та інші послуги сервісного центру СвітПК" %}{% endblock %}
+{% block content %}
+<div class="services-page">
+  <div class="container">
+
+    <nav class="breadcrumbs services-page__breadcrumbs" aria-label="{% trans 'Навігація' %}">
+      <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
+      <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+      <span class="breadcrumbs__item"><a href="{% url 'services:list' %}">{% trans "Сервісний центр" %}</a></span>
+      <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+      <span class="breadcrumbs__item" aria-current="page">{% trans "Прейскурант" %}</span>
+    </nav>
+
+    {% include "services/partials/tabs.html" with active_tab="prices" %}
+
+    <h1 class="services-page__title">{% trans "Прейскурант" %}</h1>
+    <p class="services-page__lead">{% trans "Ціни на послуги та види робіт сервісного центру. Точну вартість уточнюйте у менеджера." %}</p>
+
+    {% trans "Прозорі ціни!" as svitik_title %}
+    {% trans "Наведені тарифи орієнтовні — фінальну суму підтвердить менеджер після діагностики." as svitik_message %}
+    {% include "components/svitik_hint.html" with variant="tip" mascot="guide" title=svitik_title message=svitik_message compact=True %}
+
+    {% for category in categories %}
+    <section class="service-category" aria-labelledby="price-cat-{{ category.pk }}">
+      <div class="service-category__head">
+        <span class="service-category__marker" aria-hidden="true"></span>
+        <h2 class="service-category__title" id="price-cat-{{ category.pk }}">{{ category|localized:'name' }}</h2>
+      </div>
+      {% for service in category.services.all %}
+      <article class="service-pricing" id="service-{{ service.slug }}">
+        <div class="service-pricing__header">
+          <h3 class="service-pricing__title">
+            <a href="{{ service.get_absolute_url }}">{{ service|localized:'name' }}</a>
+          </h3>
+          <a href="{{ service.get_absolute_url }}" class="service-pricing__link">{% trans "Детальніше" %}</a>
+        </div>
+        {% include "services/partials/price_table.html" with prices=service.prices.all %}
+      </article>
+      {% endfor %}
+    </section>
+    {% empty %}
+    <p class="page-empty">{% trans "Прейскурант незабаром буде опубліковано." %}</p>
+    {% endfor %}
+
+    {% if categories %}
+    <p class="services-page__footnote">{% trans "* — вартість робіт без урахування матеріалів." %}</p>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

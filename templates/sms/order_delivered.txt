@@ -1,1 +1,1 @@
-СвітПК: Замовлення №{{ order.pk }} доставлено. Чекає у відділенні: {{ order.city }}, {{ order.warehouse }}. Дякуємо!
+{% load i18n %}{% blocktrans with pk=order.pk city=order.city warehouse=order.warehouse %}СвітПК: Замовлення №{{ pk }} доставлено. Чекає у відділенні: {{ city }}, {{ warehouse }}. Дякуємо!{% endblocktrans %}

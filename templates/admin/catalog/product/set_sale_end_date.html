@@ -1,0 +1,46 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans "Адмінка" %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url 'admin:catalog_product_changelist' %}">{{ opts.verbose_name_plural }}</a>
+  &rsaquo; {% trans "Встановити таймер акції" %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="sale-timer-form">
+  <h1>{% trans "Встановити таймер акції" %}</h1>
+  <p class="sale-timer-form__hint">{% trans "Обрано товарів:" %} {{ queryset.count }}</p>
+
+  <ul class="sale-timer-form__products">
+    {% for product in queryset|slice:":20" %}
+    <li>{{ product.name }}</li>
+    {% endfor %}
+    {% if queryset.count > 20 %}
+    <li>{% blocktrans with extra=queryset.count|add:"-20" %}… і ще {{ extra }}{% endblocktrans %}</li>
+    {% endif %}
+  </ul>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for id in selected_ids %}
+    <input type="hidden" name="_selected_action" value="{{ id }}">
+    {% endfor %}
+    <input type="hidden" name="action" value="{{ action }}">
+    <input type="hidden" name="apply" value="1">
+
+    <p class="sale-timer-form__field">
+      <label for="id_sale_end_date">{% trans "Дата та час завершення акції" %}</label>
+      <input type="datetime-local" name="sale_end_date" id="id_sale_end_date" required>
+    </p>
+
+    <div class="submit-row">
+      <input type="submit" value="{% trans 'Застосувати' %}" class="default">
+      <a href="{% url 'admin:catalog_product_changelist' %}" class="button cancel-link">{% trans "Скасувати" %}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

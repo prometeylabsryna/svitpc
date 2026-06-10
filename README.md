@@ -75,10 +75,24 @@ python manage.py import_opencart_sql \
 | `LIQPAY_PUBLIC_KEY` / `LIQPAY_PRIVATE_KEY` | LiqPay | від замовниці |
 | `WAYFORPAY_MERCHANT_ACCOUNT` / `WAYFORPAY_MERCHANT_SECRET` | WayForPay | від замовниці |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot Token | від замовниці |
-| `OPENAI_API_KEY` | OpenAI для AI-функцій | від замовниці |
+| `LLM_API_KEY` | OpenAI-сумісний API для AI (описи, SEO, консультант) | від замовниці |
+| `LLM_MODEL` | Модель LLM | `gpt-4o-mini` |
+| `LLM_BASE_URL` | Base URL OpenAI-сумісного API | `https://api.openai.com/v1` |
 | `VAPID_PRIVATE_KEY` / `VAPID_PUBLIC_KEY` | Web Push | генеруємо (`pywebpush vapid --gen-key`) |
 | `GTM_ID` | Google Tag Manager ID | `GTM-XXXXXX` |
 | `GA_MEASUREMENT_ID` | GA4 Measurement ID | `G-XXXXXXXX` |
+
+### AI (LLM)
+
+У `.env` вкажіть `LLM_API_KEY` (OpenAI або інший OpenAI-сумісний endpoint через `LLM_BASE_URL`).
+
+| Функція | Де | Примітка |
+|---|---|---|
+| AI-консультант (чат, сумісність) | `/ai/consultant/` | Синхронно, Celery не потрібен |
+| SEO title/description товарів | Адмінка → Товари → «Згенерувати SEO (AI)» | Потрібен Celery worker |
+| Повні / короткі описи, характеристики | Адмінка → Товари → відповідні AI-дії | Потрібен Celery worker |
+| Опис категорій | Адмінка → Категорії → «Згенерувати AI-опис категорій» | Синхронно |
+| EN-переклад каталогу через LLM | `translate_to_english --backend=llm` | Альтернатива Google Translate |
 
 ## Celery
 
@@ -95,7 +109,7 @@ make beat     # celery -A config beat -l info --scheduler django
 - `brain.sync_new_products` — кожні 6 год
 - `brain.backfill_metadata` — кожні 2 год (бренди/категорії після OC-імпорту)
 - `brain.reconcile_stale_stock` — кожні 4 год
-- `kancmaster.sync_all` — щодня о 3:00
+- `kancmaster.sync_all` — кожні 6 год
 - `loyalty.send_birthday_greetings` — щодня о 9:00
 - `shipping.update_delivery_statuses` — кожні 2 год
 
@@ -115,13 +129,51 @@ uv run manage.py shell -c "from apps.integrations.brain.tasks import sync_produc
 В адмінці: **Товари** → дії «Brain: синхронізувати…» / «Brain: оновити ціни та залишки».
 Націнки: **Налаштування → Знижкові правила** (`MarkupRule`).
 
-### Нова Пошта — початкове завантаження міст
+### Англійські переклади каталогу
+
+Інтерфейс сайту — через Django `locale/`. Назви та описи товарів/категорій — окремі поля `*_en` у БД (`django-modeltranslation`).
+
+Після імпорту або синхронізації заповніть відсутні EN-поля:
+
 ```bash
-python manage.py shell -c "from apps.integrations.novaposhta.tasks import sync_np_cities; sync_np_cities.delay()"
+make translate-en
+# або частково:
+uv run manage.py translate_to_english --what=products
+uv run manage.py translate_to_english --what=site
 ```
 
+Автоматично: Celery beat `catalog-translate-en` (кожні 6 год) і після `sync_kancmaster` / нічного `brain.sync_products`.
+
+### Kancmaster XML
+Вкажіть у `.env`: `KANCMASTER_XML_URL`, `KANCMASTER_LOGIN`, `KANCMASTER_PASSWORD`  
+(URL зазвичай `https://kancmaster.com.ua/export/kancmaster.xml`; без credentials endpoint `xml_export_request` повертає HTML).
+
+Повна синхронізація (канцтовари, ціни, залишки, фото, описи, категорії):
+```bash
+uv run manage.py sync_kancmaster
+```
+Автоматично через Celery beat: `kancmaster.sync_all` — кожні 6 год.
+
+### Нова Пошта — початкове завантаження міст
+```bash
+uv run manage.py sync_novaposhta
+# або через Celery:
+uv run manage.py sync_novaposhta --async
+```
+
+Потрібні змінні в `.env`: `NOVA_POSHTA_API_KEY`, `NP_SENDER_*` (для ТТН).
+
+### Укрпошта
+Потрібні змінні в `.env`:
+- `UKRPOSHTA_BEARER` — Bearer eCom API (PRODUCTIONBEAREReCom)
+- `UKRPOSHTA_TOKEN` — counterparty token (`?token=` у запитах)
+- `UP_SENDER_CLIENT_UUID` — UUID відправника з кабінету Укрпошти
+- `UP_SENDER_POSTCODE`, `UP_SENDER_ADDRESS`, `UP_SENDER_CITY`
+
+ТТН/штрихкод створюється після оплати (або одразу для післяплати). Потрібен Celery worker + beat.
+
 ### Vchasno.Kasa
-Вкажіть `VCHASNOKASA_API_KEY` та `VCHASNOKASA_LICENSE_KEY` в `.env`. Фіскалізація відбувається автоматично після підтвердження оплати.
+Вкажіть `VCHASNO_CASHBOX_KEY` (токен тестової або бойової каси з kasa.vchasno.ua) у `.env`. Фіскалізація відбувається автоматично після підтвердження оплати. Перевірка: `make test-vchasnokasa`.
 
 ## Адмін-панель
 
@@ -137,8 +189,12 @@ make createsuperuser
 Після першого входу — увімкніть TOTP через "Мій обліковий запис → 2FA".
 
 ### Корисні дії в адмінці
-- **Товари** → виберіть кілька → "Згенерувати SEO (AI)" — автоматичне написання title/description
-- **Категорії** → drag-and-drop для зміни порядку (MPTT)
+- **Товари** → виберіть кілька → AI-дії (потрібні `LLM_API_KEY` у `.env` та запущений Celery worker):
+  - «Згенерувати SEO (AI)» — title/description
+  - «Згенерувати повні описи (AI)»
+  - «Згенерувати короткі описи (AI)»
+  - «Покращити характеристики (AI)»
+- **Категорії** → «Згенерувати AI-опис категорій» (синхронно, без Celery); drag-and-drop для зміни порядку (MPTT)
 - **Товари** → дії Brain (синхронізація, ціни/залишки, приховування без залишку)
 - **Замовлення** → "Створити ТТН НП", "Відправити повідомлення про статус"
 

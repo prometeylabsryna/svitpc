@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n svitpc_tags %}
 
 <form
   class="filters-panel"
@@ -39,7 +39,7 @@
       {% for brand in brands %}
       <label class="filter-check">
         <input type="checkbox" name="brand" value="{{ brand.pk }}" {% if brand.pk in selected_brands %}checked{% endif %}>
-        {{ brand.name }}
+        {{ brand|localized:"name" }}
       </label>
       {% endfor %}
     </div>

@@ -3,16 +3,19 @@
  * Uses fetch + ReadableStream for streaming (POST endpoint → text/event-stream).
  */
 
-const STREAM_URL = document.querySelector("[data-ai-stream-url]")?.dataset.aiStreamUrl ?? "";
-const COMPAT_URL = document.querySelector("[data-ai-compat-url]")?.dataset.aiCompatUrl ?? "";
+const AI_ROOT = document.querySelector(".ai-consultant");
+const STREAM_URL = AI_ROOT?.dataset.aiStreamUrl ?? "";
+const COMPAT_URL = AI_ROOT?.dataset.aiCompatUrl ?? "";
+
+function i18n(key, fallback) {
+  const camel = key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  return AI_ROOT?.dataset[`i18n${camel.charAt(0).toUpperCase()}${camel.slice(1)}`] ?? fallback;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function getCsrf() {
-  return document.cookie
-    .split("; ")
-    .find((r) => r.startsWith("csrftoken="))
-    ?.split("=")[1] ?? "";
+  return document.querySelector('meta[name="csrf-token"]')?.content ?? "";
 }
 
 function escapeHtml(text) {
@@ -68,7 +71,7 @@ async function streamMessage(userText, messagesEl, sendBtn, inputEl) {
     const resp = await fetch(STREAM_URL, { method: "POST", body });
 
     if (!resp.ok || !resp.body) {
-      bubble.textContent = "Помилка з'єднання. Спробуйте ще раз.";
+      bubble.textContent = i18n("connection-error", "Connection error. Please try again.");
       bubble.classList.add("ai-msg--error");
       return;
     }
@@ -92,6 +95,11 @@ async function streamMessage(userText, messagesEl, sendBtn, inputEl) {
         if (raw === "[DONE]") break;
         try {
           const parsed = JSON.parse(raw);
+          if (parsed.error) {
+            bubble.textContent = parsed.error;
+            bubble.classList.add("ai-msg--error");
+            break;
+          }
           if (parsed.text) {
             accumulated += parsed.text;
             bubble.textContent = accumulated;
@@ -104,11 +112,11 @@ async function streamMessage(userText, messagesEl, sendBtn, inputEl) {
     }
 
     if (!accumulated) {
-      bubble.textContent = "Не вдалося отримати відповідь. Спробуйте пізніше.";
+      bubble.textContent = i18n("no-response", "Could not get a response. Please try later.");
       bubble.classList.add("ai-msg--error");
     }
   } catch {
-    bubble.textContent = "Помилка мережі. Перевірте підключення.";
+    bubble.textContent = i18n("network-error", "Network error. Check your connection.");
     bubble.classList.add("ai-msg--error");
   } finally {
     sendBtn.disabled = false;
@@ -124,7 +132,7 @@ async function runCompatibilityCheck(productIds, resultEl, checkBtn) {
 
   checkBtn.disabled = true;
   checkBtn.setAttribute("aria-busy", "true");
-  resultEl.textContent = "Перевіряю сумісність…";
+  resultEl.textContent = i18n("compat-loading", "Checking compatibility…");
   resultEl.className = "compat-result compat-result--loading";
 
   const body = new FormData();
@@ -136,7 +144,7 @@ async function runCompatibilityCheck(productIds, resultEl, checkBtn) {
     const data = await resp.json();
 
     if (!resp.ok) {
-      resultEl.textContent = data.error ?? "Помилка перевірки";
+      resultEl.textContent = data.error ?? i18n("compat-error", "Check failed");
       resultEl.className = "compat-result compat-result--error";
       return;
     }
@@ -145,7 +153,7 @@ async function runCompatibilityCheck(productIds, resultEl, checkBtn) {
     const isOk = data.result.startsWith("✅");
     resultEl.className = `compat-result ${isOk ? "compat-result--ok" : "compat-result--warn"}`;
   } catch {
-    resultEl.textContent = "Помилка мережі";
+    resultEl.textContent = i18n("network-short", "Network error");
     resultEl.className = "compat-result compat-result--error";
   } finally {
     checkBtn.disabled = false;
@@ -213,7 +221,11 @@ function initConsultant() {
     // Pre-fill from ?product= query param (passed via data attribute)
     const prefill = root.dataset.aiPrefill?.trim();
     if (prefill) {
-      const question = `Розкажи детальніше про товар: ${prefill}. Які характеристики важливі і чи підійде він для типових задач?`;
+      const tpl = i18n(
+        "prefill-question",
+        `Tell me more about the product: ${prefill}. What specs matter and is it suitable for typical tasks?`,
+      );
+      const question = tpl.replace("__NAME__", prefill);
       streamMessage(question, messagesEl, sendBtn, inputEl);
     }
   }

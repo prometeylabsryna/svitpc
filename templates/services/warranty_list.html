@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Оформлення гарантії" %}{% endblock %}
+{% block content %}
+<div class="services-page warranty-page">
+  <div class="container">
+
+  <nav class="breadcrumbs services-page__breadcrumbs" aria-label="{% trans 'Навігація' %}">
+    <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
+    <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+    <span class="breadcrumbs__item"><a href="{% url 'services:list' %}">{% trans "Сервісний центр" %}</a></span>
+    <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+    <span class="breadcrumbs__item" aria-current="page">{% trans "Оформлення гарантії" %}</span>
+  </nav>
+
+  {% include "services/partials/tabs.html" with active_tab="warranty" %}
+
+  <header class="warranty-page__header">
+    <h1 class="warranty-page__title">{% trans "Заявка на сервіс" %}</h1>
+    <p class="warranty-page__lead">{% trans "Заповніть форму нижче, щоб передати техніку в сервісний центр або оформити гарантійний ремонт." %}</p>
+  </header>
+
+  {% if submitted_claim %}
+  <div class="warranty-page__success" role="status">
+    <p class="warranty-page__success-title">{% trans "Заявку відправлено!" %}</p>
+    <p>
+      {% blocktrans with rma=submitted_claim.rma_number %}Номер вашої заявки: <strong>{{ rma }}</strong>. Ми зв'яжемося з вами після опрацювання.{% endblocktrans %}
+    </p>
+  </div>
+  {% else %}
+  <div class="warranty-page__form-card">
+    {% include "services/partials/warranty_form_fields.html" %}
+  </div>
+  {% endif %}
+
+  </div>
+</div>
+{% endblock %}

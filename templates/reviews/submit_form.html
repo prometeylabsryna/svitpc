@@ -1,5 +1,6 @@
 {% load i18n %}
 
+{% if user.is_authenticated %}
 <div class="review-form">
   <h3 class="review-form__title">{% trans "Залишити відгук" %}</h3>
   {% if form_error %}
@@ -14,7 +15,8 @@
       <div class="form-field">
         <label class="form-label" for="review-name">{% trans "Ваше ім'я" %}</label>
         <input class="form-input" id="review-name" name="author_name" type="text" required maxlength="100"
-               autocomplete="name">
+               autocomplete="name"
+               value="{{ user.get_full_name|default:user.first_name }}">
       </div>
       <div class="form-field">
         <label class="form-label">{% trans "Оцінка" %}</label>
@@ -42,3 +44,24 @@
     </div>
   </form>
 </div>
+{% else %}
+<div class="review-form review-form--guest">
+  <h3 class="review-form__title">{% trans "Залишити відгук" %}</h3>
+  {% if form_error %}
+  <p class="review-form__error" role="alert">{{ form_error }}</p>
+  {% endif %}
+  <p class="form-hint">{% trans "Відгуки можуть залишати лише зареєстровані користувачі." %}</p>
+  <button
+    type="button"
+    class="btn btn--primary"
+    hx-get="{% url 'customers:register_modal' %}?next={{ review_return_url|urlencode }}&product_id={{ product.pk }}"
+    hx-target="#modal-container"
+    hx-swap="innerHTML">
+    {% trans "Зареєструватись" %}
+  </button>
+  <p class="auth-form__footer">
+    {% trans "Вже є акаунт?" %}
+    <a href="{% url 'customers:login' %}?next={{ review_return_url|urlencode }}">{% trans "Увійти" %}</a>
+  </p>
+</div>
+{% endif %}

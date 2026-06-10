@@ -35,7 +35,7 @@ class WayForPayProvider:
 
         order_ref = str(order.pk)
         order_date = int(time.time())
-        amount = str(order.total)
+        amount = str(order.payable_amount)
         currency = "UAH"
         product_names = [item.name for item in order.items.all()]
         product_counts = [str(item.qty) for item in order.items.all()]

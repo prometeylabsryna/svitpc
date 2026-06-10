@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
@@ -21,7 +23,7 @@ except ImportError:
 # ── Brand ──────────────────────────────────────────────────────────────────────
 class Brand(models.Model):
     name = models.CharField(_("Назва"), max_length=200)
-    slug = models.SlugField(_("Slug"), max_length=200, unique=True)
+    slug = models.SlugField(_("Slug"), max_length=200, unique=True, allow_unicode=True)
     logo = models.ImageField(_("Логотип"), upload_to="brands/", null=True, blank=True)
     description = models.TextField(_("Опис"), blank=True)
     sort_order = models.PositiveSmallIntegerField(_("Порядок"), default=0)
@@ -49,7 +51,7 @@ class Brand(models.Model):
 class Category(MPTTModel):
     parent = TreeForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="children", verbose_name=_("Батьківська категорія"))
     name = models.CharField(_("Назва"), max_length=255)
-    slug = models.SlugField(_("Slug"), max_length=255, unique=True)
+    slug = models.SlugField(_("Slug"), max_length=255, unique=True, allow_unicode=True)
     description = models.TextField(_("Опис"), blank=True)
     image = models.ImageField(_("Зображення"), upload_to="categories/", null=True, blank=True)
     icon = models.ImageField(_("Іконка"), upload_to="category_icons/", null=True, blank=True)
@@ -72,6 +74,11 @@ class Category(MPTTModel):
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def admin_path(self) -> str:
+        """Full breadcrumb for admin pickers (e.g. «Б/У › Ноутбуки»)."""
+        return " › ".join(a.name for a in self.get_ancestors(include_self=True))
 
     def get_absolute_url(self) -> str:
         return reverse("catalog:category", kwargs={"slug": self.slug})
@@ -200,7 +207,7 @@ class Product(models.Model):
     short_description = models.TextField(_("Короткий опис"), blank=True)
 
     # SEO
-    slug = models.SlugField(_("Slug"), max_length=500, unique=True)
+    slug = models.SlugField(_("Slug"), max_length=500, unique=True, allow_unicode=True)
     seo_title = models.CharField(_("SEO title"), max_length=255, blank=True)
     seo_description = models.CharField(_("SEO description"), max_length=500, blank=True)
 
@@ -217,6 +224,15 @@ class Product(models.Model):
     # Flags
     is_new = models.BooleanField(_("Новинка"), default=False)
     is_hit = models.BooleanField(_("Хіт продажів"), default=False)
+    sale_end_date = models.DateTimeField(
+        _("Кінець акції (таймер)"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Дата завершення акції. Таймер на картці та сторінці товару; "
+            "автоматично створює запис у розділі «Акції»."
+        ),
+    )
 
     # Image
     image = models.ImageField(_("Основне фото"), upload_to="products/", null=True, blank=True)
@@ -237,6 +253,9 @@ class Product(models.Model):
     # AI embedding vector (pgvector, 1536 dims for text-embedding-3-small)
     embedding = (_VectorField(dimensions=1536, null=True, blank=True) if PGVECTOR_AVAILABLE else models.JSONField(null=True, blank=True, help_text="pgvector not available — stored as JSON"))
 
+    # Precomputed FTS (GIN-indexed) — see apps.catalog.search_index
+    search_vector = SearchVectorField(null=True, editable=False)
+
     class Meta:
         verbose_name = _("Товар")
         verbose_name_plural = _("Товари")
@@ -246,6 +265,7 @@ class Product(models.Model):
             models.Index(fields=["is_visible", "stock"]),
             models.Index(fields=["is_new"]),
             models.Index(fields=["is_hit"]),
+            GinIndex(fields=["search_vector"], name="catalog_product_search_gin"),
         ]
 
     def __str__(self) -> str:
@@ -259,10 +279,16 @@ class Product(models.Model):
         return self.stock > 0
 
     @property
+    def sale_timer_active(self) -> bool:
+        from django.utils import timezone
+
+        return bool(self.sale_end_date and self.sale_end_date > timezone.now())
+
+    @property
     def main_image_url(self) -> str:
-        if self.image:
-            return self.image.url
-        return self.image_url or ""
+        from apps.catalog.gallery import resolve_product_image_url
+
+        return resolve_product_image_url(self)
 
     @property
     def avg_rating(self) -> float | None:

@@ -1,15 +1,33 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n analytics_tags %}
 {% block title %}{% trans "Замовлення прийнято" %}{% endblock %}
 {% block content %}
 <div class="container container--narrow checkout-success">
   <div class="checkout-success__icon" aria-hidden="true">✅</div>
   <h1 class="checkout-success__title">{% trans "Дякуємо за замовлення!" %}</h1>
+  {% if order.is_paid %}
+  <p class="page-meta page-meta--paid">{% blocktrans with pk=order.pk %}Замовлення №{{ pk }} оплачено. Дякуємо!{% endblocktrans %}</p>
+  {% else %}
   <p class="page-meta">{% blocktrans with pk=order.pk %}Замовлення №{{ pk }} прийнято. Ми зв'яжемось з вами найближчим часом.{% endblocktrans %}</p>
+  {% endif %}
+
+  {% if order_coins %}
+  {% trans "Монети після доставки" as svitik_title %}
+  {% blocktrans with coins=order_coins asvar svitik_message %}Після доставки замовлення на ваш рахунок нарахують {{ coins }} бонусних монет СвітПК. До того часу вони відображатимуться як «очікувані» у розділі «Монети СвітПК».{% endblocktrans %}
+  {% include "components/svitik_hint.html" with variant="success" title=svitik_title message=svitik_message coins=order_coins coins_after_delivery=True %}
+  {% else %}
+  {% trans "Ви на вірному шляху!" as svitik_title %}
+  {% trans "Дякуємо, що обрали СвітПК!" as svitik_message %}
+  {% include "components/svitik_hint.html" with variant="checkout" mascot="progress" title=svitik_title message=svitik_message %}
+  {% endif %}
+
   <div class="checkout-pay__actions">
     <a href="{% url 'orders:list' %}" class="btn btn--secondary">{% trans "Мої замовлення" %}</a>
+    {% if order_coins %}
+    <a href="{% url 'loyalty:bonus' %}" class="btn btn--ghost">{% trans "Монети СвітПК" %}</a>
+    {% endif %}
     <a href="{% url 'catalog:home' %}" class="btn btn--ghost">{% trans "Продовжити покупки" %}</a>
   </div>
 </div>
-<meta name="ecommerce-purchase" content='{"order_id":"{{ order.pk }}","total":"{{ order.total }}"}'>
+<meta name="ecommerce-purchase" content="{{ ecommerce_purchase|ecommerce_json|escape }}">
 {% endblock %}

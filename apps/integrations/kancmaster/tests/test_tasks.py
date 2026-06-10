@@ -100,6 +100,17 @@ class TestSyncAll:
 
         assert Brand.objects.filter(name="Pilot").exists()
 
+    def test_brand_slug_collision_does_not_fail_sync(self):
+        from apps.catalog.models import Brand, Product
+        from apps.integrations.kancmaster.tasks import sync_all
+
+        Brand.objects.create(name="KOH-I-NOOR", slug="koh-i-noor")
+        feed = [{**FEED_ITEMS[0], "id": "301", "brand": "Koh-I-Noor"}]
+        with self._patch_client(items=feed):
+            sync_all()
+
+        assert Product.objects.filter(source=Product.SOURCE_KANCMASTER, external_id="301").exists()
+
     def test_gallery_images_synced(self):
         from apps.integrations.kancmaster.tasks import sync_all
         from apps.catalog.models import Product
@@ -175,3 +186,40 @@ class TestSyncAll:
             sync_all()
 
         assert Product.objects.filter(source=Product.SOURCE_KANCMASTER).count() == 2
+
+    def test_gallery_resync_without_sort_order_conflict(self):
+        from apps.catalog.models import Product, ProductImage
+        from apps.integrations.kancmaster.tasks import _external_gallery_qs, sync_all
+
+        with self._patch_client():
+            sync_all()
+
+        pen = Product.objects.get(source=Product.SOURCE_KANCMASTER, external_id="1")
+        ProductImage.objects.filter(product=pen, image="").update(sort_order=99)
+
+        with self._patch_client():
+            sync_all()
+
+        orders = list(
+            _external_gallery_qs(pen).order_by("sort_order").values_list("sort_order", flat=True)
+        )
+        assert orders == [1]
+
+    def test_category_replaced_on_update(self):
+        from apps.catalog.models import Category, Product
+        from apps.integrations.kancmaster.tasks import sync_all
+
+        with self._patch_client():
+            sync_all()
+
+        pen = Product.objects.get(source=Product.SOURCE_KANCMASTER, external_id="1")
+        assert pen.categories.filter(kancmaster_name="Ручки").exists()
+
+        moved_feed = [{**FEED_ITEMS[0], "category": "Олівці"}]
+        with self._patch_client(items=moved_feed):
+            sync_all()
+
+        pen.refresh_from_db()
+        assert pen.categories.filter(kancmaster_name="Олівці").exists()
+        assert not pen.categories.filter(kancmaster_name="Ручки").exists()
+        assert Category.objects.filter(kancmaster_name="Олівці").exists()

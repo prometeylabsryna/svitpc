@@ -12,16 +12,22 @@
 const CLOSE_MS = 250; // matches --transition-base
 
 let _prevFocus = null;
+/** True when pointer down started on the backdrop (not the dialog). */
+let _backdropPointerDown = false;
 
 const getEl = () => document.getElementById("modal-container");
+
+const firstFocusable = (el) =>
+  el.querySelector(
+    ".modal-dialog .is-invalid, .modal-dialog input, .modal-dialog textarea, .modal-dialog select",
+  ) ?? el.querySelector("[data-modal-close]");
 
 const openModal = () => {
   const el = getEl();
   if (!el) return;
 
   if (el.classList.contains("is-open")) {
-    // Already open (e.g. success partial replaced the form) — just re-focus close btn
-    el.querySelector("[data-modal-close]")?.focus();
+    firstFocusable(el)?.focus();
     return;
   }
 
@@ -31,11 +37,7 @@ const openModal = () => {
   el.setAttribute("aria-modal", "true");
   el.removeAttribute("hidden");
 
-  // Focus close button first; if absent, first focusable element
-  const focusTarget =
-    el.querySelector("[data-modal-close]") ??
-    el.querySelector("input, textarea, select, button, [tabindex]");
-  focusTarget?.focus();
+  firstFocusable(el)?.focus();
 };
 
 const closeModal = () => {
@@ -61,11 +63,25 @@ const initModal = () => {
   const el = getEl();
   if (!el) return;
 
-  // Backdrop click or [data-modal-close] button
+  const isBackdropTarget = (target) => target === el;
+
+  // Track pointer down on backdrop only — avoids closing when text/date selection
+  // ends outside the dialog (mousedown in form, mouseup on backdrop).
+  el.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    const inDialog = e.target.closest(".modal-dialog");
+    _backdropPointerDown = !inDialog && isBackdropTarget(e.target);
+  });
+
   el.addEventListener("click", (e) => {
-    if (e.target === el || e.target.closest("[data-modal-close]")) {
+    if (e.target.closest("[data-modal-close]")) {
+      closeModal();
+      return;
+    }
+    if (_backdropPointerDown && isBackdropTarget(e.target)) {
       closeModal();
     }
+    _backdropPointerDown = false;
   });
 
   // ESC key — only when modal is open

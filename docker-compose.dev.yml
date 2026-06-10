@@ -1,0 +1,15 @@
+services:
+  backend:
+    volumes:
+      - .:/app
+    environment:
+      DEBUG: "True"
+      DJANGO_SETTINGS_MODULE: config.settings.develop
+
+  celery_worker:
+    volumes:
+      - .:/app
+
+  celery_beat:
+    volumes:
+      - .:/app

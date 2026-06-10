@@ -13,13 +13,21 @@
       {% if product.main_image_url %}<g:image_link>{{ product.main_image_url|escape }}</g:image_link>{% endif %}
       <g:condition>new</g:condition>
       <g:availability>{% if product.is_available %}in stock{% else %}out of stock{% endif %}</g:availability>
+      {% if product.old_price and product.old_price > product.price %}
+      <g:price>{{ product.old_price }} UAH</g:price>
+      <g:sale_price>{{ product.price }} UAH</g:sale_price>
+      {% else %}
       <g:price>{{ product.price }} UAH</g:price>
-      {% if product.old_price %}<g:sale_price>{{ product.price }} UAH</g:sale_price>{% endif %}
+      {% endif %}
       {% if product.brand %}<g:brand>{{ product.brand.name|escape }}</g:brand>{% endif %}
       {% if product.sku %}<g:mpn>{{ product.sku|escape }}</g:mpn>{% endif %}
       {% if product.sku|length == 13 or product.sku|length == 12 %}<g:gtin>{{ product.sku }}</g:gtin>{% endif %}
       {% with cats=product.categories.all %}
-      {% if cats %}<g:google_product_category>{{ cats.0.name|escape }}</g:google_product_category>{% endif %}
+      {% if cats %}
+      {% with cat=cats.0 %}
+      <g:product_type>{% for anc in cat.get_ancestors %}{{ anc.name|escape }} &gt; {% endfor %}{{ cat.name|escape }}</g:product_type>
+      {% endwith %}
+      {% endif %}
       {% endwith %}
     </item>
     {% endfor %}

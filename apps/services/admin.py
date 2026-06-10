@@ -5,13 +5,36 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, TabularInline
 
-from .models import PriceItem, Service, ServiceCategory, ServiceRequest
+from .models import PriceItem, ProductSerial, Service, ServiceCategory, ServiceRequest, WarrantyClaim
 
 
 class PriceInline(TabularInline):
     model = PriceItem
-    extra = 0
-    fields = ("name", "price_from", "price_to", "price_text", "sort_order")
+    extra = 1
+    fields = ("name", "name_en", "price_from", "price_to", "price_text", "unit", "excludes_materials", "sort_order")
+    ordering = ("sort_order",)
+
+
+@admin.register(PriceItem)
+class PriceItemAdmin(ModelAdmin):
+    list_display = ("name", "service", "price_from", "price_to", "unit", "excludes_materials", "price_text", "display_price_col", "sort_order")
+    list_filter = ("service__category", "service")
+    search_fields = ("name", "name_en", "service__name")
+    autocomplete_fields = ("service",)
+    ordering = ("service__category__sort_order", "service__sort_order", "sort_order")
+    fieldsets = (
+        (None, {
+            "fields": ("service", "name", "name_en", "sort_order"),
+        }),
+        (_("Ціна"), {
+            "fields": ("price_from", "price_to", "price_text", "unit", "excludes_materials"),
+            "description": _("Заповніть діапазон «від/до» або вільний текст ціни (наприклад «за домовленістю»)."),
+        }),
+    )
+
+    @admin.display(description=_("Відображення"))
+    def display_price_col(self, obj: PriceItem) -> str:
+        return obj.display_price or "—"
 
 
 @admin.register(ServiceCategory)
@@ -26,16 +49,19 @@ class ServiceCategoryAdmin(ModelAdmin):
 
 @admin.register(Service)
 class ServiceAdmin(ModelAdmin):
-    list_display = ("name", "category", "is_active", "sort_order", "thumb_preview")
-    list_filter = ("is_active", "category")
+    class Media:
+        css = {"all": ("css/admin_extra.css",)}
+
+    list_display = ("name", "category", "is_active", "show_on_home", "sort_order", "prices_count", "thumb_preview")
+    list_filter = ("is_active", "show_on_home", "category")
     search_fields = ("name", "name_en", "slug")
-    list_editable = ("is_active", "sort_order")
+    list_editable = ("is_active", "show_on_home", "sort_order")
     prepopulated_fields = {"slug": ("name",)}
     readonly_fields = ("thumb_preview",)
     inlines = [PriceInline]
     fieldsets = (
         (None, {
-            "fields": ("category", "name", "name_en", "slug", "is_active", "sort_order"),
+            "fields": ("category", "name", "name_en", "slug", "is_active", "show_on_home", "sort_order"),
         }),
         (_("Опис"), {
             "fields": ("description", "description_en"),
@@ -52,8 +78,12 @@ class ServiceAdmin(ModelAdmin):
     @admin.display(description=_("Фото"))
     def thumb_preview(self, obj: Service) -> str:
         if obj.image:
-            return format_html('<img src="{}" width="80" height="60" style="object-fit:contain">', obj.image.url)
+            return format_html('<img src="{}" alt="" class="admin-detail-thumb">', obj.image.url)
         return "—"
+
+    @admin.display(description=_("Позицій"))
+    def prices_count(self, obj: Service) -> int:
+        return obj.prices.count()
 
 
 @admin.register(ServiceRequest)
@@ -92,3 +122,82 @@ class ServiceRequestAdmin(ModelAdmin):
     @admin.action(description=_("Позначити «Видана»"))
     def mark_done(self, request, queryset):
         queryset.update(status=ServiceRequest.STATUS_DONE)
+
+
+@admin.register(ProductSerial)
+class ProductSerialAdmin(ModelAdmin):
+    list_display = (
+        "serial_number",
+        "product_name",
+        "product_code",
+        "articul",
+        "sale_document",
+        "sale_date",
+        "warranty_until",
+        "source",
+        "updated_at",
+    )
+    list_filter = ("source",)
+    search_fields = ("serial_number", "product_name", "product_code", "articul", "sale_document")
+    autocomplete_fields = ("product",)
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("serial_number", "product", "source")}),
+        (_("Товар і продаж"), {
+            "fields": (
+                "product_name",
+                "product_code",
+                "articul",
+                "sale_document",
+                "sale_date",
+                "warranty_until",
+                "warranty_months",
+                "brain_order_id",
+            ),
+        }),
+        (_("Інше"), {"fields": ("notes", "created_at", "updated_at")}),
+    )
+
+
+@admin.register(WarrantyClaim)
+class WarrantyClaimAdmin(ModelAdmin):
+    list_display = (
+        "rma_number",
+        "serial_number",
+        "product_name",
+        "status",
+        "is_under_warranty",
+        "created_by",
+        "created_at",
+    )
+    list_filter = ("status", "is_under_warranty", "delivery_service")
+    search_fields = ("rma_number", "serial_number", "product_name", "client_name", "client_phone")
+    autocomplete_fields = ("product", "created_by", "product_serial")
+    readonly_fields = ("created_at", "updated_at", "submitted_at")
+    date_hierarchy = "created_at"
+    fieldsets = (
+        (_("RMA"), {"fields": ("rma_number", "status", "submitted_at")}),
+        (_("Серійний номер"), {
+            "fields": ("serial_number", "without_serial_number", "product_serial"),
+        }),
+        (_("Товар"), {
+            "fields": (
+                "product",
+                "product_name",
+                "product_code",
+                "articul",
+                "sale_document",
+                "sale_date",
+                "warranty_until",
+                "is_under_warranty",
+            ),
+        }),
+        (_("Дефект"), {"fields": ("defect_description", "comment")}),
+        (_("Клієнт¹"), {
+            "fields": ("client_name", "client_phone", "client_email", "client_address"),
+        }),
+        (_("Доставка²"), {
+            "fields": ("delivery_service", "waybill_number", "waybill_date"),
+        }),
+        (_("Службове"), {"fields": ("created_by", "created_at", "updated_at")}),
+    )

@@ -1,7 +1,20 @@
-from django.contrib import admin
+from django import forms
+from django.contrib import admin, messages
+from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, TabularInline
 
-from .models import Order, OrderHistory, OrderItem, OrderStatus
+from .models import Order, OrderItem, OrderStatus
+from .statuses import admin_status_queryset
+
+
+class OrderAdminForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["status"].queryset = admin_status_queryset()
 
 
 class OrderItemInline(TabularInline):
@@ -11,34 +24,41 @@ class OrderItemInline(TabularInline):
     readonly_fields = ("product",)
 
 
-class OrderHistoryInline(TabularInline):
-    model = OrderHistory
-    extra = 1
-    fields = ("status", "comment", "notify_customer")
-
-
 @admin.register(OrderStatus)
 class OrderStatusAdmin(ModelAdmin):
-    list_display = ("name", "color", "sort_order", "notify_customer")
+    list_display = ("name", "name_en", "color", "sort_order", "is_completed")
+    search_fields = ("name", "name_en")
+    fieldsets = (
+        (None, {"fields": ("name", "name_en", "color", "sort_order", "is_completed")}),
+    )
 
 
 @admin.register(Order)
 class OrderAdmin(ModelAdmin):
+    form = OrderAdminForm
     list_display = ("pk", "first_name", "last_name", "phone", "status", "total", "is_paid", "delivery_type", "ttn", "up_barcode", "created_at")
     list_filter = ("status", "is_paid", "delivery_type", "payment_method")
     search_fields = ("first_name", "last_name", "phone", "email", "ttn")
     list_editable = ("is_paid",)
-    inlines = [OrderItemInline, OrderHistoryInline]
+    autocomplete_fields = ("customer", "coupon")
+    inlines = [OrderItemInline]
     readonly_fields = ("created_at", "updated_at", "payment_id", "fiscal_check_url")
     fieldsets = (
         ("Клієнт", {"fields": ("customer", "first_name", "last_name", "email", "phone", "comment")}),
         ("Доставка", {"fields": ("delivery_type", "city", "warehouse", "postcode", "ttn", "up_barcode")}),
-        ("Оплата", {"fields": ("payment_method", "is_paid", "payment_id", "total", "delivery_cost", "discount", "bonus_used")}),
+        ("Оплата", {"fields": ("payment_method", "is_paid", "payment_id", "total", "delivery_cost", "discount", "bonus_used", "coupon")}),
         ("Фіскалізація", {"fields": ("fiscal_check_url",)}),
-        ("Статус", {"fields": ("status",)}),
+        (_("Статус замовлення"), {"fields": ("status",)}),
         ("Системне", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     )
     actions = ["create_ttn_action", "create_up_shipment_action", "send_status_notification", "fiscalize_orders_action"]
+
+    def save_model(self, request, obj, form, change):
+        if not obj.status_id:
+            default = admin_status_queryset().first()
+            if default:
+                obj.status = default
+        super().save_model(request, obj, form, change)
 
     @admin.action(description="Створити ТТН (Нова Пошта)")
     def create_ttn_action(self, request, queryset):
@@ -66,9 +86,50 @@ class OrderAdmin(ModelAdmin):
 
     @admin.action(description="Фіскалізувати вибрані замовлення (Вчасно.Каса)")
     def fiscalize_orders_action(self, request, queryset):
-        from apps.integrations.vchasnokasa.tasks import fiscalize_payment
-        count = 0
-        for order in queryset.filter(is_paid=True, fiscal_check_url=""):
-            fiscalize_payment.delay(order.pk)
-            count += 1
-        self.message_user(request, f"Фіскалізацію поставлено в чергу: {count} замовлень")
+        from apps.integrations.vchasnokasa.client import VchasnoKasaClient
+
+        client = VchasnoKasaClient()
+        if not client.is_configured():
+            self.message_user(
+                request,
+                "VCHASNO_CASHBOX_KEY не задано — додайте токен каси в .env і перезапустіть сервер (make run).",
+                level=messages.ERROR,
+            )
+            return
+
+        success = 0
+        skipped_paid = 0
+        skipped_check = 0
+        failed: list[str] = []
+
+        for order in queryset.select_related().prefetch_related("items"):
+            if order.fiscal_check_url:
+                skipped_check += 1
+                continue
+            if not order.is_paid:
+                skipped_paid += 1
+                continue
+            url = client.create_receipt(order)
+            if url:
+                Order.objects.filter(pk=order.pk).update(fiscal_check_url=url)
+                success += 1
+            else:
+                failed.append(str(order.pk))
+
+        parts: list[str] = []
+        if success:
+            parts.append(f"чек створено: {success}")
+        if skipped_paid:
+            parts.append(
+                f"пропущено (не оплачено): {skipped_paid} — увімкніть «Оплачено» і натисніть «Зберегти»"
+            )
+        if skipped_check:
+            parts.append(f"пропущено (вже мають чек): {skipped_check}")
+        if failed:
+            parts.append(f"помилка API для №: {', '.join(failed)}")
+
+        if not parts:
+            parts.append("жодне замовлення не обрано")
+
+        level = messages.ERROR if failed and not success else messages.WARNING if failed or skipped_paid else messages.SUCCESS
+        self.message_user(request, "Фіскалізація: " + "; ".join(parts) + ".", level=level)

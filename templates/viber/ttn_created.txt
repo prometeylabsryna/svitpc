@@ -1,0 +1,3 @@
+{% load i18n %}{% blocktrans with pk=order.pk ttn=ttn url=site_url order_url=order.get_absolute_url %}СвітПК: замовлення #{{ pk }} передано на доставку.
+ТТН: {{ ttn }}.
+Відстеження: {{ url }}{{ order_url }}{% endblocktrans %}

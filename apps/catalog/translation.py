@@ -2,12 +2,12 @@
 
 from modeltranslation.translator import TranslationOptions, register
 
-from .models import Attribute, AttributeGroup, Brand, Category, Filter, FilterGroup, Product
+from .models import Attribute, AttributeGroup, Brand, Category, Filter, FilterGroup, Product, ProductAttribute
 
 
 @register(Brand)
 class BrandTranslationOptions(TranslationOptions):
-    fields = ("description",)
+    fields = ("name", "description")
 
 
 @register(Category)
@@ -38,3 +38,8 @@ class FilterTranslationOptions(TranslationOptions):
 @register(Product)
 class ProductTranslationOptions(TranslationOptions):
     fields = ("name", "description", "short_description", "seo_title", "seo_description")
+
+
+@register(ProductAttribute)
+class ProductAttributeTranslationOptions(TranslationOptions):
+    fields = ("value",)

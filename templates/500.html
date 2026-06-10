@@ -1,18 +1,19 @@
+{% load i18n static %}
 <!doctype html>
-<html lang="uk">
+<html lang="{{ LANGUAGE_CODE|default:'uk' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Помилка сервера — СвітПК</title>
-  <link rel="stylesheet" href="/static/css/app.css">
+  <title>{% trans "Помилка сервера — СвітПК" %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
   <div class="container error-page">
     <p class="error-page__code">500</p>
-    <h1 class="error-page__title">Помилка сервера</h1>
-    <p class="page-meta">Вибачте, виникла помилка. Ми вже працюємо над її виправленням.</p>
+    <h1 class="error-page__title">{% trans "Помилка сервера" %}</h1>
+    <p class="page-meta">{% trans "Вибачте, виникла помилка. Ми вже працюємо над її виправленням." %}</p>
     <div class="error-page__actions">
-      <a href="/" class="btn btn--primary">На головну</a>
+      <a href="/" class="btn btn--primary">{% trans "На головну" %}</a>
     </div>
   </div>
 </body>

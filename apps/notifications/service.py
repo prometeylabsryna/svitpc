@@ -7,10 +7,25 @@ import logging
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
+from django.utils import translation
+from django.utils.translation import gettext as _
+
+from . import turbosms
+from .phone import InvalidPhoneError, normalize_ua_phone
 
 logger = logging.getLogger(__name__)
 
 CHANNELS = {"email", "sms", "telegram", "viber", "push"}
+
+
+def _notification_language(ctx: dict) -> str:
+    lang = ctx.get("language") or settings.LANGUAGE_CODE
+    return str(lang).split("-")[0].lower()
+
+
+def _render_notification_template(template_name: str, ctx: dict) -> str:
+    with translation.override(_notification_language(ctx)):
+        return render_to_string(template_name, ctx)
 
 
 def send_notification(
@@ -28,13 +43,13 @@ def send_notification(
     try:
         if channel == "email":
             return _send_email(recipient, template_name, ctx)
-        elif channel == "sms":
+        if channel == "sms":
             return _send_sms(recipient, template_name, ctx)
-        elif channel == "telegram":
+        if channel == "telegram":
             return _send_telegram(recipient, template_name, ctx)
-        elif channel == "viber":
+        if channel == "viber":
             return _send_viber(recipient, template_name, ctx)
-        elif channel == "push":
+        if channel == "push":
             return _send_push(recipient, template_name, ctx)
     except Exception as exc:
         logger.exception("Notification error channel=%s template=%s: %s", channel, template_name, exc)
@@ -42,13 +57,16 @@ def send_notification(
 
 
 def _send_email(to: str, template: str, ctx: dict) -> bool:
+    if not to:
+        return False
     subject_tpl = f"email/{template}_subject.txt"
     body_tpl = f"email/{template}_body.html"
     try:
-        subject = render_to_string(subject_tpl, ctx).strip()
-        body = render_to_string(body_tpl, ctx)
+        with translation.override(_notification_language(ctx)):
+            subject = render_to_string(subject_tpl, ctx).strip()
+            body = render_to_string(body_tpl, ctx)
     except Exception:
-        subject = "СвітПК — повідомлення"
+        subject = _("СвітПК — повідомлення")
         body = str(ctx)
     send_mail(subject, "", settings.DEFAULT_FROM_EMAIL, [to], html_message=body, fail_silently=False)
     return True
@@ -56,40 +74,37 @@ def _send_email(to: str, template: str, ctx: dict) -> bool:
 
 def _send_sms(phone: str, template: str, ctx: dict) -> bool:
     """Send SMS via TurboSMS API."""
-    api_key = getattr(settings, "SMS_API_KEY", "")
-    sender = getattr(settings, "SMS_SENDER", "SvitPC")
-    if not api_key:
-        logger.info("SMS: SMS_API_KEY not configured, logging only. phone=%s template=%s", phone, template)
+    if not phone:
+        logger.info("SMS skipped: empty phone, template=%s", template)
+        return False
+
+    if not turbosms.is_configured():
+        logger.info("SMS: SMS_API_KEY not configured, template=%s phone=%s", template, phone)
+        return False
+
+    try:
+        normalize_ua_phone(phone)
+    except InvalidPhoneError as exc:
+        logger.warning("SMS skipped invalid phone %s: %s", phone, exc)
         return False
 
     try:
         body_tpl = f"sms/{template}.txt"
-        text = render_to_string(body_tpl, ctx).strip()
+        text = _render_notification_template(body_tpl, ctx).strip()
     except Exception:
         text = str(ctx)[:160]
 
-    import httpx
     try:
-        resp = httpx.post(
-            "https://api.turbosms.ua/message/send.json",
-            json={
-                "recipients": [phone],
-                "sms": {
-                    "sender": sender,
-                    "text": text,
-                },
-            },
-            headers={"Authorization": f"Bearer {api_key}"},
-            timeout=15,
+        data = turbosms.send_sms(phone, text)
+        logger.info(
+            "SMS sent template=%s phone=%s status=%s",
+            template,
+            phone,
+            data.get("response_status"),
         )
-        data = resp.json()
-        # TurboSMS returns {response_code: 0, ...} on success
-        if data.get("response_code") == 0:
-            return True
-        logger.warning("TurboSMS error: %s", data)
-        return False
-    except Exception as exc:
-        logger.error("SMS send error to %s: %s", phone, exc)
+        return True
+    except turbosms.TurboSmsError as exc:
+        logger.error("TurboSMS send failed template=%s phone=%s: %s", template, phone, exc)
         return False
 
 
@@ -102,7 +117,7 @@ def _send_telegram(chat_id: str, template: str, ctx: dict) -> bool:
         return False
     try:
         body_tpl = f"telegram/{template}.txt"
-        text = render_to_string(body_tpl, ctx)
+        text = _render_notification_template(body_tpl, ctx)
     except Exception:
         text = str(ctx)
     try:
@@ -119,7 +134,6 @@ def _send_telegram(chat_id: str, template: str, ctx: dict) -> bool:
 def _send_viber(chat_id: str, template: str, ctx: dict) -> bool:
     """Send via Viber Bot API."""
     import httpx
-    from django.conf import settings
 
     token = getattr(settings, "VIBER_BOT_TOKEN", "")
     if not token:
@@ -128,7 +142,7 @@ def _send_viber(chat_id: str, template: str, ctx: dict) -> bool:
 
     try:
         body_tpl = f"viber/{template}.txt"
-        text = render_to_string(body_tpl, ctx)
+        text = _render_notification_template(body_tpl, ctx)
     except Exception:
         text = str(ctx)
 
@@ -155,11 +169,7 @@ def _send_viber(chat_id: str, template: str, ctx: dict) -> bool:
 
 
 def _send_push(user_pk: str | int, template: str, ctx: dict) -> bool:
-    """Web-push via pywebpush to all subscriptions of a user.
-
-    ctx keys: title, body, url, tag, icon (all optional).
-    Stale subscriptions (410/404 from push service) are auto-deleted.
-    """
+    """Web-push via pywebpush to all subscriptions of a user."""
     try:
         from pywebpush import WebPushException, webpush
     except ImportError:

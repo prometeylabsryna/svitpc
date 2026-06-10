@@ -3,26 +3,41 @@ from decimal import Decimal
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from .models import NovaPoshtaCity, NovaPoshtaWarehouse
-from .services import calc_delivery_cost
+from .services import calc_delivery_cost, search_np_cities, search_np_warehouses
 
 
 def np_cities_view(request: HttpRequest) -> HttpResponse:
     q = request.GET.get("city", "").strip()
-    cities = NovaPoshtaCity.objects.filter(name__icontains=q)[:10] if len(q) >= 2 else []
+    cities = search_np_cities(q)
     return render(request, "shipping/partials/city_results.html", {"cities": cities})
 
 
 def np_warehouses_view(request: HttpRequest) -> HttpResponse:
     city_ref = request.GET.get("city_ref", "").strip()
     q = request.GET.get("warehouse", "").strip()
-    warehouses = []
-    if city_ref:
-        qs = NovaPoshtaWarehouse.objects.filter(city__ref=city_ref)
-        if q:
-            qs = qs.filter(name__icontains=q)
-        warehouses = qs[:20]
+    warehouses = search_np_warehouses(city_ref, q) if city_ref else []
     return render(request, "shipping/partials/warehouse_results.html", {"warehouses": warehouses})
+
+
+def up_postoffice_view(request: HttpRequest) -> HttpResponse:
+    """HTMX partial — resolve Ukrposhta post office by postcode."""
+    postcode = request.GET.get("postcode", "").strip()
+    office = None
+    error = ""
+
+    if len(postcode) == 5 and postcode.isdigit():
+        from apps.integrations.ukrposhta.client import UkrPoshtaClient
+
+        client = UkrPoshtaClient()
+        office = client.lookup_postoffice(postcode)
+        if not office:
+            error = "not_found"
+
+    return render(
+        request,
+        "shipping/partials/up_postoffice.html",
+        {"office": office, "postcode": postcode, "error": error},
+    )
 
 
 def delivery_cost_view(request: HttpRequest) -> HttpResponse:
@@ -30,6 +45,11 @@ def delivery_cost_view(request: HttpRequest) -> HttpResponse:
     delivery_type = request.GET.get("delivery_type", "nova_poshta")
     city_ref = request.GET.get("city_ref", "")
     warehouse_ref = request.GET.get("warehouse_ref", "")
+    postcode = request.GET.get("postcode", "")
+    try:
+        weight_kg = float(request.GET.get("weight", "1") or 1)
+    except (TypeError, ValueError):
+        weight_kg = 1.0
     try:
         cart_total = Decimal(request.GET.get("total", "500"))
     except Exception:
@@ -39,6 +59,12 @@ def delivery_cost_view(request: HttpRequest) -> HttpResponse:
         delivery_type=delivery_type,
         city_ref=city_ref,
         warehouse_ref=warehouse_ref,
+        postcode=postcode,
+        weight_kg=weight_kg,
         declared_value=cart_total,
     )
-    return render(request, "shipping/partials/delivery_cost.html", {"cost": cost})
+    return render(
+        request,
+        "shipping/partials/delivery_cost.html",
+        {"cost": cost, "delivery_type": delivery_type},
+    )

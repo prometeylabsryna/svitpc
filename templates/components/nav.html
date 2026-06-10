@@ -1,14 +1,69 @@
-{% load i18n cache %}
+{% load i18n cache svitpc_tags catalog_tags %}
 
-{% cache 600 site_nav LANGUAGE_CODE %}
+{% cache 600 site_nav_icons LANGUAGE_CODE %}
 <nav class="site-nav" aria-label="{% trans 'Каталог' %}">
-  <div class="site-nav__inner">
+  <ul class="site-nav__list">
     {% for cat in top_categories %}
-    <a href="{{ cat.get_absolute_url }}" class="site-nav__item">{{ cat.name }}</a>
+    <li class="site-nav__group">
+      <a href="{{ cat.get_absolute_url }}" class="site-nav__item">
+        {% include "catalog/partials/category_icon.html" with category=cat %}
+        <span class="site-nav__label">{{ cat|localized:"name" }}</span>
+      </a>
+      {% with children=cat.children.all %}
+      {% if children %}
+      <div class="site-nav__dropdown" role="menu" aria-label="{{ cat|localized:'name' }}">
+        {% for sub in children %}
+        <a href="{{ sub.get_absolute_url }}" class="site-nav__dropdown-item" role="menuitem">{{ sub|localized:"name" }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+    </li>
     {% endfor %}
-    <a href="{% url 'services:list' %}" class="site-nav__item">{% trans "Сервіс-центр" %}</a>
-    <a href="{% url 'pages:delivery' %}" class="site-nav__item">{% trans "Доставка" %}</a>
-    <a href="{% url 'pages:payment' %}" class="site-nav__item">{% trans "Оплата" %}</a>
-  </div>
+  </ul>
+
+  <ul class="site-nav__list site-nav__list--secondary">
+    <li>
+      <a href="{% url 'catalog:sale_products' %}" class="site-nav__item site-nav__item--accent">
+        <span class="site-nav__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z"/>
+          </svg>
+        </span>
+        <span class="site-nav__label">{% trans "Акції" %}</span>
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'services:list' %}" class="site-nav__item">
+        <span class="site-nav__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-6.837c.79-.79 2.072-.79 2.862 0l1.28 1.28c.79.79.79 2.072 0 2.862l-2.13 2.13"/>
+          </svg>
+        </span>
+        <span class="site-nav__label">{% trans "Сервіс-центр" %}</span>
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'pages:delivery' %}" class="site-nav__item">
+        <span class="site-nav__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
+          </svg>
+        </span>
+        <span class="site-nav__label">{% trans "Доставка" %}</span>
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'pages:payment' %}" class="site-nav__item">
+        <span class="site-nav__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/>
+          </svg>
+        </span>
+        <span class="site-nav__label">{% trans "Оплата" %}</span>
+      </a>
+    </li>
+  </ul>
 </nav>
 {% endcache %}

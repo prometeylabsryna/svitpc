@@ -8,6 +8,8 @@ from celery import shared_task
 
 logger = logging.getLogger(__name__)
 
+_LLM_NOT_CONFIGURED_MSG = "LLM_API_KEY is not set — AI generation skipped"
+
 
 PRODUCT_DESC_PROMPT = """Напиши продаючий опис товару для інтернет-магазину комп'ютерної техніки.
 Товар: {name}
@@ -37,7 +39,7 @@ ENHANCE_ATTRS_PROMPT = """Перетвори технічні характери
 def generate_category_description(category_id: int) -> str:
     """Generate SEO description for a catalog category using AI."""
     from apps.catalog.models import Category
-    from .llm import get_llm
+    from .llm import LLMNotConfiguredError, get_llm
 
     try:
         category = Category.objects.get(pk=category_id)
@@ -46,6 +48,9 @@ def generate_category_description(category_id: int) -> str:
         category.description = text
         category.save(update_fields=["description"])
         return text
+    except LLMNotConfiguredError:
+        logger.warning("%s (category_id=%s)", _LLM_NOT_CONFIGURED_MSG, category_id)
+        return ""
     except Exception as exc:
         logger.error("AI category description failed category_id=%s: %s", category_id, exc)
         return ""
@@ -53,7 +58,7 @@ def generate_category_description(category_id: int) -> str:
 
 def generate_product_description(product_id: int) -> str:
     from apps.catalog.models import Product
-    from .llm import get_llm
+    from .llm import LLMNotConfiguredError, get_llm
 
     try:
         product = Product.objects.prefetch_related("attributes__attribute").get(pk=product_id)
@@ -63,6 +68,9 @@ def generate_product_description(product_id: int) -> str:
         product.description = text
         product.save(update_fields=["description"])
         return text
+    except LLMNotConfiguredError:
+        logger.warning("%s (product_id=%s)", _LLM_NOT_CONFIGURED_MSG, product_id)
+        return ""
     except Exception as exc:
         logger.error("AI description generation failed product_id=%s: %s", product_id, exc)
         return ""
@@ -70,7 +78,7 @@ def generate_product_description(product_id: int) -> str:
 
 def generate_product_short_description(product_id: int) -> str:
     from apps.catalog.models import Product
-    from .llm import get_llm
+    from .llm import LLMNotConfiguredError, get_llm
 
     try:
         product = Product.objects.prefetch_related("attributes__attribute").get(pk=product_id)
@@ -80,6 +88,9 @@ def generate_product_short_description(product_id: int) -> str:
         product.short_description = text[:300]
         product.save(update_fields=["short_description"])
         return text
+    except LLMNotConfiguredError:
+        logger.warning("%s (product_id=%s)", _LLM_NOT_CONFIGURED_MSG, product_id)
+        return ""
     except Exception as exc:
         logger.error("AI short description failed product_id=%s: %s", product_id, exc)
         return ""
@@ -88,7 +99,7 @@ def generate_product_short_description(product_id: int) -> str:
 def enhance_product_characteristics(product_id: int) -> str:
     """Rewrite raw attributes as bullet-point user-friendly text into short_description."""
     from apps.catalog.models import Product
-    from .llm import get_llm
+    from .llm import LLMNotConfiguredError, get_llm
 
     try:
         product = Product.objects.prefetch_related("attributes__attribute").get(pk=product_id)
@@ -100,6 +111,9 @@ def enhance_product_characteristics(product_id: int) -> str:
         product.short_description = text[:500]
         product.save(update_fields=["short_description"])
         return text
+    except LLMNotConfiguredError:
+        logger.warning("%s (product_id=%s)", _LLM_NOT_CONFIGURED_MSG, product_id)
+        return ""
     except Exception as exc:
         logger.error("AI enhance characteristics failed product_id=%s: %s", product_id, exc)
         return ""
@@ -107,16 +121,20 @@ def enhance_product_characteristics(product_id: int) -> str:
 
 @shared_task
 def generate_product_seo_bulk(product_ids: list[int]) -> None:
-    import json
     from apps.catalog.models import Product
-    from .llm import get_llm
+    from .llm import LLMNotConfiguredError, get_llm, parse_llm_json
 
-    llm = get_llm()
+    try:
+        llm = get_llm()
+    except LLMNotConfiguredError:
+        logger.warning("%s (seo bulk, %d products)", _LLM_NOT_CONFIGURED_MSG, len(product_ids))
+        return
+
     for pid in product_ids:
         try:
             product = Product.objects.get(pk=pid)
             response = llm.complete(PRODUCT_SEO_PROMPT.format(name=product.name))
-            data = json.loads(response)
+            data = parse_llm_json(response)
             product.seo_title = data.get("title", "")[:255]
             product.seo_description = data.get("description", "")[:500]
             product.save(update_fields=["seo_title", "seo_description"])

@@ -6,17 +6,24 @@
   <h1 class="auth-form__title">{% trans "Вхід в кабінет" %}</h1>
   <form method="post" novalidate class="auth-form__form">
     {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    {% if form.errors %}
+    <div class="auth-form__alert" role="alert">
+      <p class="form-error">{% trans "Не вдалося увійти. Перевірте email і пароль." %}</p>
+    </div>
+    {% endif %}
     <div class="form-field">
       <label class="form-label" for="id_username">{% trans "Email" %}</label>
-      <input class="form-input" id="id_username" name="username" type="email" required autofocus>
+      <input class="form-input{% if form.username.errors %} is-invalid{% endif %}" id="id_username" name="username" type="text" value="{{ form.username.value|default:'' }}" autocomplete="username" required autofocus>
+      {% if form.username.errors %}<span class="form-error">{{ form.username.errors.0 }}</span>{% endif %}
     </div>
-    <div class="form-field">
-      <label class="form-label" for="id_password">{% trans "Пароль" %}</label>
-      <input class="form-input" id="id_password" name="password" type="password" required>
-    </div>
-    {% if form.non_field_errors %}<p class="form-error">{{ form.non_field_errors.0 }}</p>{% endif %}
+    {% trans "Пароль" as password_label %}
+    {% include "components/form_password_field.html" with field_id="id_password" field_name="password" label=password_label required=True invalid=form.password.errors errors=form.password.errors autocomplete="current-password" %}
+    {% if form.non_field_errors %}
+    <p class="form-error" role="alert">{{ form.non_field_errors.0 }}</p>
+    {% endif %}
     <button type="submit" class="btn btn--primary btn--full btn--lg">{% trans "Увійти" %}</button>
-    <p class="auth-form__footer">{% trans "Немає акаунта?" %} <a href="{% url 'customers:register' %}">{% trans "Зареєструватись" %}</a></p>
+    <p class="auth-form__footer">{% trans "Немає акаунта?" %} <a href="{% url 'customers:register' %}{% if next %}?next={{ next|urlencode }}{% endif %}">{% trans "Зареєструватись" %}</a></p>
   </form>
 </div>
 {% endblock %}

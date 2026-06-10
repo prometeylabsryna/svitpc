@@ -24,7 +24,34 @@ def test_email_channel(settings, mailoutbox):
 def test_sms_no_key_returns_false(settings):
     settings.SMS_API_KEY = ""
     from apps.notifications.service import send_notification
-    result = send_notification("sms", "+380000000000", "order_status")
+    result = send_notification("sms", "+380501234567", "birthday_greeting", {"customer": {}, "coupon": {}, "bonus_amount": 100})
+    assert result is False
+
+
+@pytest.mark.django_db
+def test_sms_with_key_calls_api(settings):
+    settings.SMS_API_KEY = "token"
+    from unittest.mock import patch
+
+    from apps.notifications.service import send_notification
+
+    with patch("apps.notifications.turbosms.send_sms", return_value={"response_status": "OK"}) as mock_send:
+        result = send_notification(
+            "sms",
+            "+380501234567",
+            "birthday_greeting",
+            {"customer": {"first_name": "Тест"}, "coupon": type("C", (), {"code": "BDAY-1", "valid_to": None})(), "bonus_amount": 100},
+        )
+    assert result is True
+    mock_send.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_sms_invalid_phone_returns_false(settings):
+    settings.SMS_API_KEY = "token"
+    from apps.notifications.service import send_notification
+
+    result = send_notification("sms", "123", "birthday_greeting", {})
     assert result is False
 
 
@@ -98,11 +125,18 @@ def test_push_stale_subscription_deleted(settings, django_user_model):
 
 
 @pytest.mark.django_db
-def test_notify_promotion_push_no_subscribers():
+def test_notify_promotion_push_no_subscribers(product_factory):
+    from django.utils import timezone
+
     from apps.notifications.tasks import notify_promotion_push
     from apps.promotions.models import Promotion
 
-    promo = Promotion.objects.create(name="Test Promo", slug="test-promo")
+    promo = Promotion.objects.create(
+        product=product_factory(slug="push-promo", price=1),
+        start_date=timezone.now(),
+        end_date=timezone.now() + timezone.timedelta(days=1),
+        title_uk="Test Promo",
+    )
     result = notify_promotion_push(promo.pk)
     assert result == 0
 

@@ -1,1 +1,1 @@
-СвітПК: З Днем народження, {{ customer.first_name|default:"" }}! Промокод на знижку 10%: {{ coupon.code }} (до {{ coupon.valid_to|date:"d.m.Y" }}). +{{ bonus_amount }} бонусних грн на рахунок. svitpc.ua
+{% load i18n %}{% blocktrans with name=customer.first_name|default:"" code=coupon.code valid_to=coupon.valid_to|date:"d.m.Y" %}СвітПК: З Днем народження, {{ name }}! Промокод на знижку 10%: {{ code }} (до {{ valid_to }}). svitpc.ua{% endblocktrans %}

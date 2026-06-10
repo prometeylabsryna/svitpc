@@ -11,6 +11,15 @@
   </h1>
   {% if q %}
   <p class="search-results__count">{% blocktrans with total=total %}Знайдено {{ total }} товарів{% endblocktrans %}</p>
+  <div
+    hidden
+    data-svitik-deferred
+    data-svitik-delay="800"
+    data-svitik-variant="search"
+    data-svitik-mascot="search"
+    data-svitik-title="{% trans 'Досліджую…' %}"
+    data-svitik-message="{% trans 'Скористайтесь фільтрами або порівнянням — так легше обрати потрібний товар.' %}">
+  </div>
   {% endif %}
 
   {% if products %}
@@ -25,5 +34,4 @@
   <p class="page-empty">{% trans "Нічого не знайдено. Спробуйте інший запит або перевірте написання." %}</p>
   {% endif %}
 </div>
-<div id="modal-container" role="dialog" aria-live="polite"></div>
 {% endblock %}

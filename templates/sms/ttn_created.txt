@@ -1,1 +1,1 @@
-СвітПК: Замовлення №{{ order.pk }} передано в НП. ТТН: {{ ttn }}. Відстежити: novaposhta.ua
+{% load i18n %}{% blocktrans with pk=order.pk delivery=order.get_delivery_type_display ttn=ttn %}СвітПК: Замовлення №{{ pk }} передано ({{ delivery }}). ТТН: {{ ttn }}.{% endblocktrans %}

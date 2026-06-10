@@ -1,0 +1,20 @@
+{% load i18n %}
+{% if products %}
+<ul class="autocomplete-results__list" role="listbox">
+  {% for product in products %}
+  <li>
+    <button
+      type="button"
+      class="autocomplete-results__item"
+      role="option"
+      data-warranty-pick-product="{{ product.pk }}"
+    >
+      {{ product.name|truncatechars:80 }}
+      {% if product.sku %}<span class="autocomplete-results__meta">{{ product.sku }}</span>{% endif %}
+    </button>
+  </li>
+  {% endfor %}
+</ul>
+{% elif query|length >= 2 %}
+<p class="autocomplete-results__empty">{% trans "Товарів не знайдено" %}</p>
+{% endif %}

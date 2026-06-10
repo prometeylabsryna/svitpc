@@ -3,10 +3,12 @@ from django.conf.urls.i18n import i18n_patterns
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
+from django.http import HttpResponse
 from django.urls import include, path, register_converter
 from django.views.i18n import set_language
 
 from apps.core.converters import UnicodeSlugConverter
+from apps.core.views import service_worker
 from apps.seo.sitemaps import (
     BrandSitemap,
     CategorySitemap,
@@ -26,6 +28,8 @@ sitemaps = {
 }
 
 urlpatterns = [
+    path("healthz/", lambda request: HttpResponse("ok", content_type="text/plain")),
+    path("sw.js", service_worker, name="service_worker"),
     path("i18n/set-language/", set_language, name="set_language"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),
     path("robots.txt", include("apps.seo.urls_robots")),
@@ -41,6 +45,8 @@ urlpatterns = [
     path("bot/", include("apps.bots.urls")),
     # Chat (WebSocket served via ASGI/Channels)
     path("chat/", include("apps.chat.urls")),
+    # CKEditor 5 file uploads (admin rich text)
+    path("ckeditor5/", include("django_ckeditor_5.urls")),
 ]
 
 urlpatterns += i18n_patterns(

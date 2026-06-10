@@ -4,4 +4,4 @@
 
 🚚 ТТН: <b>{{ order.ttn }}</b>{% endif %}
 
-Деталі на сайті: <a href="https://svitpc.ua/orders/{{ order.pk }}/">переглянути</a>
+Деталі на сайті: <a href="{{ site_url }}{{ order.get_absolute_url }}">переглянути</a>

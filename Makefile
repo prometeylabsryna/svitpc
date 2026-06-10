@@ -15,7 +15,17 @@ help:
 	@echo "  make fmt           — ruff format + isort"
 	@echo "  make celery        — запустити Celery worker + beat"
 	@echo "  make import-sql    — імпорт із OpenCart SQL-бекапу"
+	@echo "  make import-prices — імпорт прейскуранта сервісного центру"
 	@echo "  make superuser     — створити суперкористувача"
+	@echo "  make translate-en  — перекласти каталог/сторінки на англійську (Google)"
+	@echo "  make fix-catalog-uk — замінити російські назви атрибутів/фільтрів на українські"
+	@echo "  make dedupe-filters  — об'єднати дублікати груп/значень фільтрів OpenCart"
+	@echo "  make rebuild-search  — перебудувати FTS-індекс пошуку товарів"
+	@echo "  make backfill-i18n   — скопіювати legacy-дані в modeltranslation *_uk"
+	@echo "  make test-sms      — перевірити SMS_API_KEY (TurboSMS ping)"
+	@echo "  make test-sms-send PHONE=+380... — надіслати тестове SMS"
+	@echo "  make test-vchasnokasa — перевірити токен Вчасно.Каса"
+	@echo "  make test-vchasnokasa-order ID=12 — фіскалізувати замовлення"
 
 install:
 	uv sync --all-extras
@@ -34,6 +44,20 @@ shell:
 
 test:
 	$(SETTINGS) pytest --cov=apps --cov-report=term-missing -x
+
+test-sms:
+	$(SETTINGS) $(MANAGE) test_sms --ping-only
+
+test-sms-send:
+	@test -n "$(PHONE)" || (echo "Вкажіть PHONE=+380..." && exit 1)
+	$(SETTINGS) $(MANAGE) test_sms "$(PHONE)"
+
+test-vchasnokasa:
+	$(SETTINGS) $(MANAGE) test_vchasnokasa --ping
+
+test-vchasnokasa-order:
+	@test -n "$(ID)" || (echo "Вкажіть ID=номер_замовлення" && exit 1)
+	$(SETTINGS) $(MANAGE) test_vchasnokasa --order-id $(ID)
 
 lint:
 	ruff check apps config
@@ -56,11 +80,44 @@ beat:
 import-sql:
 	$(SETTINGS) $(MANAGE) import_opencart_sql --file data/svitpc_2023-02-28_15-47-34_backup.sql
 
+import-prices:
+	$(SETTINGS) $(MANAGE) import_service_prices
+
 superuser:
 	$(SETTINGS) $(MANAGE) createsuperuser
 
 collectstatic:
 	$(SETTINGS) $(MANAGE) collectstatic --noinput
 
+docker-build:
+	docker compose -f docker-compose.yml -f docker-compose.http.yml build
+
+docker-up:
+	docker compose -f docker-compose.yml -f docker-compose.http.yml up -d
+
+docker-logs:
+	docker compose -f docker-compose.yml -f docker-compose.http.yml logs -f --tail=100
+
+docker-deploy:
+	bash deploy/docker/deploy.sh
+
+export-requirements:
+	uv export --no-dev --no-hashes --no-editable --no-emit-project -o requirements.txt
+
 backup-db:
 	$(SETTINGS) $(MANAGE) backup_db
+
+translate-en:
+	$(SETTINGS) $(MANAGE) translate_to_english --what=all
+
+fix-catalog-uk:
+	$(SETTINGS) $(MANAGE) fix_russian_catalog --what=all
+
+dedupe-filters:
+	$(SETTINGS) $(MANAGE) dedupe_catalog_filters
+
+backfill-i18n:
+	$(SETTINGS) $(MANAGE) backfill_modeltranslation_uk
+
+rebuild-search:
+	$(SETTINGS) $(MANAGE) rebuild_product_search_vectors

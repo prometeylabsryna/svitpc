@@ -1,0 +1,22 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'uk' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% trans "Статус замовлення змінено" %}</title>
+</head>
+<body style="font-family: sans-serif; color: #111; max-width: 580px; margin: 0 auto; padding: 24px;">
+  <h2>{% blocktrans with order_id=order.pk %}Замовлення #{{ order_id }}{% endblocktrans %}</h2>
+  <p>{% blocktrans with name=order.first_name %}Шановний(а) {{ name }}!{% endblocktrans %}</p>
+  <p>{% trans "Статус вашого замовлення змінено на:" %} <strong>{{ order.status.name }}</strong>.</p>
+  {% if order.ttn %}
+  <p>{% trans "ТТН для відстеження:" %} <strong>{{ order.ttn }}</strong></p>
+  {% elif order.up_barcode %}
+  <p>{% trans "Штрихкод відправлення:" %} <strong>{{ order.up_barcode }}</strong></p>
+  {% endif %}
+  <p><a href="{{ site_url }}{{ order.get_absolute_url }}">{% trans "Деталі замовлення на сайті" %}</a></p>
+  <hr style="border:none; border-top:1px solid #eee; margin:24px 0;">
+  <p style="color:#888; font-size:13px;">{% trans "СвітПК — комп'ютерна техніка та електроніка" %}</p>
+</body>
+</html>

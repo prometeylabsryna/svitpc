@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% load i18n static svitpc_tags %}
+{% load i18n static svitpc_tags analytics_tags %}
 
-{% block title %}{{ product.seo_title|default:product.name }}{% endblock %}
+{% block title %}{{ product.seo_title|default:product|localized:"name" }}{% endblock %}
 {% block meta_description %}{{ product.seo_description|default:product.short_description }}{% endblock %}
 {% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ product.get_absolute_url }}{% endblock %}
 {% block og_type %}product{% endblock %}
-{% block og_title %}{{ product.name }}{% endblock %}
+{% block og_title %}{{ product|localized:"name" }}{% endblock %}
 {% block og_description %}{{ product.seo_description|default:product.short_description|striptags }}{% endblock %}
 {% block og_image %}{% if product.main_image_url %}{{ product.main_image_url }}{% else %}{{ SITE_URL }}{% static 'images/og-default.jpg' %}{% endif %}{% endblock %}
-{% block twitter_title %}{{ product.name }}{% endblock %}
+{% block twitter_title %}{{ product|localized:"name" }}{% endblock %}
 {% block twitter_description %}{{ product.seo_description|default:product.short_description|striptags }}{% endblock %}
 {% block twitter_image %}{% if product.main_image_url %}{{ product.main_image_url }}{% else %}{{ SITE_URL }}{% static 'images/og-default.jpg' %}{% endif %}{% endblock %}
 
@@ -18,13 +18,13 @@
 {
   "@context": "https://schema.org",
   "@type": "Product",
-  "name": "{{ product.name|escapejs }}",
+  "name": "{{ product|localized:'name'|escapejs }}",
   "description": "{{ product.short_description|striptags|escapejs }}",
   "sku": "{{ product.sku }}",
   "mpn": "{{ product.sku }}",
   "url": "{{ request.scheme }}://{{ request.get_host }}{{ product.get_absolute_url }}",
   {% if product.main_image_url %}"image": ["{{ product.main_image_url }}"],{% endif %}
-  "brand": {"@type": "Brand", "name": "{{ product.brand.name|default:''|escapejs }}"},
+  {% if product.brand %}"brand": {"@type": "Brand", "name": "{{ product.brand|localized:'name'|escapejs }}"},{% endif %}
   "offers": {
     "@type": "Offer",
     "price": "{{ product.price }}",
@@ -32,10 +32,10 @@
     "availability": "{% if product.is_available %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
     "itemCondition": "https://schema.org/NewCondition",
     "url": "{{ request.scheme }}://{{ request.get_host }}{{ product.get_absolute_url }}",
-    "seller": {"@type": "Organization", "name": "СвітПК", "url": "{{ SITE_URL }}"}
+    "seller": {"@type": "Organization", "name": "{{ SITE_NAME }}", "url": "{{ SITE_URL }}"}
   }{% if attrs_by_group %},
   "additionalProperty": [{% for ag in attrs_by_group %}{% for pa in ag.items %}{% if not forloop.parentloop.first or not forloop.first %},{% endif %}
-    {"@type": "PropertyValue", "name": "{{ pa.attribute.name|escapejs }}", "value": "{{ pa.value|escapejs }}"}{% endfor %}{% endfor %}
+    {"@type": "PropertyValue", "name": "{{ pa.attribute|localized:'name'|escapejs }}", "value": "{{ pa|localized:'value'|escapejs }}"}{% endfor %}{% endfor %}
   ]{% endif %}{% if product.avg_rating %},
   "aggregateRating": {
     "@type": "AggregateRating",
@@ -55,7 +55,7 @@
     {"@type": "ListItem", "position": 1, "name": "{% trans "Головна" %}", "item": "{{ SITE_URL }}/"}{% for anc in ancestors %},
     {"@type": "ListItem", "position": {{ forloop.counter|add:"1" }}, "name": "{{ anc.name|escapejs }}", "item": "{{ request.scheme }}://{{ request.get_host }}{{ anc.get_absolute_url }}"}{% endfor %},
     {"@type": "ListItem", "position": {{ ancestors|length|add:"2" }}, "name": "{{ cat.name|escapejs }}", "item": "{{ request.scheme }}://{{ request.get_host }}{{ cat.get_absolute_url }}"},
-    {"@type": "ListItem", "position": {{ ancestors|length|add:"3" }}, "name": "{{ product.name|escapejs }}"}
+    {"@type": "ListItem", "position": {{ ancestors|length|add:"3" }}, "name": "{{ product|localized:'name'|escapejs }}"}
   ]
 }
 </script>
@@ -64,6 +64,7 @@
 {% endblock %}
 
 {% block content %}
+<meta name="ecommerce-product" content="{{ ecommerce_product|ecommerce_json|escape }}">
 <div class="container">
 
   {# Breadcrumbs #}
@@ -82,7 +83,7 @@
     {% endif %}
     {% endwith %}
     <span class="breadcrumbs__sep" aria-hidden="true">›</span>
-    <span class="breadcrumbs__item" aria-current="page">{{ product.name }}</span>
+    <span class="breadcrumbs__item" aria-current="page">{{ product|localized:"name" }}</span>
   </nav>
 
   <div class="pdp-grid">
@@ -92,10 +93,12 @@
       <div class="pdp-gallery__main" data-gallery-main>
         <img
           src="{% if gallery_urls %}{{ gallery_urls.0 }}{% else %}/static/images/no-photo.svg{% endif %}"
-          alt="{{ product.name }}"
+          alt="{{ product|localized:'name' }}"
           width="600"
           height="600"
-          loading="eager">
+          loading="eager"
+          fetchpriority="high"
+          decoding="async">
       </div>
       {% if gallery_urls|length > 1 %}
       <div class="pdp-gallery__thumbs" role="list" aria-label="{% trans 'Фотографії товару' %}">
@@ -113,12 +116,12 @@
 
       {% if product.brand %}
       <div class="pdp-brand">
-        <a href="{{ product.brand.get_absolute_url }}">{{ product.brand.name }}</a>
-        {% if product.sku %}<span style="color:var(--clr-neutral-300)">|</span> <span>{% trans "Арт." %}: {{ product.sku }}</span>{% endif %}
+        <a href="{{ product.brand.get_absolute_url }}">{{ product.brand|localized:"name" }}</a>
+        {% if product.sku %}<span class="pdp-brand__sep" aria-hidden="true">|</span> <span>{% trans "Арт." %}: {{ product.sku }}</span>{% endif %}
       </div>
       {% endif %}
 
-      <h1 class="pdp-title">{{ product.name }}</h1>
+      <h1 class="pdp-title">{{ product|localized:"name" }}</h1>
 
       <div class="pdp-meta">
         {% if product.avg_rating %}
@@ -127,7 +130,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{% if forloop.counter <= product.avg_rating %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5z"/></svg>
           {% endfor %}
         </div>
-        <a href="#reviews" style="font-size:var(--text-sm)">{{ product.review_count }} {% trans "відгуків" %}</a>
+        <a href="#reviews" class="pdp-reviews-link">{{ product.review_count }} {% trans "відгуків" %}</a>
         {% endif %}
         <span class="pdp-stock {% if product.is_available %}pdp-stock--in{% else %}pdp-stock--out{% endif %}">
           {% if product.is_available %}✓ {% trans "В наявності" %}{% else %}{% trans "Немає в наявності" %}{% endif %}
@@ -135,7 +138,10 @@
       </div>
 
       {# Badges #}
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <div class="pdp-badges">
+        {% if product.active_promotions or product.sale_timer_active %}
+        <span class="badge badge--danger">{% trans "Акція" %}</span>
+        {% endif %}
         {% if product.is_new %}<span class="badge badge--success">{% trans "Новинка" %}</span>{% endif %}
         {% if product.is_hit %}<span class="badge badge--info">{% trans "Хіт" %}</span>{% endif %}
         {% with d=product.price|discount_percent:product.old_price %}{% if d > 0 %}<span class="badge badge--danger">-{{ d }}%</span>{% endif %}{% endwith %}
@@ -148,52 +154,86 @@
         {% endif %}
       </div>
 
-      <div class="pdp-actions">
-        {% if product.is_available %}
-        <button
-          class="btn btn--primary btn--lg"
-          hx-post="{% url 'cart:add' product.pk %}"
-          hx-swap="none"
-          style="flex:1">
-          {% trans "До кошика" %}
-        </button>
-        <button
-          class="btn btn--secondary"
-          hx-get="{% url 'checkout:one_click' product.pk %}"
-          hx-target="#modal-container"
-          hx-swap="innerHTML">
-          {% trans "Купити в 1 клік" %}
-        </button>
-        {% else %}
-        <button class="btn btn--primary btn--lg" disabled style="flex:1">{% trans "Немає в наявності" %}</button>
+      {% if timer_end %}
+      <div class="product-info__promotion">
+        {% if promotion %}
+        {% with subtitle=promotion|localized:'title' %}
+        {% if subtitle and subtitle|lower != "акція" and subtitle|lower != "акция" and subtitle|lower != "акція:" %}
+        <div class="promotion-label">{{ subtitle }}</div>
         {% endif %}
-
-        <button
-          class="btn btn--ghost"
-          data-wishlist-toggle
-          hx-post="{% url 'wishlist:toggle' product.pk %}"
-          hx-swap="none"
-          aria-label="{% trans 'До бажаних' %}">
-          ♡ {% trans "Бажані" %}
-        </button>
-        <button
-          class="btn btn--ghost"
-          data-compare-toggle
-          hx-post="{% url 'compare:toggle' product.pk %}"
-          hx-swap="none"
-          aria-label="{% trans 'Порівняти' %}">
-          {% trans "Порівняти" %}
-        </button>
-        <a href="{% url 'ai:consultant' %}?product={{ product.name|urlencode }}"
-           class="btn btn--ghost pdp-ai-btn"
-           aria-label="{% trans 'Запитати AI-консультанта про цей товар' %}">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-               stroke-width="1.5" stroke="currentColor" width="16" height="16" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/>
-          </svg>
-          {% trans "Запитати AI" %}
-        </a>
+        {% endwith %}
+        {% endif %}
+        <div class="promotion-timer" data-countdown="{{ timer_end|date:'U' }}"
+             data-expired-label="{% trans 'Акція завершена' %}"
+             data-label-days="{% trans 'дн' %}"
+             data-label-hours="{% trans 'год' %}"
+             data-label-minutes="{% trans 'хв' %}"
+             data-label-seconds="{% trans 'сек' %}"></div>
       </div>
+      {% endif %}
+
+      <div class="pdp-actions">
+        <div class="pdp-actions__buy">
+          {% if product.is_available %}
+          <button
+            class="btn btn--primary btn--lg btn--full"
+            hx-post="{% url 'cart:add' product.pk %}"
+            hx-swap="none">
+            <svg class="btn__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
+            </svg>
+            {% trans "До кошика" %}
+          </button>
+          <button
+            class="btn btn--secondary btn--full"
+            hx-get="{% url 'checkout:one_click' product.pk %}"
+            hx-target="#modal-container"
+            hx-swap="innerHTML">
+            <svg class="btn__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5 10.5 6.75 14.25 10.5 21 3.75M3.75 19.5h16.5"/>
+            </svg>
+            {% trans "Купити в 1 клік" %}
+          </button>
+          {% else %}
+          <button class="btn btn--primary btn--lg btn--full" disabled>{% trans "Немає в наявності" %}</button>
+          {% endif %}
+        </div>
+
+        <div class="pdp-actions__extras">
+          <button
+            type="button"
+            class="pdp-extra-btn pdp-extra-btn--wishlist{% if product.pk in wishlist_ids %} is-active{% endif %}"
+            data-wishlist-toggle
+            data-product-id="{{ product.pk }}"
+            hx-post="{% url 'wishlist:toggle' product.pk %}"
+            hx-swap="none"
+            aria-label="{% trans 'До бажаних' %}"
+            aria-pressed="{% if product.pk in wishlist_ids %}true{% else %}false{% endif %}">
+            <svg class="pdp-extra-btn__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
+            </svg>
+            <span class="pdp-extra-btn__label">{% trans "Бажані" %}</span>
+          </button>
+          <button
+            type="button"
+            class="pdp-extra-btn pdp-extra-btn--compare{% if product.pk in compare_ids %} is-active{% endif %}"
+            data-compare-toggle
+            data-product-id="{{ product.pk }}"
+            hx-post="{% url 'compare:toggle' product.pk %}"
+            hx-swap="none"
+            aria-label="{% trans 'Порівняти' %}"
+            aria-pressed="{% if product.pk in compare_ids %}true{% else %}false{% endif %}">
+            <svg class="pdp-extra-btn__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+            </svg>
+            <span class="pdp-extra-btn__label">{% trans "Порівняти" %}</span>
+          </button>
+        </div>
+      </div>
+
+      {% if svitik_tip %}
+      {% include "components/svitik_hint.html" with variant="tip" mascot="tech" message=svitik_tip compact=True %}
+      {% endif %}
 
     </div>
   </div>
@@ -208,27 +248,27 @@
 
     <div class="tab-panel" data-tab-panel="desc" role="tabpanel">
       {% if product.description %}
-        {{ product.description|safe }}
+        {{ product|localized:"description"|safe }}
       {% else %}
-        <p style="color:var(--clr-text-muted)">{% trans "Опис відсутній." %}</p>
+        <p class="pdp-empty">{% trans "Опис відсутній." %}</p>
       {% endif %}
     </div>
 
     <div class="tab-panel" data-tab-panel="attrs" role="tabpanel">
       {% if attrs_by_group %}
       {% for ag in attrs_by_group %}
-      <h3 style="margin-bottom:.75rem;margin-top:1.5rem;font-weight:600">{{ ag.group.name }}</h3>
+      <h3 class="pdp-attr-group-title">{{ ag.group|localized:"name" }}</h3>
       <dl class="pdp-attrs">
         {% for pa in ag.items %}
         <div class="pdp-attr-row">
-          <dt>{{ pa.attribute.name }}</dt>
-          <dd>{{ pa.value }}</dd>
+          <dt>{{ pa.attribute|localized:"name" }}</dt>
+          <dd>{{ pa|localized:"value" }}</dd>
         </div>
         {% endfor %}
       </dl>
       {% endfor %}
       {% else %}
-      <p style="color:var(--clr-text-muted)">{% trans "Характеристики відсутні." %}</p>
+      <p class="pdp-empty">{% trans "Характеристики відсутні." %}</p>
       {% endif %}
     </div>
 
@@ -236,13 +276,13 @@
       hx-get="{% url 'reviews:product' product.pk %}"
       hx-trigger="revealed"
       hx-swap="innerHTML">
-      <p style="color:var(--clr-text-muted)">{% trans "Завантаження..." %}</p>
+      <p class="pdp-empty">{% trans "Завантаження..." %}</p>
     </div>
   </div>
 
   {# Related products #}
   {% if related %}
-  <section style="margin-top: 3rem">
+  <section class="pdp-related">
     <div class="section-heading">
       <h2 class="section-heading__title">{% trans "Схожі товари" %}</h2>
     </div>
@@ -257,5 +297,4 @@
   {% endif %}
 
 </div>
-<div id="modal-container" role="dialog" aria-live="polite"></div>
 {% endblock %}

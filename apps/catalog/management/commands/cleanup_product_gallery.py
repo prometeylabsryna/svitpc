@@ -4,7 +4,7 @@ from apps.catalog.gallery import cleanup_product_gallery
 
 
 class Command(BaseCommand):
-    help = "Remove stale gallery URLs (_Nmain.jpg) and duplicate ProductImage rows"
+    help = "Remove stale gallery URLs, Brain no-photo placeholders, and duplicate ProductImage rows"
 
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", help="Report counts only")

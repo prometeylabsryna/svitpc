@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load i18n static svitpc_tags %}
+
+{% block title %}{% trans "Акції" %}{% endblock %}
+
+{% block content %}
+<div class="container promotions-page">
+  <h1 class="promotions-page__title">{% trans "Акції" %}</h1>
+
+  {% if promotions %}
+  <div class="promotions-grid">
+    {% for promo in promotions %}
+    <article class="promo-card">
+      <a href="{{ promo.product.get_absolute_url }}" class="promo-card__img-link">
+        {% with img=promo.product.main_image_url %}
+        {% if img %}
+        <img class="promo-card__img" src="{{ img }}" alt="{{ promo.product|localized:'name' }}" loading="lazy">
+        {% else %}
+        <div class="promo-card__img promo-card__img--empty"></div>
+        {% endif %}
+        {% endwith %}
+      </a>
+
+      <div class="promo-card__body">
+        {% with subtitle=promo|localized:'title' %}
+        {% if subtitle and subtitle|lower != "акція" and subtitle|lower != "акция" and subtitle|lower != "акція:" %}
+        <div class="promo-card__label">{{ subtitle }}</div>
+        {% endif %}
+        {% endwith %}
+
+        <a href="{{ promo.product.get_absolute_url }}" class="promo-card__product-name">
+          {{ promo.product|localized:"name" }}
+        </a>
+
+        {% with desc=promo|localized:'description' %}
+        {% if desc %}
+        <p class="promo-card__desc">{{ desc }}</p>
+        {% endif %}
+        {% endwith %}
+
+        <div class="promo-card__timer-wrap">
+          <div class="promo-card__timer-label">{% trans "Акція діє до:" %}</div>
+          <div class="promo-timer" data-countdown="{{ promo.end_date|date:'U' }}"
+               data-expired-label="{% trans 'Акція завершена' %}"
+               data-label-days="{% trans 'дн' %}"
+               data-label-hours="{% trans 'год' %}"
+               data-label-minutes="{% trans 'хв' %}"
+               data-label-seconds="{% trans 'сек' %}"></div>
+        </div>
+
+        <a href="{{ promo.product.get_absolute_url }}" class="btn btn--primary promo-card__btn">
+          {% trans "Переглянути товар" %}
+        </a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="promotions-empty">
+    <p class="promotions-empty__text">{% trans "Наразі активних акцій немає." %}</p>
+    <a href="{% url 'catalog:sale_products' %}" class="btn btn--outline">{% trans "Усі товари зі знижкою" %}</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+  import { initCountdownTimers } from "{% static 'js/modules/timer.js' %}";
+  initCountdownTimers();
+</script>
+{% endblock %}

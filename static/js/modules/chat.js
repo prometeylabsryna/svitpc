@@ -18,6 +18,17 @@ export function initChat() {
     btn.addEventListener("click", () => togglePanel(root, panel));
   });
 
+  document.addEventListener("click", (event) => {
+    const opener = event.target.closest("[data-chat-open]");
+    if (!opener) return;
+    event.preventDefault();
+    openPanel(root, panel);
+  });
+
+  if (window.location.hash === "#live-chat") {
+    openPanel(root, panel);
+  }
+
   if (form) {
     // Clear textarea after successful HTMX request
     form.addEventListener("htmx:afterRequest", (e) => {
@@ -41,10 +52,26 @@ function togglePanel(root, panel) {
   if (toggleBtn) toggleBtn.setAttribute("aria-expanded", String(!isOpen));
 
   if (!isOpen) {
-    scrollToBottom();
-    const textarea = panel?.querySelector("textarea[name='text']");
-    textarea?.focus();
+    focusChatInput(panel);
   }
+}
+
+function openPanel(root, panel) {
+  if (!panel || !root) return;
+  if (!panel.hidden) {
+    focusChatInput(panel);
+    return;
+  }
+  panel.hidden = false;
+  const toggleBtn = root.querySelector("[data-chat-toggle][aria-expanded]");
+  if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "true");
+  focusChatInput(panel);
+}
+
+function focusChatInput(panel) {
+  scrollToBottom();
+  const textarea = panel?.querySelector("textarea[name='text']");
+  textarea?.focus();
 }
 
 function scrollToBottom() {

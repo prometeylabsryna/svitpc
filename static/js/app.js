@@ -8,8 +8,14 @@ import { initSearch } from "./modules/search.js";
 import { createToast } from "./modules/toast.js";
 import { initShipping } from "./modules/shipping.js";
 import { initPushNotifications } from "./modules/push.js";
-import { initChat } from "./modules/chat.js";
 import { initReviewStars } from "./modules/review-stars.js";
+import { initLogoutConfirm } from "./modules/logout-confirm.js";
+import { initPasswordToggle } from "./modules/password-toggle.js";
+import { initHomeAds } from "./modules/home-ads.js";
+import { initCoinsProgress, initCouponCopy } from "./modules/coins.js";
+import { initSvitik } from "./modules/svitik.js";
+import { initCountdownTimers } from "./modules/timer.js";
+import "./modules/fonts.js";
 import "./modules/ecommerce.js";
 // htmx-bridge auto-init runs on import
 import "./modules/htmx-bridge.js";
@@ -28,8 +34,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   initShipping();
   initPushNotifications();
-  initChat();
   initReviewStars();
+  initLogoutConfirm();
+  initPasswordToggle();
+  initHomeAds();
+  initCoinsProgress();
+  initCouponCopy();
+  initSvitik();
+  initCountdownTimers();
 
   // Django messages → toasts
   document.querySelectorAll("[data-toast]").forEach((el) => {

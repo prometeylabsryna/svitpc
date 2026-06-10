@@ -11,4 +11,4 @@ class Command(BaseCommand):
     def handle(self, *args, **options) -> None:
         self.stdout.write("Starting Kancmaster XML sync…")
         sync_all()
-        self.stdout.write(self.style.SUCCESS("Done."))
+        self.stdout.write(self.style.SUCCESS("Kancmaster sync finished."))

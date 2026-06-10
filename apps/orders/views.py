@@ -4,6 +4,8 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 
+from apps.loyalty.coins import coins_for_order
+
 from .models import Order
 
 
@@ -15,8 +17,24 @@ def order_list_view(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def order_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
-    order = get_object_or_404(Order, pk=pk, customer=request.user)
-    return render(request, "orders/order_detail.html", {"order": order})
+    from apps.loyalty.models import BonusTransaction
+
+    order = get_object_or_404(
+        Order.objects.select_related("status"),
+        pk=pk,
+        customer=request.user,
+    )
+    pending_coins = 0
+    if not order.status.is_completed and not BonusTransaction.objects.filter(
+        order=order,
+        transaction_type=BonusTransaction.TYPE_EARN,
+    ).exists():
+        pending_coins = coins_for_order(order)
+    return render(
+        request,
+        "orders/order_detail.html",
+        {"order": order, "pending_coins": pending_coins},
+    )
 
 
 @login_required

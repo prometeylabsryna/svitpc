@@ -1,1 +1,1 @@
-СвітПК вітає з Днем народження, {{ customer.first_name|default:customer.email }}!
+{% load i18n %}{% blocktrans with name=customer.first_name|default:customer.email %}СвітПК вітає з Днем народження, {{ name }}!{% endblocktrans %}

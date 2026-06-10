@@ -1,15 +1,25 @@
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 
+def _consultant_disabled_response() -> HttpResponse:
+    return HttpResponse(status=404)
+
+
 def consultant_view(request: HttpRequest) -> HttpResponse:
+    if not getattr(settings, "AI_CONSULTANT_ENABLED", False):
+        return _consultant_disabled_response()
     product_name = request.GET.get("product", "").strip()[:200]
     return render(request, "ai/consultant.html", {"prefill_product": product_name})
 
 
 @require_POST
 def consultant_stream_view(request: HttpRequest) -> StreamingHttpResponse:
+    if not getattr(settings, "AI_CONSULTANT_ENABLED", False):
+        return _consultant_disabled_response()
     from .services.consultant import stream_consultant
 
     message = request.POST.get("message", "").strip()
@@ -25,6 +35,8 @@ def consultant_stream_view(request: HttpRequest) -> StreamingHttpResponse:
 @require_POST
 def compatibility_check_view(request: HttpRequest) -> JsonResponse:
     """Check hardware compatibility for a list of product IDs. Returns JSON."""
+    if not getattr(settings, "AI_CONSULTANT_ENABLED", False):
+        return _consultant_disabled_response()
     import json
     from .services.consultant import check_compatibility
 
@@ -32,10 +44,10 @@ def compatibility_check_view(request: HttpRequest) -> JsonResponse:
         raw = request.POST.get("product_ids", "[]")
         product_ids = [int(i) for i in json.loads(raw)]
     except (ValueError, TypeError, json.JSONDecodeError):
-        return JsonResponse({"error": "Невірний формат product_ids"}, status=400)
+        return JsonResponse({"error": _("Невірний формат product_ids")}, status=400)
 
     if len(product_ids) < 2:
-        return JsonResponse({"error": "Потрібно як мінімум 2 товари"}, status=400)
+        return JsonResponse({"error": _("Потрібно як мінімум 2 товари")}, status=400)
 
     result = check_compatibility(product_ids)
     return JsonResponse({"result": result})

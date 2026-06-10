@@ -28,11 +28,13 @@
     transition: background var(--transition-fast), transform var(--transition-fast),
                 box-shadow var(--transition-fast);
     flex-shrink: 0;
+    text-decoration: none;
 
     &:hover {
       background: var(--clr-primary-700);
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgb(37 112 235 / 0.5);
+      color: #fff;
     }
 
     &:active { transform: translateY(0); }
@@ -164,6 +166,16 @@
         color: #1b6aa8;
       }
     }
+
+    &--viber {
+      color: #7360f2;
+      border-color: #d4cdfa;
+
+      &:hover {
+        border-color: #7360f2;
+        color: #5a4bc7;
+      }
+    }
   }
 
   /* ── Messages ────────────────────────────────────────────── */
@@ -274,8 +286,19 @@
     font-size: var(--text-base);
   }
 
+  @media (max-width: 768px) {
+    .live-chat {
+      bottom: calc(var(--mobile-bar-h) + var(--space-3));
+      right: var(--space-3);
+    }
+
+    .live-chat__btn {
+      width: 46px;
+      height: 46px;
+    }
+  }
+
   @media (max-width: 400px) {
-    .live-chat { right: var(--space-3); bottom: var(--space-4); }
     .live-chat__panel { width: calc(100vw - var(--space-6)); }
   }
 }

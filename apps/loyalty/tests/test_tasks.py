@@ -1,4 +1,4 @@
-"""Tests for loyalty tasks: accrue bonuses, birthday coupons."""
+"""Tests for loyalty tasks: accrue coins, birthday coupons, expiration."""
 
 import pytest
 from decimal import Decimal
@@ -30,7 +30,7 @@ def test_accrue_order_bonuses(customer):
     )
     accrue_order_bonuses(order.pk)
     customer.refresh_from_db()
-    assert customer.bonus_balance == Decimal("20.00")  # 2% of 1000
+    assert customer.bonus_balance == Decimal("1")
 
 
 @pytest.mark.django_db
@@ -53,7 +53,6 @@ def test_accrue_no_customer_order(db):
 @pytest.mark.django_db
 def test_birthday_greetings_creates_coupon(db, settings):
     from datetime import date
-    from unittest.mock import patch
 
     from apps.customers.models import Customer
     from apps.loyalty.tasks import send_birthday_greetings
@@ -74,5 +73,40 @@ def test_birthday_greetings_creates_coupon(db, settings):
     coupon = Coupon.objects.filter(code__startswith="BDAY-").first()
     assert coupon is not None
     assert coupon.discount_value == 10
+    assert coupon.customer_id == cust.pk
     cust.refresh_from_db()
-    assert cust.bonus_balance == Decimal("100.00")
+    assert cust.bonus_balance == Decimal("0")
+
+
+@pytest.mark.django_db
+def test_birthday_greetings_idempotent(db, settings):
+    from datetime import date
+    from unittest.mock import patch
+
+    from apps.customers.models import Customer
+    from apps.loyalty.tasks import send_birthday_greetings
+
+    settings.EMAIL_BACKEND = "django.core.mail.backends.dummy.EmailBackend"
+    settings.SMS_API_KEY = ""
+
+    today = date.today()
+    Customer.objects.create_user(
+        email="bday2@svitpc.ua",
+        password="pass",
+        birth_date=today,
+        is_active=True,
+    )
+
+    with patch("apps.notifications.service.send_notification"):
+        send_birthday_greetings()
+        send_birthday_greetings()
+
+    from apps.loyalty.models import BonusTransaction
+
+    assert (
+        BonusTransaction.objects.filter(
+            transaction_type=BonusTransaction.TYPE_BIRTHDAY,
+            customer__email="bday2@svitpc.ua",
+        ).count()
+        == 1
+    )

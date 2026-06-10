@@ -12,7 +12,7 @@
       <span class="cart-item__price">{{ item.price|currency }}</span>
     </div>
     <div class="cart-item__qty">
-      <form hx-post="{% url 'cart:update' item.product_id %}" hx-target="#cart-items" hx-swap="outerHTML">
+      <form hx-post="{% url 'cart:update' item.product_id %}" hx-target="#cart-body" hx-swap="outerHTML">
         {% csrf_token %}
         <input type="number" name="qty" value="{{ item.qty }}" min="1" max="999"
           data-cart-quantity
@@ -20,7 +20,7 @@
       </form>
       <button
         hx-post="{% url 'cart:remove' item.product_id %}"
-        hx-target="#cart-items"
+        hx-target="#cart-body"
         hx-swap="outerHTML"
         class="cart-item__remove"
         aria-label="{% trans 'Видалити' %}">✕</button>

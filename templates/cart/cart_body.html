@@ -1,0 +1,32 @@
+{% load i18n svitpc_tags %}
+
+<div id="cart-body">
+  {% if cart.item_count > 0 %}
+  {% if cart_coin_hint_message %}
+  {% include "components/svitik_hint.html" with variant="cart" hint_parts=cart_coin_hint_parts message=cart_coin_hint_message coins=cart_coin_hint_coins coins_after_delivery=True %}
+  {% endif %}
+  <div class="cart-layout">
+    <div id="cart-items">
+      {% include "cart/cart_items.html" %}
+    </div>
+
+    <aside class="cart-summary">
+      <h2 class="cart-summary__title">{% trans "Разом" %}</h2>
+      <div class="cart-summary__total">
+        <span>{% trans "До сплати:" %}</span>
+        <span id="cart-total">{{ cart.total|currency }}</span>
+      </div>
+      <a href="{% url 'checkout:step1' %}" class="btn btn--primary btn--full btn--lg">{% trans "Оформити замовлення" %}</a>
+      <a href="{% url 'catalog:home' %}" class="btn btn--ghost btn--full cart-summary__continue">{% trans "Продовжити покупки" %}</a>
+    </aside>
+  </div>
+  {% else %}
+  {% trans "Привіт! Я Пан Світик!" as svitik_title %}
+  {% trans "Додайте товари з каталогу — допоможу зібрати розумне замовлення та накопичити монети." as svitik_message %}
+  {% include "components/svitik_hint.html" with variant="welcome" mascot="welcome" title=svitik_title message=svitik_message compact=True %}
+  <div class="cart-empty">
+    <p class="cart-empty__title">{% trans "Кошик порожній" %}</p>
+    <a href="{% url 'catalog:home' %}" class="btn btn--primary">{% trans "Перейти до каталогу" %}</a>
+  </div>
+  {% endif %}
+</div>

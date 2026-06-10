@@ -27,3 +27,9 @@ class TestProduct:
     def test_product_url(self, product_factory):
         p = product_factory()
         assert p.get_absolute_url().startswith("/")
+
+    def test_product_cyrillic_slug_passes_validation(self, product_factory):
+        slug = "3d-пазл-1в-951101-екскаватор-1120"
+        p = product_factory(name='3D Пазл "1В"', slug=slug)
+        p.full_clean()
+        assert p.slug == slug

@@ -23,7 +23,7 @@ export const initPushNotifications = async () => {
   if (!vapidPublicKey) return;
 
   try {
-    const registration = await navigator.serviceWorker.register("/static/service-worker.js", { scope: "/" });
+    const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
 
     const existingSubscription = await registration.pushManager.getSubscription();
     if (existingSubscription) return;  // already subscribed
@@ -40,7 +40,7 @@ export const initPushNotifications = async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRFToken": document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? "",
+        "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.content ?? "",
       },
       body: JSON.stringify(subscription.toJSON()),
     });

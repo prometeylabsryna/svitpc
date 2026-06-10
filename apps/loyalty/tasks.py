@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def send_birthday_greetings():
-    """Daily: find customers with birthday today, send greeting + coupon + SMS."""
+    """Daily: find customers with birthday today and send greeting + coupon."""
     import secrets
     import string
     from datetime import timedelta
@@ -16,7 +16,7 @@ def send_birthday_greetings():
 
     from apps.customers.models import Customer
     from apps.loyalty.models import BonusTransaction, Coupon
-    from apps.notifications.service import send_notification
+    from apps.notifications.dispatch import notify_customer_channels, site_url
 
     today = timezone.localdate()
     customers = Customer.objects.filter(
@@ -30,12 +30,19 @@ def send_birthday_greetings():
         return "BDAY-" + "".join(secrets.choice(alphabet) for _ in range(8))
 
     for customer in customers:
-        # Generate birthday coupon (10% discount, valid 30 days)
+        if BonusTransaction.objects.filter(
+            customer=customer,
+            transaction_type=BonusTransaction.TYPE_BIRTHDAY,
+            created_at__date=today,
+        ).exists():
+            continue
+
         code = _gen_code()
         while Coupon.objects.filter(code=code).exists():
             code = _gen_code()
 
         coupon = Coupon.objects.create(
+            customer=customer,
             code=code,
             discount_type="percent",
             discount_value=10,
@@ -43,58 +50,45 @@ def send_birthday_greetings():
             valid_to=timezone.now() + timedelta(days=30),
             max_uses=1,
             is_active=True,
+            source=Coupon.SOURCE_BIRTHDAY,
         )
 
-        ctx = {"customer": customer, "coupon": coupon, "bonus_amount": 100}
+        ctx = {"customer": customer, "coupon": coupon, "site_url": site_url()}
+        notify_customer_channels(customer, "birthday_greeting", ctx)
 
-        # Email
-        send_notification(channel="email", recipient=customer.email, template_name="birthday_greeting", context=ctx)
-
-        # SMS
-        if getattr(customer, "phone", ""):
-            send_notification(channel="sms", recipient=customer.phone, template_name="birthday_greeting", context=ctx)
-
-        # Telegram
-        tg_id = getattr(customer, "telegram_chat_id", "")
-        if tg_id:
-            send_notification(channel="telegram", recipient=tg_id, template_name="birthday_greeting", context=ctx)
-
-        # Accrue 100 birthday bonuses
-        customer.bonus_balance += 100
-        customer.save(update_fields=["bonus_balance"])
         BonusTransaction.objects.create(
             customer=customer,
             transaction_type=BonusTransaction.TYPE_BIRTHDAY,
-            amount=100,
+            amount=0,
             balance_after=customer.bonus_balance,
-            description=f"Бонус на день народження {today}",
+            description=f"Привітання з днем народження {today}",
         )
 
 
 @shared_task
 def accrue_order_bonuses(order_pk: int):
-    """Accrue loyalty bonuses after order delivery (2% of order total)."""
-    from decimal import Decimal
-
-    from apps.loyalty.models import BonusTransaction
+    """Accrue SvitPC coins after order delivery."""
     from apps.orders.models import Order
 
     try:
         order = Order.objects.select_related("customer").get(pk=order_pk)
-        if not order.customer:
-            return
-        bonus = (order.total * Decimal("0.02")).quantize(Decimal("0.01"))
-        if bonus <= 0:
-            return
-        order.customer.bonus_balance += bonus
-        order.customer.save(update_fields=["bonus_balance"])
-        BonusTransaction.objects.create(
-            customer=order.customer,
-            order=order,
-            transaction_type=BonusTransaction.TYPE_EARN,
-            amount=bonus,
-            balance_after=order.customer.bonus_balance,
-            description=f"Бонуси за замовлення #{order.pk} (2%)",
-        )
+        from apps.loyalty.coins import accrue_coins_for_order
+
+        accrue_coins_for_order(order)
     except Exception:
         logger.exception("accrue_order_bonuses failed for order_pk=%s", order_pk)
+
+
+@shared_task
+def expire_old_coins():
+    """Daily: expire coins older than 6 months."""
+    from apps.customers.models import Customer
+    from apps.loyalty.coins import expire_customer_coins
+
+    total = 0
+    for customer in Customer.objects.filter(bonus_balance__gt=0).iterator():
+        try:
+            total += expire_customer_coins(customer)
+        except Exception:
+            logger.exception("expire_old_coins failed for customer_pk=%s", customer.pk)
+    logger.info("expire_old_coins: expired %s coins total", total)

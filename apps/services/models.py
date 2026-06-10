@@ -28,6 +28,11 @@ class Service(models.Model):
     description_en = CKEditor5Field(_("Опис (EN)"), config_name="default", blank=True)
     image = models.ImageField(_("Зображення"), upload_to="services/", null=True, blank=True)
     is_active = models.BooleanField(_("Активна"), default=True)
+    show_on_home = models.BooleanField(
+        _("На головній"),
+        default=False,
+        help_text=_("Показувати картку послуги в блоці «Сервісний центр» на головній"),
+    )
     sort_order = models.PositiveSmallIntegerField(default=0)
     seo_title = models.CharField(max_length=255, blank=True)
     seo_description = models.CharField(max_length=500, blank=True)
@@ -44,6 +49,10 @@ class Service(models.Model):
         from django.urls import reverse
         return reverse("services:detail", kwargs={"slug": self.slug})
 
+    @property
+    def has_material_excluded_prices(self) -> bool:
+        return self.prices.filter(excludes_materials=True).exists()
+
 
 class PriceItem(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name="prices")
@@ -52,11 +61,27 @@ class PriceItem(models.Model):
     price_from = models.DecimalField(_("Ціна від"), max_digits=10, decimal_places=2, null=True, blank=True)
     price_to = models.DecimalField(_("Ціна до"), max_digits=10, decimal_places=2, null=True, blank=True)
     price_text = models.CharField(_("Ціна (текст)"), max_length=100, blank=True, help_text="напр. «від 500 грн»")
+    unit = models.CharField(_("Одиниця"), max_length=20, blank=True, help_text="напр. шт, м, км")
+    excludes_materials = models.BooleanField(
+        _("Без матеріалів"),
+        default=False,
+        help_text=_("Позиція позначена * у прейскуранті — вартість робіт без матеріалів"),
+    )
     sort_order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         verbose_name = _("Прайс-позиція")
+        verbose_name_plural = _("Прайс-позиції")
         ordering = ["sort_order"]
+
+    def __str__(self) -> str:
+        return self.name
+
+    @property
+    def display_price(self) -> str:
+        from .pricing import format_price_item
+
+        return format_price_item(self)
 
 
 class ServiceRequest(models.Model):
@@ -102,3 +127,6 @@ class ServiceRequest(models.Model):
 
     def get_status_display_uk(self) -> str:
         return dict(self.STATUS_CHOICES).get(self.status, self.status)
+
+
+from .warranty_models import ProductSerial, WarrantyClaim  # noqa: E402, F401

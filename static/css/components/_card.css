@@ -35,7 +35,7 @@
 
     &:hover {
       box-shadow: var(--shadow-md), var(--shadow-glow-sm);
-      border-color: rgba(59, 130, 246, 0.25);
+      border-color: rgba(var(--clr-accent-rgb), 0.25);
       transform: translateY(-3px);
 
       &::before {
@@ -59,6 +59,34 @@
     z-index: 1;
   }
 
+  .product-card__promo-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    min-width: 3.25rem;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    background: var(--grad-badge-new);
+    color: #fff;
+    box-shadow: var(--shadow-sm);
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .product-card__promo-label {
+    font-size: var(--text-xs);
+    font-weight: var(--fw-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .product-card__promo-discount {
+    font-size: var(--text-lg);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+
   .product-card__badge {
     display: inline-flex;
     align-items: center;
@@ -70,10 +98,6 @@
     letter-spacing: 0.02em;
     color: #a72828;
 
-    &--sale {
-      background: var(--grad-badge-sale);
-    }
-
     &--new {
       background: var(--clr-bg);
       color: var(--clr-badge-new);
@@ -82,10 +106,6 @@
 
     &--hit {
       background: var(--grad-badge-hit);
-    }
-
-    &--promo {
-      background: var(--grad-primary);
     }
   }
 
@@ -127,17 +147,46 @@
     transition: background var(--transition-fast), border-color var(--transition-fast),
       color var(--transition-fast);
 
-    &:hover,
-    &.is-active {
+    &:hover {
       background: var(--clr-primary-50);
       border-color: var(--clr-primary-400);
       color: var(--clr-primary-600);
+    }
+
+    &[data-compare-toggle].is-active {
+      background: rgba(122, 74, 24, 0.1);
+      border-color: rgba(122, 74, 24, 0.35);
+      color: var(--clr-badge-compare);
+
+      svg {
+        stroke: var(--clr-badge-compare);
+      }
+    }
+
+    &[data-wishlist-toggle].is-active {
+      background: rgba(127, 29, 61, 0.1);
+      border-color: rgba(127, 29, 61, 0.35);
+      color: var(--clr-badge-new);
+
+      svg {
+        fill: var(--clr-badge-new);
+        stroke: var(--clr-badge-new);
+      }
+    }
+
+    &[data-wishlist-toggle].is-animating svg {
+      animation: heart-pop 0.55s var(--ease-spring);
+    }
+
+    &[data-compare-toggle].is-animating svg {
+      animation: compare-pop 0.45s var(--ease-spring);
     }
 
     svg {
       width: 16px;
       height: 16px;
       pointer-events: none;
+      transition: fill var(--transition-base), stroke var(--transition-base);
     }
   }
 

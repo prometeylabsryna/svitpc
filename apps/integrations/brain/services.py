@@ -15,18 +15,56 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_RETAIL_PRICE_KEYS = ("retail_price_uah", "recommendable_price", "retail_price")
+
+
+def brain_retail_price_raw(detail: dict) -> Decimal:
+    """Wholesale/RRP reference from Brain payload (before markup)."""
+    for key in _RETAIL_PRICE_KEYS:
+        val = detail.get(key)
+        if val is None or val == "":
+            continue
+        try:
+            parsed = Decimal(str(val).replace(",", "."))
+            if parsed > 0:
+                return parsed
+        except Exception:
+            continue
+    return Decimal("0")
+
+
+def brain_sale_old_price(
+    detail: dict,
+    wholesale_raw: Decimal,
+    brand_id: int | None,
+    category_ids: list[int],
+) -> Decimal | None:
+    """Marked-up RRP when Brain retail/recommendable price exceeds wholesale."""
+    from apps.catalog.services import apply_markup
+
+    if wholesale_raw <= 0:
+        return None
+    retail_raw = brain_retail_price_raw(detail)
+    if retail_raw <= wholesale_raw:
+        return None
+    current = apply_markup(wholesale_raw, brand_id, category_ids)
+    old = apply_markup(retail_raw, brand_id, category_ids)
+    return old if old > current else None
+
 
 def sync_product_options(client: "BrainAPIClient", product: "Product", brain_id: int) -> None:  # type: ignore[name-defined]
     from apps.catalog.models import Attribute, AttributeGroup, ProductAttribute
+    from apps.catalog.ru_localization import localize_ru_to_uk
 
     options = client.get_product_options(brain_id, lang="ua")
     if not options:
         return
 
-    ag, _ = AttributeGroup.objects.get_or_create(name="Характеристики")
+    group_name = localize_ru_to_uk("Характеристики")
+    ag, _ = AttributeGroup.objects.get_or_create(name=group_name)
     for opt in options:
-        attr_name = (opt.get("OptionName") or "").strip()
-        attr_val = (opt.get("ValueName") or "").strip()
+        attr_name = localize_ru_to_uk((opt.get("OptionName") or "").strip())
+        attr_val = localize_ru_to_uk((opt.get("ValueName") or "").strip())
         if not attr_name or not attr_val:
             continue
         attr, _ = Attribute.objects.get_or_create(group=ag, name=attr_name)
@@ -43,15 +81,17 @@ def sync_product_pictures(
     brain_id: int,
     name: str,
 ) -> None:  # type: ignore[name-defined]
-    from apps.catalog.gallery import is_stale_gallery_url
-    from apps.catalog.models import ProductImage
+    from apps.catalog.gallery import is_valid_product_image_url, normalize_brain_image_url
+    from apps.catalog.models import Product, ProductImage
 
     pics = client.get_product_pictures(brain_id)
     rows: list[tuple[int, str]] = []
     used_orders: set[int] = set()
     for i, pic in enumerate(pics):
-        img_url = (pic.get("medium_image") or pic.get("large_image") or "").strip()
-        if not img_url or is_stale_gallery_url(img_url):
+        img_url = normalize_brain_image_url(
+            pic.get("medium_image") or pic.get("large_image") or "",
+        )
+        if not img_url:
             continue
         order = int(pic.get("priority", i))
         while order in used_orders:
@@ -59,13 +99,21 @@ def sync_product_pictures(
         used_orders.add(order)
         rows.append((order, img_url))
 
-    product.images.filter(image__isnull=True).delete()
+    if not rows:
+        # Brain returned no usable photos — keep existing URLs/gallery (avoid wiping on API gaps).
+        return
+
+    product.images.filter(image="").delete()
     for order, url in rows:
         ProductImage.objects.update_or_create(
             product=product,
             sort_order=order,
             defaults={"image_url": url, "alt": name},
         )
+
+    main_url = rows[0][1]
+    if is_valid_product_image_url(main_url):
+        Product.objects.filter(pk=product.pk).update(image_url=main_url)
 
 
 def brain_hide_out_of_stock_enabled() -> bool:
@@ -85,6 +133,11 @@ def brain_visibility(stock: int, hide_if_out_of_stock: bool) -> bool:
 
 def upsert_brand(name: str) -> "Brand":  # type: ignore[name-defined]
     from apps.catalog.models import Brand
+    from apps.catalog.ru_localization import localize_ru_to_uk
+
+    name = localize_ru_to_uk(name.strip())
+    if not name:
+        raise ValueError("brand name is empty")
 
     slug = slugify(name, allow_unicode=True) or f"brand-{abs(hash(name))}"
     brand = Brand.objects.filter(slug=slug).first()
@@ -120,7 +173,9 @@ def build_category_map_from_db(client: "BrainAPIClient", *, lang: str = "ua") ->
     for bc in client.get_all_categories(lang=lang):
         if bc.get("realcat", 0) > 0:
             continue
-        name = (bc.get("name") or "").strip()
+        from apps.catalog.ru_localization import localize_ru_to_uk
+
+        name = localize_ru_to_uk((bc.get("name") or "").strip())
         if not name:
             continue
         slug_base = slugify(name, allow_unicode=True) or f"brain-cat-{bc['categoryID']}"
@@ -151,6 +206,9 @@ def sync_brain_categories(client: "BrainAPIClient", *, lang: str = "ua") -> dict
         name = (bc.get("name") or "").strip()
         if not name:
             continue
+        from apps.catalog.ru_localization import localize_ru_to_uk
+
+        name = localize_ru_to_uk(name)
 
         slug_base = slugify(name, allow_unicode=True) or f"brain-cat-{cat_id}"
         parent_brain_id = bc.get("parentID")
@@ -220,11 +278,17 @@ def apply_detail_to_product(
     if not detail:
         return False
 
-    name = (detail.get("name") or product.name or "").strip()
+    from apps.catalog.ru_localization import localize_ru_to_uk
+
+    name = localize_ru_to_uk((detail.get("name") or product.name or "").strip())
     price_raw = Decimal(str(detail.get("price_uah") or detail.get("price") or 0))
     stock = brain_stock_from_detail(detail)
     sku = (detail.get("articul") or detail.get("product_code") or product.sku or "").strip()
-    main_img = (detail.get("medium_image") or detail.get("large_image") or "").strip()
+    from apps.catalog.gallery import normalize_brain_image_url
+
+    main_img = normalize_brain_image_url(
+        detail.get("medium_image") or detail.get("large_image") or "",
+    )
 
     brand = product.brand
     if update_brand:
@@ -244,7 +308,11 @@ def apply_detail_to_product(
 
     upd: dict = {}
     if name and name != product.name:
+        from apps.catalog.content_translation import clear_en_if_uk_changed
+
+        clear_en_if_uk_changed(product, "name", name)
         upd["name"] = name[:500]
+        upd["name_en"] = None
     if update_stock:
         upd["stock"] = stock
     if sku:
@@ -261,6 +329,11 @@ def apply_detail_to_product(
     if update_price and price_raw > 0:
         upd["purchase_price"] = price_raw
         upd["price"] = apply_markup(price_raw, brand_id, cat_ids)
+
+    if price_raw > 0:
+        old = brain_sale_old_price(detail, price_raw, brand_id, cat_ids)
+        if old is not None:
+            upd["old_price"] = old
 
     if not upd:
         if local_cat and update_category:
@@ -288,7 +361,9 @@ def upsert_product_from_detail(
 
     from apps.catalog.models import Product
     from apps.catalog.services import apply_markup
-    name = (detail.get("name") or "").strip()
+    from apps.catalog.ru_localization import localize_ru_to_uk
+
+    name = localize_ru_to_uk((detail.get("name") or "").strip())
     if not name:
         raise ValueError(f"Brain product {brain_id} has no name")
 
@@ -297,7 +372,11 @@ def upsert_product_from_detail(
     price_raw = Decimal(str(detail.get("price_uah") or detail.get("price") or 0))
     stock = brain_stock_from_detail(detail)
     sku = (detail.get("articul") or detail.get("product_code") or "").strip()
-    main_img = (detail.get("medium_image") or detail.get("large_image") or "").strip()
+    from apps.catalog.gallery import normalize_brain_image_url
+
+    main_img = normalize_brain_image_url(
+        detail.get("medium_image") or detail.get("large_image") or "",
+    )
 
     cat_ids = [local_cat.pk] if local_cat else []
     final_price = apply_markup(price_raw, brand.pk if brand else None, cat_ids) if price_raw > 0 else Decimal("0")
@@ -307,11 +386,15 @@ def upsert_product_from_detail(
     hide = brain_hide_out_of_stock_enabled()
     visible = brain_visibility(stock, hide)
 
+    brand_id = brand.pk if brand else None
+    old_price = brain_sale_old_price(detail, price_raw, brand_id, cat_ids) if price_raw > 0 else None
+
     defaults = {
         "name": name[:500],
         "slug": slug,
         "brand": brand,
         "price": final_price if final_price > 0 else price_raw,
+        "old_price": old_price,
         "purchase_price": price_raw if price_raw > 0 else None,
         "stock": stock,
         "sku": sku[:100],

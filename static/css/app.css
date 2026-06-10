@@ -5,7 +5,7 @@
 @layer reset, tokens, base, layout, components, pages, utilities;
 
 /* ── Google Fonts ─────────────────────────────────────────────────────────── */
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap");
 
 /* ── Layers ──────────────────────────────────────────────────────────────── */
 @import "base/_reset.css"        layer(reset);
@@ -22,6 +22,8 @@
 @import "components/_filters.css"          layer(components);
 @import "components/_misc.css"             layer(components);
 @import "components/_chat.css"             layer(components);
+@import "components/_svitik.css"           layer(components);
+@import "components/_timer.css"            layer(components);
 @import "components/_mobile-bottom-nav.css" layer(components);
 
 @import "pages/_home.css"     layer(pages);
@@ -30,6 +32,12 @@
 @import "pages/_checkout.css" layer(pages);
 @import "pages/_ai.css"       layer(pages);
 @import "pages/_pages.css"    layer(pages);
+@import "pages/_returns.css"  layer(pages);
+@import "pages/_services.css" layer(pages);
+@import "pages/_contact.css"  layer(pages);
+@import "pages/_delivery.css" layer(pages);
+@import "pages/_payment.css"  layer(pages);
+@import "pages/_promotions.css" layer(pages);
 
 /* ── Utilities ────────────────────────────────────────────────────────────── */
 @layer utilities {
@@ -55,4 +63,75 @@
   .htmx-indicator { opacity: 0; transition: opacity 200ms ease; }
   .htmx-request .htmx-indicator,
   .htmx-request.htmx-indicator { opacity: 1; }
+}
+
+/* Password toggle — outside @layer so it always wins (modals, HTMX partials) */
+.form-password {
+  position: relative;
+  width: 100%;
+}
+
+.form-password__input {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+
+.form-password__suffix {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  padding-right: 0.5rem;
+  pointer-events: none;
+}
+
+.form-password__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--clr-text-subtle);
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.form-password__toggle:hover {
+  color: var(--clr-text);
+  background: var(--clr-neutral-100);
+}
+
+.form-password__toggle:focus-visible {
+  outline: 2px solid var(--clr-primary-500);
+  outline-offset: 2px;
+}
+
+.form-password__icon {
+  width: 20px;
+  height: 20px;
+  max-width: none;
+  flex-shrink: 0;
+}
+
+.form-password__icon--hide {
+  display: none;
+}
+
+.form-password__toggle.is-visible .form-password__icon--show {
+  display: none;
+}
+
+.form-password__toggle.is-visible .form-password__icon--hide {
+  display: block;
+}
+
+.auth-form--modal .form-password__input {
+  padding-right: 3rem;
 }

@@ -1,0 +1,51 @@
+{% load i18n static svitpc_tags %}
+<aside class="svitik-hint svitik-hint--{{ variant|default:'tip' }}{% if compact %} svitik-hint--compact{% endif %}" role="note">
+  <div class="svitik-hint__body">
+    {% if title %}
+    <p class="svitik-hint__title">{{ title }}</p>
+    {% endif %}
+    {% if hint_parts %}
+      {% if hint_parts.kind == "below_min" %}
+      <p class="svitik-hint__lead">
+        {% blocktrans with remaining=hint_parts.remaining %}Додайте товарів ще на <span class="svitik-hint__amount">{{ remaining }}</span>, щоб отримати перші бонусні монети СвітПК!{% endblocktrans %}
+      </p>
+      {% elif hint_parts.kind == "next_tier" %}
+      <p class="svitik-hint__lead">
+        {% blocktrans with total=hint_parts.total %}У кошику товари на <span class="svitik-hint__amount">{{ total }}</span>{% endblocktrans %}
+      </p>
+      {% if hint_parts.coins %}
+      <p class="svitik-hint__text">
+        {% blocktrans with remaining=hint_parts.remaining next_coins=hint_parts.next_coins current_coins=hint_parts.coins %}Додайте ще на <span class="svitik-hint__amount">{{ remaining }}</span> — і після доставки буде {{ next_coins }} монет замість {{ current_coins }}{% endblocktrans %}
+      </p>
+      {% else %}
+      <p class="svitik-hint__text">
+        {% blocktrans with remaining=hint_parts.remaining %}Додайте ще на <span class="svitik-hint__amount">{{ remaining }}</span> і отримаєте{% endblocktrans %}
+      </p>
+      {% endif %}
+      {% elif hint_parts.kind == "earned" %}
+      <p class="svitik-hint__lead">
+        {% blocktrans %}Чудово! Після доставки цього замовлення ви отримаєте{% endblocktrans %}
+      </p>
+      {% endif %}
+    {% else %}
+    <p class="svitik-hint__text">{{ message }}</p>
+    {% endif %}
+    {% if coins %}
+    <span class="svitik-hint__badge">
+      <img class="svitik-hint__badge-icon" src="{% static 'images/svitpc-coin-light.png' %}" width="52" height="52" alt="" loading="lazy" decoding="async">
+      <span class="svitik-hint__badge-value">{{ coins }}</span>
+      <span class="svitik-hint__badge-label">
+        {% if coins_after_delivery %}{% trans "монет після доставки" %}{% else %}{% trans "монет" %}{% endif %}
+      </span>
+    </span>
+    {% endif %}
+  </div>
+  <div class="svitik-hint__mascot-wrap">
+    <img
+      class="svitik-hint__mascot"
+      src="{% svitik_mascot variant|default:'tip' mascot %}"
+      alt=""
+      loading="lazy"
+      decoding="async">
+  </div>
+</aside>

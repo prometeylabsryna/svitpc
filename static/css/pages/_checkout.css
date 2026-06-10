@@ -118,6 +118,70 @@
   flex: 1;
 }
 
+/* Loyalty — promo & bonus */
+.checkout-loyalty {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--clr-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  background: var(--clr-surface-muted, #f9fafb);
+}
+
+.checkout-loyalty__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.checkout-loyalty__coins {
+  margin-top: 0.75rem;
+}
+
+.checkout-loyalty__balance {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.checkout-loyalty__use-bonus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkout-loyalty__preview {
+  margin: 1rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--clr-border, #e5e7eb);
+}
+
+.checkout-loyalty__preview-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.checkout-loyalty__preview-row--discount dd {
+  color: var(--clr-success, #16a34a);
+}
+
+.checkout-loyalty__preview-row--total {
+  font-weight: 600;
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+  border-top: 1px dashed var(--clr-border, #e5e7eb);
+}
+
+.checkout-confirm__totals {
+  margin: 0 0 0.75rem;
+}
+
+.checkout-confirm__row--discount dd {
+  color: var(--clr-success, #16a34a);
+}
+
 /* Payment redirect page */
 .payment-redirect {
   padding-block: 3rem;
@@ -299,6 +363,30 @@
 .checkout-confirm__row dd {
   margin: 0;
   font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  .checkout-confirm__row {
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .checkout-confirm__row dt {
+    min-width: 0;
+  }
+
+  .checkout-confirm__item {
+    flex-wrap: wrap;
+  }
+
+  .checkout-confirm__item-subtotal {
+    margin-inline-start: auto;
+  }
+
+  .checkout-confirm__total {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
 }
 
 .checkout-confirm__comment {

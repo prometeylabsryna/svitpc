@@ -40,7 +40,7 @@ class Customer(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(_("Персонал"), default=False)
     date_joined = models.DateTimeField(_("Дата реєстрації"), default=timezone.now)
     # Bonus system
-    bonus_balance = models.DecimalField(_("Бонусний баланс"), max_digits=10, decimal_places=2, default=0)
+    bonus_balance = models.DecimalField(_("Монети СвітПК"), max_digits=10, decimal_places=2, default=0)
     # Notifications consent
     consent_email = models.BooleanField(_("Email-розсилка"), default=True)
     consent_sms = models.BooleanField(_("SMS-розсилка"), default=True)

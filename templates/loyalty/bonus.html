@@ -1,59 +1,187 @@
 {% extends "base.html" %}
-{% load i18n svitpc_tags %}
-{% block title %}{% trans "Бонусна програма" %}{% endblock %}
+{% load i18n static %}
+{% block title %}{% trans "Монети СвітПК" %}{% endblock %}
 {% block content %}
 <div class="container">
   <div class="account-layout">
 
-    <nav class="account-nav" aria-label="{% trans 'Навігація кабінету' %}">
-      <a href="{% url 'customers:dashboard' %}" class="account-nav__link">
-        <svg class="account-nav__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
-        {% trans "Кабінет" %}
-      </a>
-      <a href="{% url 'orders:list' %}" class="account-nav__link">
-        <svg class="account-nav__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z"/></svg>
-        {% trans "Замовлення" %}
-      </a>
-      <a href="{% url 'wishlist:page' %}" class="account-nav__link">
-        <svg class="account-nav__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
-        {% trans "Список бажань" %}
-      </a>
-      <a href="{% url 'loyalty:bonus' %}" class="account-nav__link is-active">
-        <svg class="account-nav__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-        {% trans "Бонуси" %}
-      </a>
-      <a href="{% url 'customers:addresses' %}" class="account-nav__link">
-        <svg class="account-nav__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/></svg>
-        {% trans "Адреси" %}
-      </a>
-      <a href="{% url 'customers:profile' %}" class="account-nav__link">
-        <svg class="account-nav__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
-        {% trans "Профіль" %}
-      </a>
-    </nav>
+    {% include "components/account_nav.html" with active="bonus" %}
 
-    <section class="account-section">
-      <h1 class="account-section__title">{% trans "Бонусна програма" %}</h1>
+    <section class="account-section coins-page">
+      <h1 class="account-section__title coins-page__heading">
+        <img class="coins-page__heading-icon" src="{% static 'images/svitpc-coin.png' %}" width="36" height="36" alt="" aria-hidden="true">
+        <span class="coins-page__heading-text">{% trans "Монети СвітПК" %}</span>
+      </h1>
 
-      <div class="bonus-balance-card">
-        <svg class="bonus-balance-card__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-        </svg>
-        <div>
-          <p class="bonus-balance-card__label">{% trans "Поточний баланс" %}</p>
-          <p class="bonus-balance-card__amount">{{ request.user.bonus_balance|currency }}</p>
+      {% trans "Я допоможу вам збирати монети!" as svitik_title %}
+      {% trans "Кожна покупка наближає вас до купона — дивіться прогрес нижче." as svitik_message %}
+      {% include "components/svitik_hint.html" with variant="welcome" mascot="coins" title=svitik_title message=svitik_message compact=True %}
+
+      <p class="coins-intro">
+        {% trans "Проста й зрозуміла система лояльності — збирайте монети за покупки та обмінюйте їх на купони. Вона не з'їдає прибуток на товарах із маленькою націнкою, тому вигідна і для вас, і для нас." %}
+      </p>
+
+      <div class="coins-balance-card">
+        <img class="coins-balance-card__image" src="{% static 'images/svitpc-coin.png' %}" width="128" height="128" alt="{% trans 'Монета СвітПК' %}">
+        <div class="coins-balance-card__body">
+          <p class="coins-balance-card__label">{% trans "Ваш баланс" %}</p>
+          <p class="coins-balance-card__amount">{{ coin_balance }} <span>{% trans "монет" %}</span></p>
+          {% if pending_coins %}
+          <p class="coins-balance-card__pending">
+            + {{ pending_coins }} {% trans "очікується після доставки" %}
+          </p>
+          {% endif %}
         </div>
       </div>
 
+      {% if pending_orders %}
+      <div class="coins-pending">
+        <h2 class="page-subtitle">{% trans "Очікують нарахування" %}</h2>
+        <ul class="coins-pending__list">
+          {% for item in pending_orders %}
+          <li class="coins-pending__item">
+            <span class="coins-pending__coins">+{{ item.coins }} {% trans "монет" %}</span>
+            <span class="coins-pending__meta">
+              {% blocktrans with pk=item.order_id %}за замовлення №{{ pk }} — після доставки{% endblocktrans %}
+            </span>
+            <a class="coins-pending__link" href="{% url 'orders:detail' pk=item.order_id %}">{% trans "Деталі" %}</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if progress %}
+      <div class="coins-progress">
+        <div class="coins-progress__header">
+          <h2 class="coins-progress__title">{% trans "До наступної нагороди" %}</h2>
+          <span class="coins-progress__reward">{{ progress.reward_uah|floatformat:0 }} ₴</span>
+        </div>
+        <div class="coins-progress__bar" role="progressbar" aria-valuenow="{{ progress.current }}" aria-valuemin="0" aria-valuemax="{{ progress.target }}">
+          <span class="coins-progress__fill" data-progress="{{ progress.current }}" data-target="{{ progress.target }}"></span>
+        </div>
+        <p class="coins-progress__hint">
+          {{ progress.current }} / {{ progress.target }} {% trans "монет" %} —
+          {% if progress.remaining %}
+          {% blocktrans with remaining=progress.remaining %}ще {{ remaining }} монет і ваша нагорода!{% endblocktrans %}
+          {% else %}
+          {% trans "нагорода буде видана автоматично після нарахування монет" %}
+          {% endif %}
+        </p>
+      </div>
+      {% endif %}
+
+      {% if active_coupons %}
+      <div class="coins-coupons">
+        <h2 class="page-subtitle">{% trans "Ваші купони" %}</h2>
+        <ul class="coins-coupons__list">
+          {% for coupon in active_coupons %}
+          <li class="coins-coupon">
+            <span class="coins-coupon__value">{{ coupon.discount_value|floatformat:0 }} ₴</span>
+            <span class="coins-coupon__code-group">
+              <span class="coins-coupon__code">{{ coupon.code }}</span>
+              <button type="button" class="coins-coupon__copy"
+                data-coupon-copy="{{ coupon.code }}"
+                aria-label="{% trans 'Скопіювати код купона' %}"
+                data-label-copied="{% trans 'Скопійовано' %}"
+                data-label-error="{% trans 'Не вдалося скопіювати' %}">
+                <svg class="coins-coupon__copy-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75a1.125 1.125 0 0 0 1.125-1.125v-9.25"/></svg>
+                <svg class="coins-coupon__copy-icon coins-coupon__copy-icon--check" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+              </button>
+            </span>
+            {% if coupon.valid_to %}
+            <span class="coins-coupon__valid">{% trans "до" %} {{ coupon.valid_to|date:"d.m.Y" }}</span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <div class="coins-rules">
+        <section class="coins-rules__section" aria-labelledby="coins-earn-title">
+          <h2 class="coins-rules__heading" id="coins-earn-title">
+            <span class="coins-rules__emoji" aria-hidden="true">🔹</span>
+            {% trans "Нарахування" %}
+          </h2>
+          <ul class="coins-tier-list">
+            <li class="coins-tier-list__item">
+              <span class="coins-tier-list__marker" aria-hidden="true">🔹</span>
+              {% trans "Замовлення від 300 грн до 2 999 грн" %} → <strong>1 {% trans "монета" %}</strong>
+            </li>
+            <li class="coins-tier-list__item">
+              <span class="coins-tier-list__marker" aria-hidden="true">🔹</span>
+              {% trans "Замовлення від 3 000 грн до 4 999 грн" %} → <strong>10 {% trans "монет" %}</strong>
+            </li>
+            <li class="coins-tier-list__item">
+              <span class="coins-tier-list__marker" aria-hidden="true">🔹</span>
+              {% trans "Замовлення від 5 000 грн до 9 999 грн" %} → <strong>15 {% trans "монет" %}</strong>
+            </li>
+            <li class="coins-tier-list__item">
+              <span class="coins-tier-list__marker" aria-hidden="true">🔹</span>
+              {% trans "Замовлення від 10 000 грн до 19 999 грн" %} → <strong>25 {% trans "монет" %}</strong>
+            </li>
+            <li class="coins-tier-list__item">
+              <span class="coins-tier-list__marker" aria-hidden="true">🔹</span>
+              {% trans "Замовлення від 20 000 грн і більше" %} → <strong>50 {% trans "монет" %}</strong>
+            </li>
+          </ul>
+        </section>
+
+        <section class="coins-rules__section" aria-labelledby="coins-rewards-title">
+          <h2 class="coins-rules__heading" id="coins-rewards-title">
+            <span class="coins-rules__emoji" aria-hidden="true">🎁</span>
+            {% trans "Нагороди" %}
+          </h2>
+          <ul class="coins-reward-list">
+            <li class="coins-reward-list__item coins-reward-list__item--collect">
+              <span class="coins-reward-list__medal" aria-hidden="true">◎</span>
+              <span class="coins-reward-list__text">1 {% trans "монета" %} → {% trans "збирається" %}</span>
+            </li>
+            <li class="coins-reward-list__item coins-reward-list__item--bronze">
+              <span class="coins-reward-list__medal" aria-hidden="true">🥉</span>
+              <span class="coins-reward-list__text">10 {% trans "монет" %} → {% trans "купон" %} <strong>100 ₴</strong></span>
+            </li>
+            <li class="coins-reward-list__item coins-reward-list__item--silver">
+              <span class="coins-reward-list__medal" aria-hidden="true">🥈</span>
+              <span class="coins-reward-list__text">25 {% trans "монет" %} → {% trans "купон" %} <strong>300 ₴</strong></span>
+            </li>
+            <li class="coins-reward-list__item coins-reward-list__item--gold">
+              <span class="coins-reward-list__medal" aria-hidden="true">🥇</span>
+              <span class="coins-reward-list__text">50 {% trans "монет" %} → {% trans "купон" %} <strong>700 ₴</strong></span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="coins-rules__section" aria-labelledby="coins-rules-title">
+          <h2 class="coins-rules__heading" id="coins-rules-title">
+            <span class="coins-rules__emoji" aria-hidden="true">📋</span>
+            {% trans "Правила" %}
+          </h2>
+          <ul class="coins-rules-list">
+            <li>{% trans "Монети діють лише на замовлення через сайт." %}</li>
+            <li>{% trans "Монети діють 6 місяців." %}</li>
+            <li>{% trans "Монети не можна обміняти на гроші." %}</li>
+            <li>{% trans "Купоном можна оплатити до 20% вартості замовлення." %}</li>
+            <li>{% trans "Монети нараховуються тільки після успішного отримання товару." %}</li>
+          </ul>
+        </section>
+      </div>
+
       {% if transactions %}
-        <h2 class="page-subtitle">{% trans "Історія нарахувань" %}</h2>
-        <div class="bonus-history" role="list">
+        <h2 class="page-subtitle">{% trans "Історія операцій" %}</h2>
+        {% with visible_limit=3 total=transactions|length %}
+        <div class="bonus-history{% if total > visible_limit %} bonus-history--collapsible{% endif %}">
+          {% if total > visible_limit %}
+          <input type="checkbox" class="bonus-history__toggle sr-only" id="bonus-history-expand">
+          {% endif %}
+          <div class="bonus-history__list" role="list">
           {% for tx in transactions %}
-          <div class="bonus-tx" role="listitem">
+          <div class="bonus-tx{% if forloop.counter > visible_limit %} bonus-tx--extra{% endif %}" role="listitem">
             <div class="bonus-tx__icon bonus-tx__icon--{{ tx.transaction_type }}" aria-hidden="true">
               {% if tx.transaction_type == "earn" or tx.transaction_type == "birthday" %}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-              {% elif tx.transaction_type == "spend" %}
+              {% elif tx.transaction_type == "spend" or tx.transaction_type == "redeem" or tx.transaction_type == "expire" %}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14"/></svg>
               {% else %}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15 12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"/></svg>
@@ -68,14 +196,25 @@
               </p>
               <p class="bonus-tx__date">{{ tx.created_at|date:"d.m.Y H:i" }}</p>
             </div>
+            {% if tx.transaction_type != "birthday" %}
             <div class="bonus-tx__amount bonus-tx__amount--{{ tx.transaction_type }}">
-              {% if tx.transaction_type == "spend" %}−{% else %}+{% endif %}{{ tx.amount|currency }}
+              {% if tx.transaction_type == "spend" or tx.transaction_type == "redeem" or tx.transaction_type == "expire" %}−{% else %}+{% endif %}{{ tx.amount|floatformat:0 }}
             </div>
+            {% endif %}
           </div>
           {% endfor %}
+          </div>
+          {% if total > visible_limit %}
+          <label class="bonus-history__more" for="bonus-history-expand">
+            <span class="bonus-history__more-label bonus-history__more-label--more">{% trans "Більше" %}</span>
+            <span class="bonus-history__more-label bonus-history__more-label--less">{% trans "Менше" %}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          </label>
+          {% endif %}
         </div>
+        {% endwith %}
       {% else %}
-        <p class="page-empty">{% trans "Бонусних операцій ще немає." %}</p>
+        <p class="page-empty">{% trans "Операцій з монетами ще немає." %}</p>
       {% endif %}
     </section>
 

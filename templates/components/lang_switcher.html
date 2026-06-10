@@ -5,7 +5,7 @@
     {% csrf_token %}
     <input name="next" type="hidden" value="{{ request.path }}">
     <input name="language" type="hidden" value="">
-    <button type="button" class="lang-switcher__btn {% if LANGUAGE_CODE == 'uk' %}is-active{% endif %}" data-lang-btn="uk" aria-label="Українська">UA</button>
-    <button type="button" class="lang-switcher__btn {% if LANGUAGE_CODE == 'en' %}is-active{% endif %}" data-lang-btn="en" aria-label="English">EN</button>
+    <button type="button" class="lang-switcher__btn {% if LANGUAGE_CODE == 'uk' %}is-active{% endif %}" data-lang-btn="uk" aria-label="{% trans 'Українська' %}">UA</button>
+    <button type="button" class="lang-switcher__btn {% if LANGUAGE_CODE == 'en' %}is-active{% endif %}" data-lang-btn="en" aria-label="{% trans 'English' %}">EN</button>
   </form>
 </div>

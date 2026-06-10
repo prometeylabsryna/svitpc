@@ -1,4 +1,4 @@
-{% load i18n static %}
+{% load i18n static svitpc_tags %}
 
 {% if products %}
 <ul class="search-dropdown" role="listbox" aria-label="{% trans 'Результати пошуку' %}">
@@ -7,7 +7,7 @@
     <a href="{{ product.get_absolute_url }}" class="search-dropdown__item">
       <img class="search-dropdown__img" src="{{ product.main_image_url|default:'/static/images/no-photo.svg' }}" alt="" width="44" height="44" loading="lazy">
       <div>
-        <div class="search-dropdown__name">{{ product.name }}</div>
+        <div class="search-dropdown__name">{{ product|localized:"name" }}</div>
         <div class="search-dropdown__price">{{ product.price|floatformat:0 }} ₴</div>
       </div>
     </a>

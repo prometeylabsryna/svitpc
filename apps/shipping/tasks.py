@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import logging
+
 from celery import shared_task
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task
 def update_delivery_statuses() -> None:
     """Periodically update Nova Poshta TTN statuses for active orders."""
-    from apps.integrations.novaposhta.client import NP_STATUS_MAP, DELIVERED_CODES, IN_TRANSIT_CODES, NovaPoshtaClient
-    from apps.notifications.service import send_notification
+    from apps.integrations.novaposhta.client import DELIVERED_CODES, NovaPoshtaClient
+    from apps.notifications.dispatch import notify_order_customer
     from apps.orders.models import Order, OrderStatus
 
     client = NovaPoshtaClient()
@@ -31,47 +35,34 @@ def update_delivery_statuses() -> None:
             if not info:
                 continue
             status_code = str(info.get("StatusCode", ""))
-            status_text = NP_STATUS_MAP.get(status_code, info.get("Status", ""))
 
             if status_code in DELIVERED_CODES and delivered_status:
                 if order.status_id != delivered_status.pk:
                     order.status = delivered_status
                     order.save(update_fields=["status"])
-                    if order.status.notify_customer and order.email:
-                        send_notification(
-                            channel="email",
-                            recipient=order.email,
-                            template_name="order_delivered",
-                            context={"order": order, "ttn": order.ttn},
-                        )
-            elif status_code in IN_TRANSIT_CODES and order.status.notify_customer:
-                # Notify about transit status update if status changed
-                pass  # optional: add OrderHistory tracking here
+                    if order.status.notify_customer:
+                        notify_order_customer(order, "order_delivered", extra_context={"ttn": order.ttn})
         except Exception as exc:
-            from django.core.exceptions import ObjectDoesNotExist
-            import logging
-            logging.getLogger(__name__).error("update_delivery_statuses order #%s: %s", order.pk, exc)
+            logger.error("update_delivery_statuses order #%s: %s", order.pk, exc)
 
 
 @shared_task
 def create_ttn_for_order(order_pk: int) -> None:
     """Create Nova Poshta TTN for an order and notify customer."""
     from apps.integrations.novaposhta.client import NovaPoshtaClient
-    from apps.notifications.service import send_notification
+    from apps.notifications.dispatch import notify_order_customer
     from apps.orders.models import Order
+    from apps.shipping.dispatch import order_ready_for_shipment
 
     try:
         order = Order.objects.get(pk=order_pk)
+        if not order_ready_for_shipment(order) or order.ttn:
+            return
         client = NovaPoshtaClient()
         ttn = client.create_ttn(order)
         if ttn:
             order.ttn = ttn
             order.save(update_fields=["ttn"])
-            ctx = {"order": order, "ttn": ttn}
-            if order.email:
-                send_notification("email", order.email, "ttn_created", ctx)
-            if order.phone:
-                send_notification("sms", order.phone, "ttn_created", ctx)
+            notify_order_customer(order, "ttn_created", extra_context={"ttn": ttn})
     except Exception as exc:
-        import logging
-        logging.getLogger(__name__).error("create_ttn_for_order #%s: %s", order_pk, exc)
+        logger.error("create_ttn_for_order #%s: %s", order_pk, exc)

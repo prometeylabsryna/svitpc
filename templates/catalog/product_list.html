@@ -4,8 +4,13 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="container" style="padding-block: 2rem">
-  <h1 style="margin-bottom: 1.5rem; font-size: clamp(1.25rem, 3vw, 1.875rem); font-weight: 700">{{ title }}</h1>
+<div class="container catalog-product-list">
+  <h1 class="catalog-product-list__title">{{ title }}</h1>
+  {% if show_promotions_link %}
+  <p class="catalog-product-list__intro">
+    <a href="{% url 'promotions:list' %}">{% trans "Акційні кампанії та спецпропозиції →" %}</a>
+  </p>
+  {% endif %}
   {% if products %}
   {% with count=products|length %}
   <div class="card-grid {{ count|grid_cols_class:4 }}">
@@ -15,8 +20,7 @@
   </div>
   {% endwith %}
   {% else %}
-  <p style="color:var(--clr-text-muted)">{% trans "Товарів не знайдено." %}</p>
+  <p class="catalog-product-list__empty">{% trans "Товарів не знайдено." %}</p>
   {% endif %}
 </div>
-<div id="modal-container" role="dialog" aria-live="polite"></div>
 {% endblock %}

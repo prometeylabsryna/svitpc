@@ -52,9 +52,11 @@ dependencies = [
     "django-meta>=2.4",
     # Utils
     "tqdm>=4.66",
+    "openpyxl>=3.1",
     "factory-boy>=3.3",
     "whitenoise[brotli]>=6.8",
     "argon2-cffi>=25.1.0",
+    "gunicorn>=23.0",
 ]
 
 [project.optional-dependencies]

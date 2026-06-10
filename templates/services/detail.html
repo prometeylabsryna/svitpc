@@ -1,31 +1,44 @@
 {% extends "base.html" %}
-{% load i18n static %}
-{% block title %}{{ service.seo_title|default:service.name }}{% endblock %}
+{% load i18n static svitpc_tags %}
+{% block title %}{{ service.seo_title|default:service|localized:'name' }}{% endblock %}
 {% block meta_description %}{% if service.seo_description %}{{ service.seo_description }}{% endif %}{% endblock %}
-{% block og_title %}{{ service.seo_title|default:service.name }}{% endblock %}
-{% block og_description %}{{ service.seo_description|default:service.name }}{% endblock %}
-{% if service.image %}{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{{ service.image.url }}{% endblock %}{% endif %}
+{% block og_title %}{{ service.seo_title|default:service|localized:'name' }}{% endblock %}
+{% block og_description %}{{ service.seo_description|default:service|localized:'name' }}{% endblock %}
+{% block og_image %}{% if service.image %}{{ request.scheme }}://{{ request.get_host }}{{ service.image.url }}{% endif %}{% endblock %}
 {% block content %}
 <div class="container container--narrow service-detail">
+  <nav class="breadcrumbs service-detail__breadcrumbs" aria-label="{% trans 'Навігація' %}">
+    <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
+    <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+    <span class="breadcrumbs__item"><a href="{% url 'services:list' %}">{% trans "Сервісний центр" %}</a></span>
+    <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+    <span class="breadcrumbs__item" aria-current="page">{{ service|localized:'name' }}</span>
+  </nav>
+
+  <a href="{% url 'services:list' %}" class="service-detail__back">← {% trans "Усі послуги" %}</a>
+
   {% if service.image %}
   <div class="service-detail__hero">
-    <img src="{{ service.image.url }}" alt="{{ service.name }}" class="service-detail__image" loading="lazy">
+    <img src="{{ service.image.url }}" alt="{{ service|localized:'name' }}" class="service-detail__image" loading="lazy" decoding="async">
   </div>
   {% endif %}
-  <h1 class="service-detail__title">{{ service.name }}</h1>
-  {% if service.description %}
-  <div class="service-detail__desc page-content">{{ service.description|safe }}</div>
+
+  <h1 class="service-detail__title">{{ service|localized:'name' }}</h1>
+
+  {% trans "Чудова техніка!" as svitik_title %}
+  {% trans "Опишіть проблему або оберіть послугу — підкажу, що робити далі." as svitik_message %}
+  {% include "components/svitik_hint.html" with variant="tip" mascot="tech" title=svitik_title message=svitik_message compact=True %}
+
+  {% if service.description or service.description_en %}
+  <div class="service-detail__desc page-content">{{ service|localized:'description'|safe }}</div>
   {% endif %}
+
   {% if service.prices.exists %}
   <h2 class="service-detail__pricing-title">{% trans "Прайс-лист" %}</h2>
-  <div class="price-table">
-    {% for price in service.prices.all %}
-    <div class="price-table__row {% if forloop.even %}price-table__row--even{% endif %}">
-      <span class="price-table__name">{{ price.name }}</span>
-      <strong class="price-table__price">{{ price.price_text|default_if_none:'' }}</strong>
-    </div>
-    {% endfor %}
-  </div>
+  {% include "services/partials/price_table.html" with prices=service.prices.all %}
+  {% if service.has_material_excluded_prices %}
+  <p class="services-page__footnote">{% trans "* — вартість робіт без урахування матеріалів." %}</p>
+  {% endif %}
   {% endif %}
 </div>
 {% endblock %}
