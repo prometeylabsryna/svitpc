@@ -2,6 +2,7 @@
 set -e
 
 echo "Waiting for PostgreSQL..."
+mkdir -p /app/logs
 while ! nc -z db 5432; do
   sleep 0.5
 done
