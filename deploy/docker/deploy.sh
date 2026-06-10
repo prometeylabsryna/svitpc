@@ -4,12 +4,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
-# USE_HTTPS=true → docker-compose.prod.yml (443 + letsencrypt)
-# USE_HTTPS=false → docker-compose.http.yml (лише HTTP, до certbot)
 USE_HTTPS="${USE_HTTPS:-false}"
 if [[ -f .env ]]; then
-  # shellcheck disable=SC1091
-  val="$(grep -E '^USE_HTTPS=' .env | tail -1 | cut -d= -f2- | tr -d '"'"' "' || true)"
+  val=$(grep -E '^USE_HTTPS=' .env | tail -1 | cut -d= -f2- | tr -d ' "')
   if [[ -n "${val:-}" ]]; then
     USE_HTTPS="$val"
   fi
@@ -31,7 +28,7 @@ free_host_ports() {
 }
 
 if [[ ! -f .env ]]; then
-  echo "FATAL: .env not found. Copy .env.docker.example → .env and fill secrets."
+  echo "FATAL: .env not found. Copy .env.docker.example to .env and fill secrets."
   exit 1
 fi
 
@@ -45,9 +42,9 @@ echo "==> Starting stack"
 "${COMPOSE[@]}" up -d
 
 echo "==> Waiting for backend healthcheck"
+HEALTHCHECK='import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/healthz/", timeout=5)'
 for _ in $(seq 1 45); do
-  if "${COMPOSE[@]}" exec -T backend python -c \
-    "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz/', timeout=5)" 2>/dev/null; then
+  if "${COMPOSE[@]}" exec -T backend python -c "$HEALTHCHECK" 2>/dev/null; then
     echo "Backend healthy"
     break
   fi
@@ -57,7 +54,7 @@ done
 if curl -sf http://127.0.0.1/healthz/ >/dev/null; then
   echo "HTTP healthz OK"
 else
-  echo "WARN: HTTP healthz failed — check: ${COMPOSE[*]} logs backend nginx"
+  echo "WARN: HTTP healthz failed - check: ${COMPOSE[*]} logs backend nginx"
 fi
 
 if [[ "$USE_HTTPS" == "true" ]] && curl -sfk https://127.0.0.1/healthz/ >/dev/null 2>&1; then
