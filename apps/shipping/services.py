@@ -114,6 +114,48 @@ def _calc_nova_poshta_cost(
     return Decimal("0")
 
 
+def _np_city_from_api(item: dict):
+    """Map searchSettlements row to city hit (name/ref/area for templates)."""
+    from types import SimpleNamespace
+
+    ref = (item.get("DeliveryCityRef") or item.get("Ref") or "").strip()
+    name = (item.get("Present") or item.get("MainDescription") or "").strip()
+    area = (
+        item.get("AreaDescription")
+        or item.get("RegionDescription")
+        or item.get("Region")
+        or item.get("Area")
+        or ""
+    ).strip()
+    if not ref or not name:
+        return None
+    return SimpleNamespace(name=name, ref=ref, area=area)
+
+
+def _search_np_cities_via_api(query: str, limit: int):
+    from django.conf import settings
+
+    from apps.integrations.novaposhta.client import NovaPoshtaClient
+
+    if not settings.NOVA_POSHTA_API_KEY:
+        return []
+
+    try:
+        items = NovaPoshtaClient().search_cities(query)
+    except Exception as exc:
+        logger.warning("Nova Poshta city API fallback failed: %s", exc)
+        return []
+
+    hits = []
+    for item in items:
+        hit = _np_city_from_api(item)
+        if hit:
+            hits.append(hit)
+        if len(hits) >= limit:
+            break
+    return hits
+
+
 def search_np_cities(query: str, limit: int = 10):
     """Return Nova Poshta cities matching user input, best matches first."""
     from django.db.models import Case, IntegerField, Q, Value, When
@@ -133,13 +175,17 @@ def search_np_cities(query: str, limit: int = 10):
 
     primary = NovaPoshtaCity.objects.filter(Q(name__iexact=q) | Q(name__istartswith=q))
     if primary.exists():
-        return primary.annotate(rank=ranked).order_by("rank", "name")[:limit]
+        return list(primary.annotate(rank=ranked).order_by("rank", "name")[:limit])
 
-    return (
+    db_results = list(
         NovaPoshtaCity.objects.filter(name__icontains=q)
         .annotate(rank=ranked)
         .order_by("rank", "name")[:limit]
     )
+    if db_results:
+        return db_results
+
+    return _search_np_cities_via_api(q, limit)
 
 
 def search_np_warehouses(city_ref: str, query: str = "", limit: int = 20) -> list[dict[str, str]]:

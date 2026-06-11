@@ -25,6 +25,35 @@ def test_search_kyiv_prefers_city_over_oblast_villages():
 
 
 @pytest.mark.django_db
+def test_search_np_cities_uses_api_when_db_empty(settings):
+    settings.NOVA_POSHTA_API_KEY = "test_key"
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {
+        "success": True,
+        "data": [
+            {
+                "Addresses": [
+                    {
+                        "Present": "м. Київ, Київська обл.",
+                        "DeliveryCityRef": "kyiv-ref",
+                        "AreaDescription": "Київська",
+                    }
+                ]
+            }
+        ],
+    }
+    mock_resp.raise_for_status = lambda: None
+
+    with patch.object(httpx, "post", return_value=mock_resp):
+        results = list(search_np_cities("Київ"))
+
+    assert len(results) == 1
+    assert results[0].name == "м. Київ, Київська обл."
+    assert results[0].ref == "kyiv-ref"
+    assert results[0].area == "Київська"
+
+
+@pytest.mark.django_db
 def test_search_np_warehouses_uses_api(settings):
     settings.NOVA_POSHTA_API_KEY = "test_key"
     mock_resp = MagicMock()
