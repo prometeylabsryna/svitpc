@@ -57,20 +57,6 @@
           </div>
         </div>
 
-        <fieldset>
-          <legend class="form-label">{% trans "Сповіщення" %}</legend>
-          <div class="profile-form__consent-row">
-            <label class="profile-form__consent-item">
-              <input type="checkbox" name="consent_email" {% if form.consent_email.value %}checked{% endif %}>
-              {{ form.consent_email.label }}
-            </label>
-            <label class="profile-form__consent-item">
-              <input type="checkbox" name="consent_sms" {% if form.consent_sms.value %}checked{% endif %}>
-              {{ form.consent_sms.label }}
-            </label>
-          </div>
-        </fieldset>
-
         <div>
           <button type="submit" class="btn btn--primary">{% trans "Зберегти зміни" %}</button>
         </div>

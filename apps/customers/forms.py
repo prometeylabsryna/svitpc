@@ -70,7 +70,7 @@ class CustomerLoginForm(AuthenticationForm):
 class CustomerProfileForm(forms.ModelForm):
     class Meta:
         model = Customer
-        fields = ("first_name", "last_name", "phone", "birth_date", "consent_email", "consent_sms")
+        fields = ("first_name", "last_name", "phone", "birth_date")
         widgets = {"birth_date": forms.DateInput(attrs={"type": "date"})}
 
     def clean_phone(self) -> str:
