@@ -18,6 +18,8 @@ from apps.promotions.services import with_active_promotions
 from .gallery import filter_products_with_display_image, product_gallery_urls
 from .models import Brand, Category, Product
 from .services import (
+    cached_product_count,
+    get_brands_for_category,
     get_category_facets,
     get_filtered_products,
     get_product_facets,
@@ -25,6 +27,7 @@ from .services import (
     order_stock_first,
     visible_catalog_products,
 )
+from .facet_cache import catalog_filter_params, count_cache_key, facet_cache_key
 
 
 def home_view(request: HttpRequest) -> HttpResponse:
@@ -89,18 +92,62 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
     page = int(request.GET.get("page", 1))
     per_page = 24
 
-    qs = with_active_promotions(get_filtered_products(base_qs, brand_ids, filter_ids, price_min, price_max, in_stock, sort))
-    total = qs.count()
-    products = qs[(page - 1) * per_page: page * per_page]
+    filter_params = catalog_filter_params(
+        brand_ids=brand_ids,
+        filter_ids=filter_ids,
+        price_min=price_min,
+        price_max=price_max,
+        in_stock=in_stock,
+        sort=sort,
+    )
+    count_key = count_cache_key(scope="category", scope_id=category.pk, params=filter_params)
 
-    facets = get_category_facets(category, qs)
-    for _gdata in facets.values():
-        _gdata["has_active"] = any(opt["id"] in filter_ids for opt in _gdata["options"])
-    brands = Brand.objects.filter(products__categories__in=cats, products__is_visible=True).distinct()
-    subcategories = category.get_children().filter(is_active=True).order_by("sort_order", "name")
+    qs_lite = with_active_promotions(
+        get_filtered_products(
+            base_qs,
+            brand_ids,
+            filter_ids,
+            price_min,
+            price_max,
+            in_stock,
+            sort,
+            for_count=True,
+        )
+    )
+    total = cached_product_count(qs_lite, cache_key=count_key)
+
+    qs = with_active_promotions(
+        get_filtered_products(
+            base_qs,
+            brand_ids,
+            filter_ids,
+            price_min,
+            price_max,
+            in_stock,
+            sort,
+        )
+    )
+    products = qs[(page - 1) * per_page: page * per_page]
 
     _qp = request.GET.copy()
     _qp.pop("page", None)
+
+    if request.htmx:
+        ctx = {
+            "products": products,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": (total + per_page - 1) // per_page,
+            "query_params": _qp.urlencode(),
+        }
+        return render(request, "catalog/partials/product_grid.html", ctx)
+
+    facets = get_category_facets(category, qs_lite, filter_params=filter_params)
+    for _gdata in facets.values():
+        _gdata["has_active"] = any(opt["id"] in filter_ids for opt in _gdata["options"])
+    brands = get_brands_for_category(cats, category_id=category.pk)
+    subcategories = category.get_children().filter(is_active=True).order_by("sort_order", "name")
 
     ctx = {
         "category": category,
@@ -125,10 +172,6 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
         "in_stock": in_stock,
         "query_params": _qp.urlencode(),
     }
-
-    # HTMX partial — only product grid
-    if request.htmx:
-        return render(request, "catalog/partials/product_grid.html", ctx)
 
     return render(request, "catalog/category.html", ctx)
 
@@ -204,17 +247,60 @@ def brand_view(request: HttpRequest, slug: str) -> HttpResponse:
     price_max = Decimal(request.GET["price_max"]) if request.GET.get("price_max") else None
     in_stock = bool(request.GET.get("in_stock"))
 
-    base_qs = filter_products_with_display_image(brand.products.filter(is_visible=True))
-    qs = with_active_promotions(get_filtered_products(base_qs, filters=filter_ids, price_min=price_min, price_max=price_max, in_stock_only=in_stock, sort=sort))
-    total = qs.count()
-    products = qs[(page - 1) * per_page: page * per_page]
+    filter_params = catalog_filter_params(
+        brand_ids=[],
+        filter_ids=filter_ids,
+        price_min=price_min,
+        price_max=price_max,
+        in_stock=in_stock,
+        sort=sort,
+    )
+    count_key = count_cache_key(scope="brand", scope_id=brand.pk, params=filter_params)
+    facet_key = facet_cache_key(scope="brand", scope_id=brand.pk, params=filter_params)
 
-    facets = get_product_facets(qs)
-    for _gdata in facets.values():
-        _gdata["has_active"] = any(opt["id"] in filter_ids for opt in _gdata["options"])
+    base_qs = filter_products_with_display_image(brand.products.filter(is_visible=True))
+    qs_lite = with_active_promotions(
+        get_filtered_products(
+            base_qs,
+            filters=filter_ids,
+            price_min=price_min,
+            price_max=price_max,
+            in_stock_only=in_stock,
+            sort=sort,
+            for_count=True,
+        )
+    )
+    total = cached_product_count(qs_lite, cache_key=count_key)
+
+    qs = with_active_promotions(
+        get_filtered_products(
+            base_qs,
+            filters=filter_ids,
+            price_min=price_min,
+            price_max=price_max,
+            in_stock_only=in_stock,
+            sort=sort,
+        )
+    )
+    products = qs[(page - 1) * per_page: page * per_page]
 
     _qp = request.GET.copy()
     _qp.pop("page", None)
+
+    if request.htmx:
+        ctx = {
+            "products": products,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": (total + per_page - 1) // per_page,
+            "query_params": _qp.urlencode(),
+        }
+        return render(request, "catalog/partials/product_grid.html", ctx)
+
+    facets = get_product_facets(qs_lite, cache_key=facet_key)
+    for _gdata in facets.values():
+        _gdata["has_active"] = any(opt["id"] in filter_ids for opt in _gdata["options"])
 
     ctx = {
         "brand": brand,
@@ -234,8 +320,6 @@ def brand_view(request: HttpRequest, slug: str) -> HttpResponse:
         "query_params": _qp.urlencode(),
     }
 
-    if request.htmx:
-        return render(request, "catalog/partials/product_grid.html", ctx)
     return render(request, "catalog/brand.html", ctx)
 
 

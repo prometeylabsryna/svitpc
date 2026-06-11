@@ -134,6 +134,7 @@ class Command(BaseCommand):
         if not options["skip_catalog_fixes"]:
             planned.extend(
                 [
+                    ("Fix Brain image URLs (apiplus → prod_img)", lambda: call_command("fix_brain_image_urls")),
                     ("Fix Russian catalog labels", lambda: call_command("fix_russian_catalog", what="all")),
                     ("Dedupe catalog filters", lambda: call_command("dedupe_catalog_filters")),
                     ("Backfill modeltranslation *_uk", lambda: call_command("backfill_modeltranslation_uk")),

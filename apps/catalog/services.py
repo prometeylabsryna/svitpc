@@ -37,6 +37,9 @@ def get_filtered_products(
     price_max: Decimal | None = None,
     in_stock_only: bool = False,
     sort: str = "default",
+    *,
+    with_reviews_ann: bool = True,
+    for_count: bool = False,
 ) -> QuerySet[Product]:
     """Apply catalog filters and sorting to a product queryset."""
 
@@ -75,27 +78,30 @@ def get_filtered_products(
     }
     sort_field = sort_map.get(sort, "sort_order")
 
-    # Always annotate so product cards avoid N+1 queries when rendering
-    # avg_rating / review_count (@property reads these via __dict__ first).
-    approved_reviews = Q(reviews__is_approved=True)
-    qs = qs.annotate(
-        avg_rating_ann=Avg("reviews__rating", filter=approved_reviews),
-        review_count_ann=Count("reviews", filter=approved_reviews),
-    )
+    if for_count:
+        return qs
+
+    if with_reviews_ann:
+        # Annotate so product cards avoid N+1 queries when rendering
+        # avg_rating / review_count (@property reads these via __dict__ first).
+        approved_reviews = Q(reviews__is_approved=True)
+        qs = qs.annotate(
+            avg_rating_ann=Avg("reviews__rating", filter=approved_reviews),
+            review_count_ann=Count("reviews", filter=approved_reviews),
+        )
 
     qs = order_stock_first(qs, sort_field)
 
     return qs.select_related("brand").prefetch_related("images")
 
 
-def get_product_facets(current_qs: QuerySet[Product]) -> dict:
-    """Return filter group options with product counts for any product queryset.
-
-    Groups sharing the same name are merged; options with the same name within
-    a merged group are de-duplicated keeping the highest count.
-    """
+def _compute_product_facets(product_ids: QuerySet[Product]) -> dict:
+    """Build facet groups for products matching ``product_ids`` (subquery-safe)."""
     filter_groups = (
-        Filter.objects.filter(productfilter__product__in=current_qs, group__is_brand=False)
+        Filter.objects.filter(
+            productfilter__product_id__in=product_ids.values("pk"),
+            group__is_brand=False,
+        )
         .select_related("group")
         .annotate(count=Count("productfilter__product", distinct=True))
         .order_by("group__sort_order", "group__name_uk", "name_uk")
@@ -122,9 +128,82 @@ def get_product_facets(current_qs: QuerySet[Product]) -> dict:
     return facets
 
 
-def get_category_facets(category: Category, current_qs: QuerySet[Product]) -> dict:
-    """Wrapper kept for backward compatibility — delegates to get_product_facets."""
-    return get_product_facets(current_qs)
+def get_product_facets(
+    current_qs: QuerySet[Product],
+    *,
+    cache_key: str | None = None,
+) -> dict:
+    """Return filter group options with product counts for any product queryset."""
+    from .facet_cache import get_cached_facets, set_cached_facets
+
+    if cache_key:
+        cached = get_cached_facets(cache_key)
+        if cached is not None:
+            return cached
+
+    facets = _compute_product_facets(current_qs)
+
+    if cache_key:
+        set_cached_facets(cache_key, facets)
+
+    return facets
+
+
+def get_category_facets(
+    category: Category,
+    current_qs: QuerySet[Product],
+    *,
+    filter_params: dict | None = None,
+) -> dict:
+    """Facets for a category listing; cached per category + active filters."""
+    from .facet_cache import facet_cache_key
+
+    cache_key = None
+    if filter_params is not None:
+        cache_key = facet_cache_key(scope="category", scope_id=category.pk, params=filter_params)
+    return get_product_facets(current_qs, cache_key=cache_key)
+
+
+def get_brands_for_category(categories: QuerySet[Category], *, category_id: int) -> QuerySet:
+    """Brands linked to visible products in ``categories`` (cached by category pk)."""
+    from .facet_cache import brands_cache_key, get_cached_brand_ids, set_cached_brand_ids
+    from .models import Brand
+
+    key = brands_cache_key(category_id=category_id)
+    cached_ids = get_cached_brand_ids(key)
+    if cached_ids is not None:
+        return Brand.objects.filter(pk__in=cached_ids).order_by("name")
+
+    brand_ids = list(
+        Brand.objects.filter(
+            products__categories__in=categories,
+            products__is_visible=True,
+        )
+        .distinct()
+        .order_by("name")
+        .values_list("pk", flat=True)
+    )
+    set_cached_brand_ids(key, brand_ids)
+    return Brand.objects.filter(pk__in=brand_ids).order_by("name")
+
+
+def cached_product_count(
+    qs: QuerySet[Product],
+    *,
+    cache_key: str | None,
+) -> int:
+    """COUNT for listing headers; optional Redis cache."""
+    from .facet_cache import get_cached_count, set_cached_count
+
+    if cache_key:
+        cached = get_cached_count(cache_key)
+        if cached is not None:
+            return cached
+
+    total = qs.count()
+    if cache_key:
+        set_cached_count(cache_key, total)
+    return total
 
 
 def get_sale_products_queryset() -> QuerySet[Product]:
