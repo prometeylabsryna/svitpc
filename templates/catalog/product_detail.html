@@ -92,7 +92,7 @@
     <div class="pdp-gallery" data-gallery>
       <div class="pdp-gallery__main" data-gallery-main>
         <img
-          src="{% if gallery_urls %}{{ gallery_urls.0 }}{% else %}/static/images/no-photo.svg{% endif %}"
+          src="{% if gallery_urls %}{{ gallery_urls.0 }}{% else %}{% static 'images/no-photo.svg' %}{% endif %}"
           alt="{{ product|localized:'name' }}"
           width="600"
           height="600"

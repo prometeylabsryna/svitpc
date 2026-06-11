@@ -1,10 +1,10 @@
-{% load i18n svitpc_tags %}
+{% load i18n static svitpc_tags %}
 
 <div class="cart-item-list">
   {% for item in cart %}
   <div class="cart-item">
     <img class="cart-item__img"
-      src="{{ item.image_url|default:'/static/images/no-photo.svg' }}"
+      src="{% if item.image_url %}{{ item.image_url }}{% else %}{% static 'images/no-photo.svg' %}{% endif %}"
       alt="{{ item.name }}"
       width="72" height="72" loading="lazy">
     <div class="cart-item__info">

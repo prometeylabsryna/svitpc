@@ -5,7 +5,7 @@
   {% for product in products %}
   <li role="option">
     <a href="{{ product.get_absolute_url }}" class="search-dropdown__item">
-      <img class="search-dropdown__img" src="{{ product.main_image_url|default:'/static/images/no-photo.svg' }}" alt="" width="44" height="44" loading="lazy">
+      <img class="search-dropdown__img" src="{% if product.main_image_url %}{{ product.main_image_url }}{% else %}{% static 'images/no-photo.svg' %}{% endif %}" alt="" width="44" height="44" loading="lazy">
       <div>
         <div class="search-dropdown__name">{{ product|localized:"name" }}</div>
         <div class="search-dropdown__price">{{ product.price|floatformat:0 }} ₴</div>

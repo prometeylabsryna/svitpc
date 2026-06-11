@@ -56,7 +56,7 @@
   <a href="{{ product.get_absolute_url }}" class="product-card__image" tabindex="-1" aria-hidden="true">
     {% with img=product.main_image_url %}
     <img
-      src="{{ img|default:'/static/images/no-photo.svg' }}"
+      src="{% if img %}{{ img }}{% else %}{% static 'images/no-photo.svg' %}{% endif %}"
       alt="{{ product|localized:'name' }}"
       loading="lazy"
       width="300"

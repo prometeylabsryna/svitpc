@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n svitpc_tags %}
+{% load i18n static svitpc_tags %}
 {% block title %}{% trans "Підтвердження замовлення" %}{% endblock %}
 {% block content %}
 <div class="container container--narrow checkout-confirm">
@@ -94,7 +94,7 @@
         {% for item in cart %}
         <div class="checkout-confirm__item">
           <img class="checkout-confirm__item-img"
-            src="{{ item.image_url|default:'/static/images/no-photo.svg' }}"
+            src="{% if item.image_url %}{{ item.image_url }}{% else %}{% static 'images/no-photo.svg' %}{% endif %}"
             alt="{{ item.name }}"
             width="56" height="56" loading="lazy">
           <div class="checkout-confirm__item-info">

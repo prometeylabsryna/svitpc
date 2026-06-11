@@ -145,6 +145,9 @@ class Command(BaseCommand):
             planned.append(
                 ("Brain setup (policy + categories/metadata backfill)", lambda: call_command("brain_setup", sync_now=True))
             )
+            planned.append(
+                ("Brain product galleries (photos)", lambda: call_command("resync_brain_galleries"))
+            )
             if options["full_brain"]:
                 planned.append(("Brain full product sync", self._run_full_brain_sync))
         elif not options["skip_brain"]:
