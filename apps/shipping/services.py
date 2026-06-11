@@ -200,10 +200,11 @@ def search_np_warehouses(city_ref: str, query: str = "", limit: int = 20) -> lis
         return []
 
     q = (query or "").strip()
+    effective_limit = max(limit, 50) if not q else limit
 
     if settings.NOVA_POSHTA_API_KEY:
         try:
-            items = NovaPoshtaClient().search_warehouses(city_ref, q, limit=limit)
+            items = NovaPoshtaClient().search_warehouses(city_ref, q, limit=effective_limit)
             warehouses = [
                 {"name": item.get("Description", ""), "ref": item["Ref"]}
                 for item in items
@@ -217,4 +218,4 @@ def search_np_warehouses(city_ref: str, query: str = "", limit: int = 20) -> lis
     qs = NovaPoshtaWarehouse.objects.filter(city__ref=city_ref)
     if q:
         qs = qs.filter(name__icontains=q)
-    return [{"name": wh.name, "ref": wh.ref} for wh in qs.order_by("number", "name")[:limit]]
+    return [{"name": wh.name, "ref": wh.ref} for wh in qs.order_by("number", "name")[:effective_limit]]
