@@ -1,4 +1,4 @@
-{% load i18n svitpc_tags %}
+{% load i18n svitpc_tags services_tags %}
 {% if prices %}
 <div class="price-table">
   {% for price in prices %}
@@ -7,7 +7,7 @@
       {{ price|localized:'name' }}{% if price.excludes_materials %}<span class="price-table__mark" title="{% trans 'Вартість робіт без урахування матеріалів' %}">*</span>{% endif %}
     </span>
     <span class="price-table__price-wrap">
-      <strong class="price-table__price">{{ price.display_price }}</strong>{% if price.unit %}<span class="price-table__unit">/ {{ price.unit }}</span>{% endif %}
+      <strong class="price-table__price">{{ price.display_price }}</strong>{% if price.unit %}<span class="price-table__unit">/ {{ price.unit|service_unit }}</span>{% endif %}
     </span>
   </div>
   {% endfor %}

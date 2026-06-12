@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SvitPC\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-28 13:43+0300\n"
+"POT-Creation-Date: 2026-06-12 11:58+0300\n"
 "PO-Revision-Date: 2026-05-18 13:00+0300\n"
 "Last-Translator: SvitPC <info@svitpc.ua>\n"
 "Language-Team: English\n"
@@ -28,6 +28,22 @@ msgstr "Product added to cart"
 msgid "%(n)d товар(ів) додано до кошика."
 msgstr "%(n)d item(s) added to cart."
 
+#, fuzzy
+#| msgid "Бажаний товар"
+msgid "Класний вибір!"
+msgstr "Wished product"
+
+msgid "Вміст"
+msgstr "Content"
+
+msgid "SEO"
+msgstr "SEO"
+
+#, fuzzy
+#| msgid "Дата реєстрації"
+msgid "Інтеграції"
+msgstr "Registration date"
+
 msgid "Товарів"
 msgstr "Products"
 
@@ -38,17 +54,11 @@ msgid "LLM_API_KEY не налаштовано в .env — додайте клю
 msgstr ""
 "LLM_API_KEY is not configured in .env — add an OpenAI-compatible API key."
 
-msgid "Вміст"
-msgstr "Content"
-
 msgid "Ціни та залишки"
 msgstr "Prices & Stock"
 
 msgid "Позначки"
 msgstr "Labels"
-
-msgid "SEO"
-msgstr "SEO"
 
 msgid "Фото"
 msgstr "Photos"
@@ -83,20 +93,68 @@ msgstr "Mark as New Arrivals"
 msgid "Позначити Хітами"
 msgstr "Mark as Bestsellers"
 
-msgid "Brain: синхронізувати (ціни, залишки, фото, опції)"
-msgstr "Brain: sync (prices, stock, photos, options)"
+msgid "⏱ Встановити таймер акції (масово)"
+msgstr ""
 
-msgid "Повну інкрементальну синхронізацію Brain поставлено в чергу Celery"
+#, fuzzy, python-format
+#| msgid "SEO-генерацію поставлено в чергу"
+msgid "Таймер акції встановлено для %(n)d товарів."
+msgstr "SEO generation queued"
+
+#, fuzzy
+#| msgid "Введіть коректний номер телефону."
+msgid "Вкажіть коректну дату та час."
+msgstr "Enter a valid phone number."
+
+#, fuzzy
+#| msgid "Активувати обрані акції"
+msgid "Встановити таймер акції"
+msgstr "Activate selected promotions"
+
+msgid "✖ Зняти таймер акції (масово)"
+msgstr ""
+
+#, fuzzy, python-format
+#| msgid "Знайдено %(total)s товарів"
+msgid "Таймер знято з %(n)d товарів."
+msgstr "Found %(total)s products"
+
+#, fuzzy
+#| msgid "Повну інкрементальну синхронізацію Brain поставлено в чергу Celery"
+msgid "Brain: повна інкрементальна синхронізація (весь каталог)"
 msgstr "Full incremental Brain sync queued in Celery"
 
-msgid "Brain: оновити ціни та залишки"
+#, python-format
+msgid ""
+"Повну інкрементальну синхронізацію Brain поставлено в чергу. Задача оновлює "
+"весь каталог Brain (не лише вибрані рядки). У виборі товарів Brain: "
+"%(count)d."
+msgstr ""
+
+#, fuzzy
+#| msgid "Brain: оновити ціни та залишки"
+msgid "Brain: оновити ціни та залишки (весь каталог)"
 msgstr "Brain: update prices and stock"
 
-msgid "Оновлення цін і залишків Brain поставлено в чергу"
+#, fuzzy, python-format
+#| msgid "Оновлення цін і залишків Brain поставлено в чергу"
+msgid ""
+"Оновлення цін і залишків Brain поставлено в чергу для всього каталогу. У "
+"виборі товарів Brain: %(count)d."
 msgstr "Brain price and stock update queued"
 
-msgid "Brain: приховувати без залишку"
+#, fuzzy
+#| msgid "Brain: приховувати без залишку"
+msgid "Brain: приховувати без залишку (лише вибрані)"
 msgstr "Brain: hide when out of stock"
+
+msgid "Серед вибраних немає товарів Brain — оберіть товари з джерелом Brain."
+msgstr ""
+
+#, fuzzy
+#| msgid "Значення"
+msgid "Значень"
+msgstr "Value"
 
 msgid "Назва"
 msgstr "Name"
@@ -245,6 +303,14 @@ msgstr "New arrival"
 msgid "Хіт продажів"
 msgstr "Bestseller"
 
+msgid "Кінець акції (таймер)"
+msgstr ""
+
+msgid ""
+"Дата завершення акції. Таймер на картці та сторінці товару; автоматично "
+"створює запис у розділі «Акції»."
+msgstr ""
+
 msgid "Основне фото"
 msgstr "Main photo"
 
@@ -326,6 +392,25 @@ msgstr "Redirect"
 msgid "Редіректи"
 msgstr "Redirects"
 
+#, fuzzy
+#| msgid "Підкатегорії"
+msgid "Пошук категорії…"
+msgstr "Subcategories"
+
+msgid ""
+"Оберіть одну або кілька категорій. Використовуйте пошук за назвою або шляхом."
+msgstr ""
+
+#, fuzzy
+#| msgid "Товарів не знайдено."
+msgid "Активних категорій не знайдено."
+msgstr "No products found."
+
+#, fuzzy
+#| msgid "Товарів не знайдено."
+msgid "За вашим запитом категорій не знайдено."
+msgstr "No products found."
+
 msgid "Ключ"
 msgstr "Key"
 
@@ -347,10 +432,9 @@ msgstr "Messages"
 msgid "Повідомлення чату"
 msgstr "Chat messages"
 
-msgid "Некоректна сума бонусів."
-msgstr "Invalid bonus amount."
-
-msgid "Перевірте промокод або бонуси та спробуйте знову."
+#, fuzzy
+#| msgid "Перевірте промокод або бонуси та спробуйте знову."
+msgid "Перевірте промокод та спробуйте знову."
 msgstr "Check your promo code or bonuses and try again."
 
 msgid "Замовлення в 1 клік"
@@ -368,8 +452,167 @@ msgstr "Comparison already has the maximum of 4 products"
 msgid "Порівняння очищено"
 msgstr "Comparison cleared"
 
-msgid "СвітПК"
-msgstr "SvitPC"
+msgid "Контакти"
+msgstr "Contacts"
+
+msgid "Тексти"
+msgstr ""
+
+#, fuzzy
+#| msgid "Помилка мережі"
+msgid "Соцмережі"
+msgstr "Network error"
+
+msgid ""
+"Посилання з’являться у футері лише якщо поле заповнене. Бот для чату на "
+"сайті налаштовується окремо (TELEGRAM_BOT_LINK у .env)."
+msgstr ""
+
+msgid "Каталог"
+msgstr "Catalog"
+
+msgid ""
+"Керує видимістю розділу вживаної техніки (Б/У) у меню та на сторінках "
+"каталогу. Товари в категорії залишаються в базі — змінюється лише показ на "
+"сайті."
+msgstr ""
+
+#, fuzzy
+#| msgid "Вкажіть ім'я."
+msgid "Виберіть дію"
+msgstr "Enter your first name."
+
+#, fuzzy
+#| msgid "Назва товару"
+msgid "Назва магазину"
+msgstr "Product name"
+
+msgid "Назва (EN)"
+msgstr "Name (EN)"
+
+msgid "Телефон"
+msgstr "Phone"
+
+msgid "Відображається у футері, на сторінці контактів та в листах."
+msgstr ""
+
+msgid "Email"
+msgstr "Email"
+
+#, fuzzy
+#| msgid "Телефон"
+msgid "Viber (телефон)"
+msgstr "Phone"
+
+msgid ""
+"Номер для чату у Viber. Якщо порожньо — використовується основний телефон."
+msgstr ""
+
+#, fuzzy
+#| msgid "Короткий опис"
+msgid "Короткий опис у футері"
+msgstr "Short description"
+
+msgid "Якщо порожньо — використовується стандартний текст перекладу."
+msgstr ""
+
+#, fuzzy
+#| msgid "Короткий опис"
+msgid "Короткий опис у футері (EN)"
+msgstr "Short description"
+
+msgid "Адреса"
+msgstr "Address"
+
+msgid "Facebook"
+msgstr ""
+
+msgid "Instagram"
+msgstr ""
+
+#, fuzzy
+#| msgid "Посилання"
+msgid "Telegram (посилання)"
+msgstr "Link"
+
+msgid ""
+"Посилання на канал або бот для футера (не плутати з TELEGRAM_BOT_LINK "
+"у .env)."
+msgstr ""
+
+#, fuzzy
+#| msgid "Категорія"
+msgid "Категорія Б/У"
+msgstr "Category"
+
+msgid "Розділ каталогу для вживаної техніки. Зазвичай «Б/У»."
+msgstr ""
+
+#, fuzzy
+#| msgid "Деталі замовлення на сайті"
+msgid "Показувати розділ Б/У на сайті"
+msgstr "Order details on the website"
+
+msgid "Вимкніть, щоб приховати категорію з меню та закрити її сторінки."
+msgstr ""
+
+#, fuzzy
+#| msgid "Нарахування"
+msgid "Налаштування сайту"
+msgstr "Accrual"
+
+msgid ""
+"проспект Незалежності, 26, м. Південноукраїнськ, Миколаївська область, 55000"
+msgstr ""
+
+#, python-format
+msgid ""
+"Додайте товарів ще на %(remaining)s, щоб отримати перші бонусні монети "
+"СвітПК!"
+msgstr ""
+
+#, python-format
+msgid ""
+"У кошику товари на %(total)s. Після доставки ви отримаєте %(current)d "
+"бонусних монет. Додайте ще на %(remaining)s — і буде %(next)d."
+msgstr ""
+
+#, python-format
+msgid ""
+"У кошику товари на %(total)s. Додайте ще на %(remaining)s і отримаєте "
+"%(coins)d бонусних монет."
+msgstr ""
+
+#, python-format
+msgid ""
+"Чудово! Після доставки цього замовлення ви отримаєте %(coins)d бонусних "
+"монет СвітПК."
+msgstr ""
+
+msgid ""
+"Порада від Пана Світика: часто купують разом із ноутбуком — миша, сумка, "
+"килимок, навушники."
+msgstr ""
+
+msgid ""
+"Порада від Пана Світика: до комп'ютера часто додають монітор, клавіатуру та "
+"мишу."
+msgstr ""
+
+msgid ""
+"Порада від Пана Світика: до монітора варто підібрати HDMI-кабель та "
+"кронштейн для зручного розміщення."
+msgstr ""
+
+msgid ""
+"Порада від Пана Світика: не забудьте про папір та картриджі — їх часто "
+"беруть разом із принтером."
+msgstr ""
+
+msgid ""
+"Порада від Пана Світика: до смартфона зазвичай додають чохол, захисне скло "
+"та зарядний пристрій."
+msgstr ""
 
 msgid "Текст повідомлення"
 msgstr "Message text"
@@ -402,9 +645,6 @@ msgstr "First name"
 msgid "Прізвище"
 msgstr "Last name"
 
-msgid "Телефон"
-msgstr "Phone"
-
 msgid "Дата народження"
 msgstr "Date of birth"
 
@@ -417,8 +657,15 @@ msgstr "Enter a valid phone number."
 msgid "Дата народження не може бути в майбутньому."
 msgstr "Date of birth cannot be in the future."
 
-msgid "Email"
-msgstr "Email"
+#, fuzzy
+#| msgid "Увійдіть"
+msgid "Введіть email."
+msgstr "Sign in"
+
+#, fuzzy
+#| msgid "Введіть повідомлення"
+msgid "Введіть пароль."
+msgstr "Enter a message"
 
 msgid "Невірний email або пароль."
 msgstr "Incorrect email or password."
@@ -435,8 +682,10 @@ msgstr "Staff"
 msgid "Дата реєстрації"
 msgstr "Registration date"
 
-msgid "Бонусний баланс"
-msgstr "Bonus balance"
+#, fuzzy
+#| msgid "Інтернет-магазин СвітПК"
+msgid "Монети СвітПК"
+msgstr "SvitPC Online Store"
 
 msgid "Email-розсилка"
 msgstr "Email newsletter"
@@ -483,14 +732,19 @@ msgstr "NP branch ref"
 msgid "За замовчуванням"
 msgstr "Default"
 
-msgid "Адреса"
-msgstr "Address"
-
 msgid "Адреси"
 msgstr "Addresses"
 
 #, python-format
 msgid "Вітаю, %(name)s!"
+msgstr "Welcome, %(name)s!"
+
+msgid "Радий вас бачити! Збирайте монети за покупки та обмінюйте їх на купони."
+msgstr ""
+
+#, fuzzy, python-format
+#| msgid "Вітаю, %(name)s!"
+msgid "Привіт, %(name)s!"
 msgstr "Welcome, %(name)s!"
 
 msgid "Профіль оновлено"
@@ -522,7 +776,9 @@ msgstr "Reset usage counter"
 msgid "Лічильник скинуто"
 msgstr "Counter reset"
 
-msgid "Зміна балансу"
+#, fuzzy
+#| msgid "Зміна балансу"
+msgid "Зміна монет"
 msgstr "Balance change"
 
 msgid "Додатне значення — нарахування, від'ємне — списання."
@@ -540,17 +796,39 @@ msgstr "Adjustment"
 msgid "Бонус ДН"
 msgstr "Birthday bonus"
 
-msgid "Сума"
-msgstr "Amount"
+msgid "Обмін на купон"
+msgstr ""
+
+msgid "Протерміновано"
+msgstr ""
+
+msgid "Монети"
+msgstr ""
 
 msgid "Баланс після"
 msgstr "Balance after"
+
+msgid "Діє до"
+msgstr ""
 
 msgid "Бонусна транзакція"
 msgstr "Bonus transaction"
 
 msgid "Бонусні транзакції"
 msgstr "Bonus transactions"
+
+#, fuzzy
+#| msgid "Бажаний товар"
+msgid "Загальний / адмін"
+msgstr "Wished product"
+
+#, fuzzy
+#| msgid "Дата народження"
+msgid "День народження"
+msgstr "Date of birth"
+
+msgid "Нагорода за монети"
+msgstr ""
 
 msgid "Порожньо — промокод для всіх; заповнено — лише для цього клієнта"
 msgstr "Empty — promo code for everyone; filled — only for this customer"
@@ -623,8 +901,8 @@ msgstr "Order #%(pk)s: %(status)s"
 msgid "СвітПК — акція!"
 msgstr "SvitPC — promotion!"
 
-msgid "Назва (EN)"
-msgstr "Name (EN)"
+msgid "Статус замовлення"
+msgstr "Order status"
 
 msgid "Колір (HEX)"
 msgstr "Color (HEX)"
@@ -637,9 +915,6 @@ msgstr "Completed (accrue bonuses)"
 
 msgid "Після переходу в цей статус нараховуються бонуси за замовлення"
 msgstr "Bonuses are accrued for the order after transitioning to this status"
-
-msgid "Статус замовлення"
-msgstr "Order status"
 
 msgid "Статуси замовлень"
 msgstr "Order statuses"
@@ -654,6 +929,11 @@ msgid "Розстрочка"
 msgstr "Installment"
 
 msgid "Нова Пошта"
+msgstr "Nova Post"
+
+#, fuzzy
+#| msgid "Нова Пошта"
+msgid "Укрпошта"
 msgstr "Nova Post"
 
 msgid "Самовивіз"
@@ -671,6 +951,9 @@ msgstr "Paid"
 msgid "ID транзакції"
 msgstr "Transaction ID"
 
+msgid "Сума"
+msgstr "Amount"
+
 msgid "Бонусів використано"
 msgstr "Bonuses used"
 
@@ -679,6 +962,16 @@ msgstr "Comment"
 
 msgid "ТТН (НП)"
 msgstr "Tracking number (NP)"
+
+#, fuzzy
+#| msgid "Штрихкод УП:"
+msgid "Штрихкод УкрПошти"
+msgstr "UP barcode:"
+
+#, fuzzy
+#| msgid "Нова Пошта"
+msgid "Індекс (УкрПошта)"
+msgstr "Nova Post"
 
 msgid "Чек"
 msgstr "Receipt"
@@ -710,6 +1003,86 @@ msgstr "Status record"
 msgid "Товари зі старого замовлення недоступні."
 msgstr "Products from the previous order are unavailable."
 
+msgid "Службове"
+msgstr "Internal"
+
+msgid "Прізвище Ім'я По батькові"
+msgstr ""
+
+#, fuzzy
+#| msgid "Наприклад: 101, 245, 378"
+msgid "Наприклад, 12345"
+msgstr "E.g.: 101, 245, 378"
+
+#, fuzzy
+#| msgid "Оберіть спосіб доставки."
+msgid "Опишіть ситуацію детальніше"
+msgstr "Select a delivery method."
+
+msgid "Файл занадто великий. Максимальний розмір — 5 МБ."
+msgstr ""
+
+msgid "Дозволені лише зображення PNG, JPG або WEBP."
+msgstr ""
+
+msgid "Повернення"
+msgstr "Returns"
+
+msgid "Гарантія"
+msgstr "Warranty"
+
+msgid "Нова"
+msgstr "New"
+
+msgid "В обробці"
+msgstr "In progress"
+
+msgid "Завершена"
+msgstr "Completed"
+
+#, fuzzy
+#| msgid "Відправлена"
+msgid "Відхилена"
+msgstr "Submitted"
+
+msgid "ПІБ"
+msgstr ""
+
+#, fuzzy
+#| msgid "Мої замовлення"
+msgid "Номер замовлення"
+msgstr "My orders"
+
+#, fuzzy
+#| msgid "Повернення"
+msgid "Причина звернення"
+msgstr "Returns"
+
+#, fuzzy
+#| msgid "Бонусна програма"
+msgid "Опис проблеми"
+msgstr "Bonus program"
+
+#, fuzzy
+#| msgid "Створив"
+msgid "Створено"
+msgstr "Created by"
+
+#, fuzzy
+#| msgid "Замовлення"
+msgid "Оновлено"
+msgstr "Order"
+
+#, fuzzy
+#| msgid "Заявка на гарантію"
+msgid "Заявка на повернення"
+msgstr "Warranty claim"
+
+#, fuzzy
+#| msgid "Заявки на гарантію"
+msgid "Заявки на повернення"
+msgstr "Warranty claims"
+
 msgid "Заголовок"
 msgstr "Title"
 
@@ -721,6 +1094,11 @@ msgstr "Info page"
 
 msgid "Інфосторінки"
 msgstr "Info pages"
+
+#, fuzzy
+#| msgid "Дякуємо! Менеджер відповість найближчим часом."
+msgid "Дякуємо! Заявку надіслано. Менеджер зв'яжеться з вами найближчим часом."
+msgstr "Thank you! A manager will reply shortly."
 
 msgid "Очікує"
 msgstr "Pending"
@@ -752,11 +1130,31 @@ msgstr "Payment"
 msgid "Платежі"
 msgstr "Payments"
 
-msgid "Активувати обрані акції"
-msgstr "Activate selected promotions"
+#, fuzzy
+#| msgid "Детальніше"
+msgid "Загальне"
+msgstr "Learn more"
 
-msgid "Деактивувати обрані акції"
-msgstr "Deactivate selected promotions"
+#, fuzzy
+#| msgid "Українська"
+msgid "🇺🇦 Українська"
+msgstr "Ukrainian"
+
+#, fuzzy
+#| msgid "English"
+msgid "🇬🇧 English"
+msgstr "English"
+
+#, fuzzy
+#| msgid "Хіт"
+msgid "Діє"
+msgstr "Hit"
+
+msgid "Не діє"
+msgstr ""
+
+msgid "Авто"
+msgstr ""
 
 msgid "Надіслати push-повідомлення про акцію"
 msgstr "Send push notification about promotion"
@@ -807,17 +1205,57 @@ msgstr "Activate selected banners"
 msgid "Деактивувати обрані банери"
 msgstr "Deactivate selected banners"
 
+#, fuzzy
+#| msgid "Заголовок"
+msgid "Підзаголовок акції"
+msgstr "Title"
+
+msgid ""
+"Необов'язково. Наприклад: «Знижки до Дня Матері». Не пишіть «Акція» — це "
+"слово вже показується на значку товару."
+msgstr ""
+
+#, fuzzy
+#| msgid "Підказка для головної"
+msgid "Підзаголовок акції (EN)"
+msgstr "Home page hint"
+
+msgid "Опис (EN)"
+msgstr "Description (EN)"
+
+#, fuzzy
+#| msgid "Бонусів нараховано:"
+msgid "Авто-синхронізовано"
+msgstr "Bonuses credited:"
+
+msgid "Встановлено автоматично з поля «Кінець акції (таймер)» товару."
+msgstr ""
+
 msgid "Початок"
 msgstr "Start"
 
+msgid "Дата і час, коли акція починається."
+msgstr ""
+
 msgid "Кінець"
 msgstr "End"
+
+msgid "Дата завершення. Таймер показує залишок до цього моменту."
+msgstr ""
+
+msgid "Якщо вимкнено — акція не показується незалежно від дат."
+msgstr ""
 
 msgid "Акція"
 msgstr "Promotion"
 
 msgid "Акції"
 msgstr "Promotions"
+
+#, fuzzy
+#| msgid "Акція"
+msgid "Акція для"
+msgstr "Promotion"
 
 msgid "Кількість банерів у рядку"
 msgstr "Banners per row"
@@ -832,9 +1270,6 @@ msgstr "Home page advertising"
 
 msgid "Головна"
 msgstr "Home"
-
-msgid "Каталог"
-msgstr "Catalog"
 
 msgid "Зображення (mobile)"
 msgstr "Image (mobile)"
@@ -872,6 +1307,21 @@ msgstr "Select a rating from 1 to 5"
 msgid "Будь ласка, заповніть всі поля"
 msgstr "Please fill in all fields"
 
+msgid ""
+"Заповніть діапазон «від/до» або вільний текст ціни (наприклад «за "
+"домовленістю»)."
+msgstr ""
+
+#, fuzzy
+#| msgid "Зображення"
+msgid "Відображення"
+msgstr "Image"
+
+#, fuzzy
+#| msgid "Позиція"
+msgid "Позицій"
+msgstr "Item"
+
 msgid "Заявка"
 msgstr "Request"
 
@@ -908,9 +1358,6 @@ msgstr "Customer¹"
 msgid "Доставка²"
 msgstr "Delivery²"
 
-msgid "Службове"
-msgstr "Internal"
-
 msgid "Зберегти"
 msgstr "Save"
 
@@ -938,8 +1385,13 @@ msgstr "Service category"
 msgid "Категорії послуг"
 msgstr "Service categories"
 
-msgid "Опис (EN)"
-msgstr "Description (EN)"
+#, fuzzy
+#| msgid "На головну"
+msgid "На головній"
+msgstr "Go to home"
+
+msgid "Показувати картку послуги в блоці «Сервісний центр» на головній"
+msgstr ""
 
 msgid "Послуга"
 msgstr "Service"
@@ -956,11 +1408,22 @@ msgstr "Price to"
 msgid "Ціна (текст)"
 msgstr "Price (text)"
 
+msgid "Одиниця"
+msgstr ""
+
+msgid "Без матеріалів"
+msgstr ""
+
+msgid "Позиція позначена * у прейскуранті — вартість робіт без матеріалів"
+msgstr ""
+
 msgid "Прайс-позиція"
 msgstr "Price item"
 
-msgid "Нова"
-msgstr "New"
+#, fuzzy
+#| msgid "Прайс-позиція"
+msgid "Прайс-позиції"
+msgstr "Price item"
 
 msgid "В роботі"
 msgstr "In progress"
@@ -997,6 +1460,18 @@ msgstr "Service request"
 
 msgid "Заявки сервісного центру"
 msgstr "Service requests"
+
+#, python-format
+msgid "від %(from)s до %(to)s"
+msgstr "from %(from)s to %(to)s"
+
+#, python-format
+msgid "від %(price)s"
+msgstr "from %(price)s"
+
+#, python-format
+msgid "до %(price)s"
+msgstr "up to %(price)s"
 
 msgid "Товар гарантійний"
 msgstr "Product under warranty"
@@ -1037,12 +1512,6 @@ msgstr "Draft"
 msgid "Відправлена"
 msgstr "Submitted"
 
-msgid "В обробці"
-msgstr "In progress"
-
-msgid "Завершена"
-msgstr "Completed"
-
 msgid "Інша"
 msgstr "Other"
 
@@ -1070,7 +1539,6 @@ msgstr "Customer email"
 msgid "Адреса клієнта"
 msgstr "Customer address"
 
-#| msgid "Спосіб доставки"
 msgid "Служба доставки"
 msgstr "Delivery service"
 
@@ -1134,6 +1602,11 @@ msgstr "Select a Nova Post branch."
 msgid "Вкажіть місто доставки."
 msgstr "Enter a delivery city."
 
+#, fuzzy
+#| msgid "Оберіть відділення Нової Пошти."
+msgid "Вкажіть поштовий індекс відділення Укрпошти."
+msgstr "Select a Nova Post branch."
+
 msgid "Індекс має містити 5 цифр."
 msgstr "Postcode must contain 5 digits."
 
@@ -1170,6 +1643,56 @@ msgstr "Server error"
 msgid "Вибачте, виникла помилка. Ми вже працюємо над її виправленням."
 msgstr "Sorry, something went wrong. We are already working on a fix."
 
+#, fuzzy
+#| msgid "Активувати обрані акції"
+msgid "Виконати обрану дію"
+msgstr "Activate selected promotions"
+
+#, fuzzy
+#| msgid "Використано"
+msgid "Виконати"
+msgstr "Used"
+
+msgid "Натисніть, щоб вибрати об’єкти на всіх сторінках"
+msgstr ""
+
+#, python-format
+msgid "Вибрати всі %(total_count)s %(module_name)s"
+msgstr ""
+
+#, fuzzy
+#| msgid "Скасувати"
+msgid "Скасувати вибір"
+msgstr "Cancel"
+
+#, fuzzy
+#| msgid "Оцінка"
+msgid "Адмінка"
+msgstr "Rating"
+
+#, fuzzy
+#| msgid "Каталог товарів"
+msgid "Обрано товарів:"
+msgstr "Product catalog"
+
+#, python-format
+msgid "… і ще %(extra)s"
+msgstr ""
+
+#, fuzzy
+#| msgid "Деактивувати обрані акції"
+msgid "Дата та час завершення акції"
+msgstr "Deactivate selected promotions"
+
+#, fuzzy
+#| msgid "Скасувати"
+msgid "Застосувати"
+msgstr "Cancel"
+
+msgid "Скасувати"
+msgstr "Cancel"
+
+#, python-format
 msgid "Обрано %(counter)s клієнта."
 msgid_plural "Обрано %(counter)s клієнтів."
 msgstr[0] "%(counter)s customer selected."
@@ -1177,9 +1700,6 @@ msgstr[1] "%(counter)s customers selected."
 
 msgid "Надіслати"
 msgstr "Send"
-
-msgid "Скасувати"
-msgstr "Cancel"
 
 msgid "AI-консультант"
 msgstr "AI consultant"
@@ -1214,6 +1734,12 @@ msgid ""
 msgstr ""
 "Tell me more about the product: __NAME__. What specs matter and is it "
 "suitable for typical tasks?"
+
+msgid "Разом підберемо ідеальний варіант!"
+msgstr ""
+
+msgid "Опишіть задачу — я допоможу знайти техніку під ваш бюджет і потреби."
+msgstr ""
 
 msgid ""
 "Підбір ноутбуків, комплектуючих, консультація з вибору техніки та перевірка "
@@ -1301,6 +1827,14 @@ msgstr "Checkout"
 msgid "Продовжити покупки"
 msgstr "Continue shopping"
 
+msgid "Привіт! Я Пан Світик!"
+msgstr ""
+
+msgid ""
+"Додайте товари з каталогу — допоможу зібрати розумне замовлення та "
+"накопичити монети."
+msgstr ""
+
 msgid "Кошик порожній"
 msgstr "Cart is empty"
 
@@ -1343,8 +1877,19 @@ msgstr "Name: A→Z"
 msgid "Всі бренди"
 msgstr "All brands"
 
+msgid "Чудова техніка!"
+msgstr "Great device!"
+
+msgid "Оберіть фільтри або сортування — допоможу знайти саме те, що потрібно."
+msgstr "Use filters or sorting — I will help you find exactly what you need."
+
 msgid "Інтернет-магазин комп'ютерної техніки"
 msgstr "Computer equipment online store"
+
+msgid ""
+"Допомагаю робити розумні покупки та накопичувати бонусні монети разом із "
+"СвітПК!"
+msgstr ""
 
 msgid "Категорії товарів"
 msgstr "Product categories"
@@ -1373,14 +1918,14 @@ msgstr "Service centre"
 msgid "Всі послуги →"
 msgstr "All services →"
 
+msgid "Детальніше"
+msgstr "Learn more"
+
 msgid "Ремонт"
 msgstr "Repair"
 
 msgid "Ремонт ноутбуків та ПК"
 msgstr "Laptop & PC repair"
-
-msgid "Детальніше"
-msgstr "Learn more"
 
 msgid "Друк"
 msgstr "Printing"
@@ -1475,6 +2020,29 @@ msgstr "Out of stock"
 msgid "Хіт"
 msgstr "Hit"
 
+#, fuzzy
+#| msgid "Завершена"
+msgid "Акція завершена"
+msgstr "Completed"
+
+#, fuzzy
+#| msgid "до"
+msgid "дн"
+msgstr "to"
+
+#, fuzzy
+#| msgid "Код"
+msgid "год"
+msgstr "Code"
+
+msgid "хв"
+msgstr ""
+
+#, fuzzy
+#| msgid "Чек"
+msgid "сек"
+msgstr "Receipt"
+
 msgid "До кошика"
 msgstr "Add to cart"
 
@@ -1489,12 +2057,6 @@ msgstr "Wishlist"
 
 msgid "Порівняти"
 msgstr "Compare"
-
-msgid "Запитати AI-консультанта про цей товар"
-msgstr "Ask the AI consultant about this product"
-
-msgid "Запитати AI"
-msgstr "Ask AI"
 
 msgid "Характеристики"
 msgstr "Specifications"
@@ -1534,6 +2096,11 @@ msgstr "Order confirmation"
 msgid "Перевірте замовлення"
 msgstr "Review your order"
 
+#, fuzzy
+#| msgid "Сума замовлення:"
+msgid "Бонус за замовлення"
+msgstr "Order total:"
+
 msgid "Контактні дані"
 msgstr "Contact details"
 
@@ -1556,9 +2123,6 @@ msgstr "0%% installment"
 msgid "Знижка (промокод)"
 msgstr "Discount (promo code)"
 
-msgid "Бонуси"
-msgstr "Bonuses"
-
 msgid "Назад"
 msgstr "Back"
 
@@ -1579,6 +2143,9 @@ msgstr "Checkout — Step 1"
 
 msgid "Оформлення замовлення"
 msgstr "Place an order"
+
+msgid "Ви на вірному шляху!"
+msgstr ""
 
 msgid "Спосіб доставки"
 msgstr "Delivery method"
@@ -1610,6 +2177,9 @@ msgstr "Checkout — Payment"
 msgid "Оберіть спосіб оплати"
 msgstr "Select payment method"
 
+msgid "Майже готово!"
+msgstr ""
+
 msgid "Оплата карткою"
 msgstr "Card payment"
 
@@ -1622,39 +2192,20 @@ msgstr "Fast checkout with Google"
 msgid "Швидка оплата з Apple"
 msgstr "Fast checkout with Apple"
 
-msgid "Оплата при отриманні на Новій Пошті"
-msgstr "Pay on delivery via Nova Post"
-
-msgid "Миттєва розстрочка"
-msgstr "Instant installment"
-
-#, python-format
-msgid "Розстрочка 0%% через LiqPay Installment"
-msgstr "0%% installment via LiqPay Installment"
-
-msgid "Промокод і бонуси"
-msgstr "Promo code and bonuses"
-
-msgid "Наприклад: BDAY-XXXXXXXX"
+#, fuzzy
+#| msgid "Наприклад: BDAY-XXXXXXXX"
+msgid "Наприклад: COIN-XXXXXXXX"
 msgstr "Example: BDAY-XXXXXXXX"
 
-msgid "Доступно бонусів:"
-msgstr "Available bonuses:"
+#, fuzzy
+#| msgid "Інтернет-магазин СвітПК"
+msgid "Монети СвітПК:"
+msgstr "SvitPC Online Store"
 
-msgid "Списати бонуси"
-msgstr "Redeem bonuses"
-
-msgid "Сума бонусів (грн)"
-msgstr "Bonus amount (UAH)"
-
-msgid "Максимум для цього замовлення:"
-msgstr "Maximum for this order:"
-
-msgid "Увійдіть"
-msgstr "Sign in"
-
-msgid ", щоб списати бонуси."
-msgstr " to redeem bonuses."
+#, fuzzy
+#| msgid "Бонусна програма"
+msgid "деталі програми"
+msgstr "Bonus program"
 
 msgid "До сплати"
 msgstr "Amount due"
@@ -1668,9 +2219,31 @@ msgstr "Order accepted"
 msgid "Дякуємо за замовлення!"
 msgstr "Thank you for your order!"
 
+#, fuzzy, python-format
+#| msgid "Замовлення №%(pk)s на суму"
+msgid "Замовлення №%(pk)s оплачено. Дякуємо!"
+msgstr "Order #%(pk)s for"
+
 #, python-format
 msgid "Замовлення №%(pk)s прийнято. Ми зв'яжемось з вами найближчим часом."
 msgstr "Order #%(pk)s accepted. We will contact you shortly."
+
+#, fuzzy
+#| msgid "Оберіть місто доставки."
+msgid "Монети після доставки"
+msgstr "Select a delivery city."
+
+#, python-format
+msgid ""
+"Після доставки замовлення на ваш рахунок нарахують %(coins)s бонусних монет "
+"СвітПК. До того часу вони відображатимуться як «очікувані» у розділі «Монети "
+"СвітПК»."
+msgstr ""
+
+#, fuzzy
+#| msgid "Дякуємо за покупку в СвітПК!"
+msgid "Дякуємо, що обрали СвітПК!"
+msgstr "Thank you for shopping at SvitPC!"
 
 msgid "Мої замовлення"
 msgstr "My orders"
@@ -1693,6 +2266,14 @@ msgstr "Remove %(name)s from comparison"
 
 msgid "Наявність"
 msgstr "Availability"
+
+msgid "Досліджую…"
+msgstr ""
+
+msgid ""
+"Додайте товари з каталогу — порівняйте характеристики та оберіть найкращий "
+"варіант."
+msgstr ""
 
 msgid "Немає товарів для порівняння. Додайте товари з каталогу."
 msgstr "No products to compare. Add products from the catalog."
@@ -1728,21 +2309,8 @@ msgstr "No"
 msgid "Так"
 msgstr "Yes"
 
-msgid "Відкрити чат з консультантом"
-msgstr "Open chat with consultant"
-
-msgid "Закрити чат"
-msgstr "Close chat"
-
-msgid "Привіт! Напишіть ваше запитання, і менеджер відповість якнайшвидше."
-msgstr ""
-"Hello! Send your question and a manager will reply as soon as possible."
-
-msgid "Ваше повідомлення…"
-msgstr "Your message…"
-
-msgid "Введіть повідомлення"
-msgstr "Enter a message"
+msgid "головна"
+msgstr "home"
 
 msgid ""
 "Комп'ютерна техніка, комплектуючі, ноутбуки, принтери та послуги сервісного "
@@ -1756,14 +2324,8 @@ msgstr "Promotions"
 msgid "Сервіс-центр"
 msgstr "Service centre"
 
-msgid "Гарантія"
-msgstr "Warranty"
-
-msgid "Повернення"
-msgstr "Returns"
-
-msgid "Контакти"
-msgstr "Contacts"
+msgid "Прейскурант"
+msgstr "Price list"
 
 msgid "Написати нам"
 msgstr "Write to us"
@@ -1785,9 +2347,6 @@ msgstr "Hide password"
 
 msgid "Меню"
 msgstr "Menu"
-
-msgid "головна"
-msgstr "home"
 
 msgid "Пошук товарів"
 msgstr "Search products"
@@ -1830,6 +2389,41 @@ msgstr "Add to cart"
 
 msgid "1 клік"
 msgstr "1 click"
+
+#, python-format
+msgid ""
+"Додайте товарів ще на <span class=\"svitik-hint__amount\">%(remaining)s</"
+"span>, щоб отримати перші бонусні монети СвітПК!"
+msgstr ""
+
+#, python-format
+msgid "У кошику товари на <span class=\"svitik-hint__amount\">%(total)s</span>"
+msgstr ""
+
+#, python-format
+msgid ""
+"Додайте ще на <span class=\"svitik-hint__amount\">%(remaining)s</span> — і "
+"після доставки буде %(next_coins)s монет замість %(current_coins)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Додайте ще на <span class=\"svitik-hint__amount\">%(remaining)s</span> і "
+"отримаєте"
+msgstr ""
+
+#, fuzzy
+#| msgid "Товари зі старого замовлення недоступні."
+msgid "Чудово! Після доставки цього замовлення ви отримаєте"
+msgstr "Products from the previous order are unavailable."
+
+#, fuzzy
+#| msgid "Оберіть місто доставки."
+msgid "монет після доставки"
+msgstr "Select a delivery city."
+
+msgid "монет"
+msgstr ""
 
 msgid "Доступ заблоковано"
 msgstr "Access blocked"
@@ -1879,14 +2473,17 @@ msgstr "Personal account"
 msgid "Привіт"
 msgstr "Hello"
 
-msgid "Бонусна програма"
-msgstr "Bonus program"
+msgid ""
+"Тут зібрано замовлення, монети та адреси — все для зручних покупок у СвітПК."
+msgstr ""
 
 msgid "Мій профіль"
 msgstr "My profile"
 
-msgid "Бонусний баланс:"
-msgstr "Bonus balance:"
+#, fuzzy
+#| msgid "Очікує"
+msgid "очікується"
+msgstr "Pending"
 
 msgid "Деталі"
 msgstr "Details"
@@ -1896,6 +2493,11 @@ msgstr "Sign in"
 
 msgid "Вхід в кабінет"
 msgstr "Sign in to account"
+
+#, fuzzy
+#| msgid "Не вдалося зареєструватись. Перевірте поля форми."
+msgid "Не вдалося увійти. Перевірте email і пароль."
+msgstr "Registration failed. Please check the form fields."
 
 msgid "Пароль"
 msgstr "Password"
@@ -1908,9 +2510,6 @@ msgstr "Sign up"
 
 msgid "Редагування профілю"
 msgstr "Edit profile"
-
-msgid "Сповіщення"
-msgstr "Notifications"
 
 msgid "Зберегти зміни"
 msgstr "Save changes"
@@ -1933,7 +2532,7 @@ msgstr "Create an account to review this product."
 msgid "Вітаємо з Днем народження!"
 msgstr "Happy birthday!"
 
-#| msgid "Дата народження"
+#, python-format
 msgid "З Днем народження, %(name)s!"
 msgstr "Happy birthday, %(name)s!"
 
@@ -1952,13 +2551,6 @@ msgstr "Your 10%% discount promo code:"
 msgid "Дійсний до:"
 msgstr "Valid until:"
 
-msgid "Бонусів нараховано:"
-msgstr "Bonuses credited:"
-
-#| msgid "Бренд"
-msgid "грн"
-msgstr "UAH"
-
 msgid "Введіть промокод при оформленні замовлення на svitpc.ua"
 msgstr "Enter the promo code at checkout on svitpc.ua"
 
@@ -1974,7 +2566,7 @@ msgstr ""
 msgid "СвітПК вітає з Днем народження, %(name)s!"
 msgstr "Happy birthday from SvitPC, %(name)s!"
 
-#| msgid "Дякуємо за замовлення!"
+#, python-format
 msgid "Дякуємо за замовлення #%(order_id)s"
 msgstr "Thank you for order #%(order_id)s"
 
@@ -1987,6 +2579,9 @@ msgstr "We have received your order and are processing it."
 
 msgid "Сума:"
 msgstr "Total:"
+
+msgid "грн"
+msgstr "UAH"
 
 msgid "Оплата:"
 msgstr "Payment:"
@@ -2010,7 +2605,7 @@ msgstr "SvitPC — order #%(pk)s received"
 msgid "Замовлення доставлено"
 msgstr "Order delivered"
 
-#| msgid "Замовлення №%(pk)s на суму"
+#, python-format
 msgid "Замовлення #%(order_id)s доставлено!"
 msgstr "Order #%(order_id)s has been delivered!"
 
@@ -2020,7 +2615,6 @@ msgstr "Your order is waiting for you at the branch."
 msgid "ТТН:"
 msgstr "Tracking:"
 
-#| msgid "Штрихкод УкрПошти:"
 msgid "Штрихкод УП:"
 msgstr "UP barcode:"
 
@@ -2054,10 +2648,15 @@ msgstr "Order details on the website"
 msgid "СвітПК — замовлення #%(pk)s: %(status)s"
 msgstr "SvitPC — order #%(pk)s: %(status)s"
 
+#, fuzzy
+#| msgid "Помилка сервера — СвітПК"
+msgid "Нова заявка на повернення — СвітПК"
+msgstr "Server error — SvitPC"
+
 msgid "ТТН створено"
 msgstr "Tracking number created"
 
-#| msgid "Замовлення №%(pk)s на суму"
+#, python-format
 msgid "Замовлення #%(order_id)s передано на доставку"
 msgstr "Order #%(order_id)s handed over for delivery"
 
@@ -2081,14 +2680,160 @@ msgstr "Track your parcel:"
 msgid "СвітПК — ТТН створено для замовлення #%(pk)s"
 msgstr "SvitPC — tracking number created for order #%(pk)s"
 
-msgid "Поточний баланс"
-msgstr "Current balance"
+#, fuzzy
+#| msgid "Деактивувати обрані банери"
+msgid "Я допоможу вам збирати монети!"
+msgstr "Deactivate selected banners"
 
-msgid "Історія нарахувань"
+msgid "Кожна покупка наближає вас до купона — дивіться прогрес нижче."
+msgstr ""
+
+msgid ""
+"Проста й зрозуміла система лояльності — збирайте монети за покупки та "
+"обмінюйте їх на купони. Вона не з'їдає прибуток на товарах із маленькою "
+"націнкою, тому вигідна і для вас, і для нас."
+msgstr ""
+
+#, fuzzy
+#| msgid "Інтернет-магазин СвітПК"
+msgid "Монета СвітПК"
+msgstr "SvitPC Online Store"
+
+#, fuzzy
+#| msgid "Зміна балансу"
+msgid "Ваш баланс"
+msgstr "Balance change"
+
+#, fuzzy
+#| msgid "Оберіть місто доставки."
+msgid "очікується після доставки"
+msgstr "Select a delivery city."
+
+#, fuzzy
+#| msgid "Історія нарахувань"
+msgid "Очікують нарахування"
 msgstr "Accrual history"
 
-msgid "Бонусних операцій ще немає."
+#, fuzzy, python-format
+#| msgid "Замовлення №%(pk)s успішно оформлено"
+msgid "за замовлення №%(pk)s — після доставки"
+msgstr "Order #%(pk)s placed successfully"
+
+#, fuzzy
+#| msgid "Доступ заблоковано"
+msgid "До наступної нагороди"
+msgstr "Access blocked"
+
+#, python-format
+msgid "ще %(remaining)s монет і ваша нагорода!"
+msgstr ""
+
+msgid "нагорода буде видана автоматично після нарахування монет"
+msgstr ""
+
+msgid "Ваші купони"
+msgstr ""
+
+#, fuzzy
+#| msgid "Сповіщати клієнта"
+msgid "Скопіювати код купона"
+msgstr "Notify customer"
+
+#, fuzzy
+#| msgid "Скасована"
+msgid "Скопійовано"
+msgstr "Cancelled"
+
+msgid "Не вдалося скопіювати"
+msgstr ""
+
+#, fuzzy
+#| msgid "Замовлення в 1 клік"
+msgid "Замовлення від 300 грн до 2 999 грн"
+msgstr "One-click order"
+
+msgid "монета"
+msgstr ""
+
+#, fuzzy
+#| msgid "Замовлення в 1 клік"
+msgid "Замовлення від 3 000 грн до 4 999 грн"
+msgstr "One-click order"
+
+#, fuzzy
+#| msgid "Замовлення в 1 клік"
+msgid "Замовлення від 5 000 грн до 9 999 грн"
+msgstr "One-click order"
+
+#, fuzzy
+#| msgid "Замовлення в 1 клік"
+msgid "Замовлення від 10 000 грн до 19 999 грн"
+msgstr "One-click order"
+
+#, fuzzy
+#| msgid "Замовлення в 1 клік"
+msgid "Замовлення від 20 000 грн і більше"
+msgstr "One-click order"
+
+msgid "Нагороди"
+msgstr ""
+
+msgid "збирається"
+msgstr ""
+
+msgid "купон"
+msgstr ""
+
+#, fuzzy
+#| msgid "Правила націнки"
+msgid "Правила"
+msgstr "Markup rules"
+
+#, fuzzy
+#| msgid "Товари зі старого замовлення недоступні."
+msgid "Монети діють лише на замовлення через сайт."
+msgstr "Products from the previous order are unavailable."
+
+msgid "Монети діють 6 місяців."
+msgstr ""
+
+msgid "Монети не можна обміняти на гроші."
+msgstr ""
+
+#, python-format
+msgid "Купоном можна оплатити до 20%% вартості замовлення."
+msgstr ""
+
+msgid "Монети нараховуються тільки після успішного отримання товару."
+msgstr ""
+
+#, fuzzy
+#| msgid "Історія нарахувань"
+msgid "Історія операцій"
+msgstr "Accrual history"
+
+msgid "Більше"
+msgstr ""
+
+msgid "Менше"
+msgstr ""
+
+#, fuzzy
+#| msgid "Бонусних операцій ще немає."
+msgid "Операцій з монетами ще немає."
 msgstr "No bonus transactions yet."
+
+#, python-format
+msgid ""
+"Після доставки цього замовлення на ваш рахунок нарахують %(coins)s бонусних "
+"монет СвітПК."
+msgstr ""
+
+msgid "Так тримати!"
+msgstr ""
+
+msgid "Слідкуйте за статусом замовлення — ми повідомимо, коли все буде готово."
+msgstr ""
 
 msgid "Разом:"
 msgstr "Total:"
@@ -2108,17 +2853,527 @@ msgstr "Reorder"
 msgid "У вас ще немає замовлень."
 msgstr "You have no orders yet."
 
-msgid "Телефон:"
-msgstr "Phone:"
+#, fuzzy
+#| msgid ""
+#| "СвітПК — комп'ютерна техніка, комплектуючі, ноутбуки, принтери, "
+#| "канцтовари та послуги сервісного центру"
+msgid ""
+"Зв'яжіться зі СвітПК: телефон, Viber, email та адреса. Допоможемо з "
+"замовленнями, товарами та послугами сервісного центру."
+msgstr ""
+"SvitPC — computers, components, laptops, printers, stationery and service "
+"centre"
 
-msgid "Email:"
-msgstr "Email:"
+msgid ""
+"Маєте питання щодо замовлення, товару чи ремонту? Зв'яжіться з нами зручним "
+"способом — менеджер відповість найближчим часом."
+msgstr ""
+
+msgid "Способи зв'язку"
+msgstr ""
+
+msgid "Напишіть у чат — відповімо, коли будемо на зв'язку"
+msgstr ""
+
+msgid "Для детальних запитів та співпраці"
+msgstr ""
+
+#, fuzzy
+#| msgid "Самовивіз з нашого магазину:"
+msgid "Самовивіз та консультація в магазині"
+msgstr "Pickup from our store:"
+
+#, fuzzy
+#| msgid "Фактична вартість"
+msgid "Відкрити на карті"
+msgstr "Actual cost"
+
+#, fuzzy
+#| msgid "Знайти"
+msgid "Як нас знайти"
+msgstr "Find"
+
+msgid "Магазин СвітПК на карті"
+msgstr ""
+
+msgid "Відкрити в Google Maps"
+msgstr ""
+
+#, fuzzy
+#| msgid "Помилка мережі"
+msgid "Соціальні мережі"
+msgstr "Network error"
+
+msgid "Ми в соцмережах"
+msgstr ""
+
+msgid "Корисні розділи"
+msgstr ""
+
+msgid ""
+"Доставка замовлень СвітПК: Нова Пошта та безкоштовний самовивіз з магазину. "
+"Оформіть замовлення онлайн — ми надішлемо у зручний для вас спосіб."
+msgstr ""
+
+#, fuzzy
+#| msgid "Дякуємо за замовлення!"
+msgid "Доставка замовлень"
+msgstr "Thank you for your order!"
+
+msgid ""
+"Ми відправляємо техніку та комплектуючі по всій Україні. Оберіть зручний "
+"спосіб доставки під час оформлення замовлення — вартість розраховується "
+"автоматично."
+msgstr ""
+
+#, fuzzy
+#| msgid "Спосіб доставки"
+msgid "Способи доставки"
+msgstr "Delivery method"
+
+msgid ""
+"Найпопулярніший спосіб — доставка у відділення або поштомат «Нової Пошти» у "
+"вашому місті."
+msgstr ""
+
+#, fuzzy
+#| msgid "Доставка до СЦ"
+msgid "Доставка по всій Україні"
+msgstr "Delivery to service centre"
+
+msgid "Відправлення зазвичай у день замовлення або наступного робочого дня"
+msgstr ""
+
+msgid "SMS-повідомлення та номер ТТН для відстеження посилки"
+msgstr ""
+
+#, fuzzy
+#| msgid "Оплата при отриманні на Новій Пошті"
+msgid "Можлива оплата при отриманні (накладений платіж)"
+msgstr "Pay on delivery via Nova Post"
+
+msgid ""
+"Заберіть замовлення безкоштовно у нашому магазині — швидко, без черг на "
+"пошті та з можливістю одразу перевірити товар."
+msgstr ""
+
+msgid "Безкоштовно"
+msgstr ""
+
+msgid "Готовність до видачі — після підтвердження менеджером"
+msgstr ""
+
+msgid "Консультація та огляд товару на місці"
+msgstr ""
+
+msgid "Зручна парковка біля магазину"
+msgstr ""
+
+#, fuzzy
+#| msgid "Адресу видалено"
+msgid "Адреса магазину"
+msgstr "Address removed"
+
+#, fuzzy
+#| msgid "Пн–Пт 9:00–19:00, Сб 10:00–17:00"
+msgid "Пн–Пт: 9:00–19:00, Сб: 10:00–17:00, Нд: вихідний"
+msgstr "Mon–Fri 9:00–19:00, Sat 10:00–17:00"
+
+#, fuzzy
+#| msgid "Адреси доставки"
+msgid "Як оформити доставку"
+msgstr "Delivery addresses"
+
+#, fuzzy
+#| msgid "Додати до кошика"
+msgid "Додайте товари до кошика"
+msgstr "Add to cart"
+
+#, fuzzy
+#| msgid "Оберіть спосіб доставки."
+msgid "Оберіть спосіб доставки та адресу"
+msgstr "Select a delivery method."
+
+#, fuzzy
+#| msgid "Післяплата (при отриманні)"
+msgid "Оплатіть онлайн або при отриманні"
+msgstr "Cash on delivery"
+
+#, fuzzy
+#| msgid "ТТН для відстеження:"
+msgid "Отримайте SMS з номером відстеження"
+msgstr "Tracking number:"
+
+#, fuzzy
+#| msgid "Особиста інформація"
+msgid "Корисна інформація"
+msgstr "Personal information"
+
+#, fuzzy
+#| msgid "Штрихкод відправлення:"
+msgid "Терміни відправлення"
+msgstr "Shipment barcode:"
+
+msgid ""
+"Замовлення, оформлені до 15:00 у робочий день, зазвичай передаємо "
+"перевізнику того ж дня. У вихідні та святкові дні — наступного робочого дня."
+msgstr ""
+
+msgid "Надійна упаковка"
+msgstr ""
+
+msgid ""
+"Кожне замовлення ретельно пакуємо, щоб техніка доїхала цілою та неушкодженою "
+"— особливо важливо для моніторів, ноутбуків та комплектуючих."
+msgstr ""
+
+#, fuzzy
+#| msgid "Служба доставки"
+msgid "Питання щодо доставки?"
+msgstr "Delivery service"
+
+#, fuzzy
+#| msgid "Повторити замовлення"
+msgid "Готові оформити замовлення?"
+msgstr "Reorder"
+
+#, fuzzy
+#| msgid "До сплати"
+msgid "Способи оплати"
+msgstr "Amount due"
 
 msgid "Сторінка"
 msgstr "Page"
 
 msgid "Сторінка в розробці."
 msgstr "Page under development."
+
+msgid ""
+"Способи оплати в СвітПК: банківська картка, Google Pay, Apple Pay та оплата "
+"при самовивозі. Безпечна онлайн-оплата через LiqPay."
+msgstr ""
+
+msgid ""
+"Оберіть зручний спосіб оплати під час оформлення замовлення. Онлайн-платежі "
+"захищені протоколом 3D Secure — дані вашої картки не зберігаються на нашому "
+"сайті."
+msgstr ""
+
+#, fuzzy
+#| msgid "Батьківська категорія"
+msgid "Банківська картка"
+msgstr "Parent category"
+
+msgid "Visa та Mastercard через захищений платіжний сервіс LiqPay."
+msgstr ""
+
+#, fuzzy
+#| msgid "Підтвердження замовлення"
+msgid "Оплата одразу після підтвердження замовлення"
+msgstr "Order confirmation"
+
+#, fuzzy
+#| msgid "Підтвердження замовлення"
+msgid "3D Secure — підтвердження SMS-кодом від банку"
+msgstr "Order confirmation"
+
+msgid "Електронний чек на email після успішної оплати"
+msgstr ""
+
+msgid "Замовлення відправляється після зарахування коштів"
+msgstr ""
+
+msgid "Швидка оплата зі смартфона — без введення реквізитів картки вручну."
+msgstr ""
+
+msgid "Працює на Android (Google Pay) та iPhone (Apple Pay)"
+msgstr ""
+
+msgid "Оплата в один дотик через Face ID або відбиток пальця"
+msgstr ""
+
+#, fuzzy
+#| msgid "Введіть промокод при оформленні замовлення на svitpc.ua"
+msgid "Доступно під час оформлення замовлення на сайті"
+msgstr "Enter the promo code at checkout on svitpc.ua"
+
+#, fuzzy
+#| msgid "Оплата при отриманні на Новій Пошті"
+msgid "Оплата при самовивозі"
+msgstr "Pay on delivery via Nova Post"
+
+msgid ""
+"Заберіть замовлення в магазині та оплатіть на місці — готівкою або карткою."
+msgstr ""
+
+#, fuzzy
+#| msgid "Спосіб доставки"
+msgid "Без комісії за доставку"
+msgstr "Delivery method"
+
+msgid "Можливість перевірити товар перед оплатою"
+msgstr ""
+
+msgid "Консультація менеджера на місці"
+msgstr ""
+
+#, fuzzy
+#| msgid "Переглянути замовлення на сайті"
+msgid "Як оплатити замовлення онлайн"
+msgstr "View order on the website"
+
+msgid "Додайте товари до кошика та перейдіть до оформлення"
+msgstr ""
+
+#, fuzzy
+#| msgid "Вкажіть місто доставки."
+msgid "Вкажіть контакти та спосіб доставки"
+msgstr "Enter a delivery city."
+
+#, fuzzy
+#| msgid "Оберіть спосіб оплати"
+msgid "Оберіть спосіб оплати та підтвердіть замовлення"
+msgstr "Select payment method"
+
+msgid "На сторінці LiqPay введіть дані картки та підтвердіть оплату"
+msgstr ""
+
+msgid "Отримайте підтвердження на email — ми відправимо замовлення"
+msgstr ""
+
+#, fuzzy
+#| msgid "Помилка перевірки"
+msgid "Безпека платежів"
+msgstr "Check failed"
+
+msgid ""
+"Усі онлайн-транзакції проходять через сертифікований платіжний шлюз LiqPay. "
+"Ми не зберігаємо номери карток — дані обробляються банком-емітентом."
+msgstr ""
+
+#, fuzzy
+#| msgid "Нарахування"
+msgid "Терміни зарахування"
+msgstr "Accrual"
+
+msgid ""
+"Онлайн-оплата зараховується миттєво. Замовлення відправляється після "
+"підтвердження оплати."
+msgstr ""
+
+#, fuzzy
+#| msgid "Перехід до оплати"
+msgid "Питання щодо оплати?"
+msgstr "Proceed to payment"
+
+#, fuzzy
+#| msgid "Потрібно як мінімум 2 товари"
+msgid "Повернення та обмін товару"
+msgstr "At least 2 products required"
+
+msgid ""
+"Умови повернення та обміну товарів у СвітПК. Оформіть заявку онлайн — ми "
+"допоможемо відповідно до законодавства України."
+msgstr ""
+
+msgid ""
+"Ми прагнемо, щоб ви були задоволені покупкою. Якщо товар не підійшов або "
+"виявився несправним, ми допоможемо оформити повернення або обмін відповідно "
+"до законодавства України."
+msgstr ""
+
+msgid "Коробка з логотипом Світ ПК та щит гарантії безпечного повернення"
+msgstr ""
+
+#, fuzzy
+#| msgid "Повернення"
+msgid "Умови повернення"
+msgstr "Returns"
+
+msgid "Умови повернення товару належної якості"
+msgstr ""
+
+msgid ""
+"Товар належної якості можна повернути протягом 14 днів з моменту отримання."
+msgstr ""
+
+#, fuzzy
+#| msgid "Замовлення доставлено"
+msgid "Для повернення необхідно:"
+msgstr "Order delivered"
+
+#, fuzzy
+#| msgid "Зберегти зміни"
+msgid "зберегти товарний вигляд"
+msgstr "Save changes"
+
+msgid "повну комплектацію"
+msgstr ""
+
+msgid "заводські пломби та упаковку"
+msgstr ""
+
+msgid "чек або інший документ, що підтверджує покупку"
+msgstr ""
+
+msgid "Товари, що не підлягають поверненню"
+msgstr ""
+
+msgid "програмне забезпечення з активованою ліцензією"
+msgstr ""
+
+#, fuzzy
+#| msgid "Скинути лічильник використань"
+msgid "витратні матеріали після використання"
+msgstr "Reset usage counter"
+
+msgid "товари зі слідами експлуатації"
+msgstr ""
+
+#, fuzzy
+#| msgid "Усі товари зі знижкою →"
+msgid "інші товари згідно з постановою КМУ №172"
+msgstr "All discounted products →"
+
+#, fuzzy
+#| msgid "Товар гарантійний"
+msgid "Якщо товар несправний"
+msgstr "Product under warranty"
+
+msgid ""
+"Зверніться до сервісного центру або магазину — ми проведемо діагностику та "
+"запропонуємо рішення."
+msgstr ""
+
+#, fuzzy
+#| msgid "Опис несправності"
+msgid "діагностика несправності"
+msgstr "Fault description"
+
+#, fuzzy
+#| msgid "Заправка та ремонт принтерів"
+msgid "гарантійний ремонт або обмін"
+msgstr "Printer refilling & repair"
+
+msgid "повернення коштів, якщо ремонт неможливий"
+msgstr ""
+
+#, fuzzy
+#| msgid "Оформити замовлення"
+msgid "Як оформити повернення або обмін"
+msgstr "Checkout"
+
+#, fuzzy
+#| msgid "Заповнити по СН"
+msgid "Заповніть заявку"
+msgstr "Fill by serial number"
+
+#, fuzzy
+#| msgid "Штрихкод відправлення:"
+msgid "Отримайте підтвердження"
+msgstr "Shipment barcode:"
+
+#, fuzzy
+#| msgid "Фільтр товару"
+msgid "Надішліть товар"
+msgstr "Product filter"
+
+msgid "Отримайте кошти або заміну"
+msgstr ""
+
+#, fuzzy
+#| msgid "Заявка на гарантію"
+msgid "Заявка на повернення або обмін"
+msgstr "Warranty claim"
+
+#, fuzzy
+#| msgid "Деактивувати обрані промокоди"
+msgid "Детальний опис проблеми"
+msgstr "Deactivate selected promo codes"
+
+msgid "Додайте фото товару (за бажанням)"
+msgstr ""
+
+#, fuzzy
+#| msgid "Бажаний товар"
+msgid "Завантажити фото товару"
+msgstr "Wished product"
+
+msgid "Натисніть або перетягніть файл сюди"
+msgstr ""
+
+msgid "PNG, JPG до 5 МБ"
+msgstr ""
+
+#, fuzzy
+#| msgid "Надіслати відгук"
+msgid "Надіслати заявку"
+msgstr "Submit review"
+
+msgid "Ваші дані в безпеці та не будуть передані третім особам"
+msgstr ""
+
+msgid "Пан Світік підказує"
+msgstr ""
+
+msgid ""
+"Перед оформленням повернення перевірте комплектацію товару та збережіть "
+"заводське пакування — це допоможе швидше опрацювати вашу заявку."
+msgstr ""
+
+#, fuzzy
+#| msgid "Швидкі запити"
+msgid "Швидке вирішення питань"
+msgstr "Quick prompts"
+
+msgid "Прозорі умови"
+msgstr ""
+
+msgid "Підтримка 24/7"
+msgstr ""
+
+#, fuzzy
+#| msgid "Особиста інформація"
+msgid "Контактна інформація"
+msgstr "Personal information"
+
+#, fuzzy
+#| msgid "Деталі замовлення на сайті"
+msgid "Терміни повернення коштів"
+msgstr "Order details on the website"
+
+msgid ""
+"Повернення коштів здійснюється протягом 1–7 робочих днів після перевірки "
+"товару."
+msgstr ""
+
+#, fuzzy
+#| msgid "Потрібно як мінімум 2 товари"
+msgid "Потрібна допомога?"
+msgstr "At least 2 products required"
+
+#, fuzzy
+#| msgid "Пн–Пт 9:00–19:00, Сб 10:00–17:00"
+msgid "Пн–Пт: 09:00–18:00, Сб–Нд: вихідний"
+msgstr "Mon–Fri 9:00–19:00, Sat 10:00–17:00"
+
+#, fuzzy
+#| msgid "Перейти до каталогу"
+msgid "Переваги магазину"
+msgstr "Go to catalog"
+
+msgid "Офіційна продукція"
+msgstr ""
+
+#, fuzzy
+#| msgid "Мін. замовлення"
+msgid "14 днів на повернення"
+msgstr "Min. order"
+
+#, fuzzy
+#| msgid "Швидкі запити"
+msgid "Швидка підтримка"
+msgstr "Quick prompts"
 
 msgid "Перехід до оплати"
 msgstr "Proceed to payment"
@@ -2145,14 +3400,25 @@ msgstr "Back to payment selection"
 msgid "Замовлення №%(pk)s на суму"
 msgstr "Order #%(pk)s for"
 
-msgid "Усі товари зі знижкою →"
+#, fuzzy
+#| msgid "Акція"
+msgid "Акція діє до:"
+msgstr "Promotion"
+
+#, fuzzy
+#| msgid "Атрибути товару"
+msgid "Переглянути товар"
+msgstr "Product attributes"
+
+#, fuzzy
+#| msgid "Бонусних операцій ще немає."
+msgid "Наразі активних акцій немає."
+msgstr "No bonus transactions yet."
+
+#, fuzzy
+#| msgid "Усі товари зі знижкою →"
+msgid "Усі товари зі знижкою"
 msgstr "All discounted products →"
-
-msgid "До"
-msgstr "Until"
-
-msgid "Акцій зараз немає."
-msgstr "No promotions at the moment."
 
 msgid "Відгуків поки немає. Будьте першим!"
 msgstr "No reviews yet. Be the first!"
@@ -2199,18 +3465,60 @@ msgstr "Results for \"%(q)s\""
 msgid "Знайдено %(total)s товарів"
 msgstr "Found %(total)s products"
 
+msgid ""
+"Скористайтесь фільтрами або порівнянням — так легше обрати потрібний товар."
+msgstr ""
+
 msgid "Нічого не знайдено. Спробуйте інший запит або перевірте написання."
 msgstr "Nothing found. Try a different query or check the spelling."
+
+msgid "Усі послуги"
+msgstr "All services"
+
+msgid "Опишіть проблему або оберіть послугу — підкажу, що робити далі."
+msgstr "Describe the issue or choose a service — I will guide you through the next steps."
 
 msgid "Прайс-лист"
 msgstr "Price list"
 
+msgid "* — вартість робіт без урахування матеріалів."
+msgstr "* — labour cost excluding materials."
+
 msgid ""
-"Ремонт ноутбуків, ПК, принтерів, заправка картриджів, відновлення даних та "
-"інші послуги сервісного центру СвітПК"
+"Діагностика, ремонт і обслуговування комп'ютерної техніки, ноутбуків, "
+"принтерів та периферії. Працюємо з оригінальними запчастинами та прозорими "
+"умовами."
 msgstr ""
-"Laptop, PC and printer repair, cartridge refills, data recovery and other "
-"SvitPC service centre services"
+"Diagnostics, repair and maintenance for computers, laptops, printers and "
+"peripherals. We use genuine parts and transparent terms."
+
+msgid "Досліджую вашу техніку!"
+msgstr "Exploring your device!"
+
+msgid ""
+"Оберіть потрібну послугу нижче або перегляньте актуальний прейскурант — "
+"допоможу не загубитися."
+msgstr ""
+"Choose a service below or open the current price list — I will help you find "
+"your way."
+
+msgid "Актуальні ціни на види робіт"
+msgstr "Current prices for service types"
+
+msgid "Залишити заявку на сервіс"
+msgstr "Submit a service request"
+
+msgid "Зв'язатися з сервісним відділом"
+msgstr "Contact the service department"
+
+msgid "Детальніше →"
+msgstr "Learn more →"
+
+msgid "Послуги незабаром будуть додані."
+msgstr "Services will be added soon."
+
+msgid "Вартість робіт без урахування матеріалів"
+msgstr "Labour cost excluding materials"
 
 msgid "Розділи сервісу"
 msgstr "Service sections"
@@ -2218,31 +3526,12 @@ msgstr "Service sections"
 msgid "Оформлення гарантії"
 msgstr "Warranty registration"
 
-msgid "Послуги незабаром будуть додані."
-msgstr "Services will be added soon."
-
-msgid "Товарів не знайдено"
-msgstr "No products found"
-
-#| msgid "Доступ заблоковано"
-msgid "Доступ обмежено"
-msgstr "Access restricted"
-
+#, fuzzy
+#| msgid "Індекс не знайдено. Перевірте правильність."
 msgid ""
-"Цей розділ доступний лише співробітникам магазину. Увійдіть під обліковим "
-"записом персоналу або зверніться до адміністратора."
-msgstr ""
-
-msgid "Інформація про гарантію"
-msgstr "Warranty information"
-
-msgid "Створення заявки"
-msgstr "Create request"
-
-msgid ""
-"Серійний номер не знайдено в реєстрі. Додайте його в адмінці (Серійні "
-"номери) або виконайте sync_brain_serials."
-msgstr ""
+"Серійний номер не знайдено в реєстрі. Перевірте правильність введення або "
+"зверніться до нас."
+msgstr "Postcode not found. Please check and try again."
 
 msgid "Дані продажу підставлено"
 msgstr "Sale data filled in"
@@ -2262,8 +3551,10 @@ msgstr "Enter a serial number first"
 msgid "Помилка мережі. Спробуйте ще раз."
 msgstr "Network error. Please try again."
 
-msgid "Немає доступу. Увійдіть як співробітник (staff)."
-msgstr "Access denied. Sign in as staff."
+#, fuzzy
+#| msgid "Результати пошуку"
+msgid "Немає доступу до пошуку."
+msgstr "Search results"
 
 msgid "Помилка пошуку"
 msgstr "Lookup error"
@@ -2305,17 +3596,79 @@ msgid ""
 "центру службою доставки"
 msgstr ""
 
-msgid "Заявки на сервіс"
+#, fuzzy
+#| msgid "Відправити"
+msgid "Відправити заявку"
+msgstr "Submit"
+
+#, fuzzy
+#| msgid "Зберегти адресу"
+msgid "Зберегти чернетку"
+msgstr "Save address"
+
+msgid "Товарів не знайдено"
+msgstr "No products found"
+
+#, fuzzy
+#| msgid ""
+#| "Ремонт ноутбуків, ПК, принтерів, заправка картриджів, відновлення даних "
+#| "та інші послуги сервісного центру СвітПК"
+msgid ""
+"Актуальні ціни на ремонт ноутбуків, ПК, принтерів, заправку картриджів та "
+"інші послуги сервісного центру СвітПК"
+msgstr ""
+"Laptop, PC and printer repair, cartridge refills, data recovery and other "
+"SvitPC service centre services"
+
+msgid ""
+"Ціни на послуги та види робіт сервісного центру. Точну вартість уточнюйте у "
+"менеджера."
+msgstr ""
+"Service and repair prices. Contact a manager for the exact quote."
+
+msgid "Прозорі ціни!"
+msgstr "Transparent pricing!"
+
+msgid ""
+"Наведені тарифи орієнтовні — фінальну суму підтвердить менеджер після "
+"діагностики."
+msgstr ""
+"Listed rates are indicative — the final amount is confirmed after diagnostics."
+
+msgid "Прейскурант незабаром буде опубліковано."
+msgstr "The price list will be published soon."
+
+msgid "Доступ обмежено"
+msgstr "Access restricted"
+
+msgid ""
+"Цей розділ доступний лише співробітникам магазину. Увійдіть під обліковим "
+"записом персоналу або зверніться до адміністратора."
+msgstr ""
+
+msgid "Інформація про гарантію"
+msgstr "Warranty information"
+
+#, fuzzy
+#| msgid "Заявки на сервіс"
+msgid "Заявка на сервіс"
 msgstr "Service requests"
 
-msgid "Створити нову заявку"
-msgstr "Create new request"
+msgid ""
+"Заповніть форму нижче, щоб передати техніку в сервісний центр або оформити "
+"гарантійний ремонт."
+msgstr ""
 
-msgid "Серійний номер, RMA, товар..."
-msgstr "Serial number, RMA, product..."
+#, fuzzy
+#| msgid "Дата відправки"
+msgid "Заявку відправлено!"
+msgstr "Submitted at"
 
-msgid "Заявок ще немає."
-msgstr "No requests yet."
+#, python-format
+msgid ""
+"Номер вашої заявки: <strong>%(rma)s</strong>. Ми зв'яжемося з вами після "
+"опрацювання."
+msgstr ""
 
 msgid "Вартість доставки буде розрахована при оформленні"
 msgstr "Delivery cost will be calculated at checkout"
@@ -2323,10 +3676,15 @@ msgstr "Delivery cost will be calculated at checkout"
 msgid "Індекс не знайдено. Перевірте правильність."
 msgstr "Postcode not found. Please check and try again."
 
+#, fuzzy
+#| msgid "Товарів не знайдено. Спробуйте змінити фільтри."
+msgid "Відділень не знайдено. Спробуйте номер або вулицю."
+msgstr "No products found. Try changing the filters."
+
 #, python-format
 msgid ""
 "СвітПК: З Днем народження, %(name)s! Промокод на знижку 10%%: %(code)s (до "
-"%(valid_to)s). +%(bonus)s бонусних грн на рахунок. svitpc.ua"
+"%(valid_to)s). svitpc.ua"
 msgstr ""
 
 #, python-format
@@ -2355,10 +3713,6 @@ msgid ""
 "Дійсний до %(valid_to)s"
 msgstr ""
 
-#, python-format
-msgid "На ваш бонусний рахунок нараховано +%(bonus)s грн"
-msgstr "%(bonus)s UAH credited to your bonus balance"
-
 msgid "Скористайтесь на svitpc.ua"
 msgstr "Use it at svitpc.ua"
 
@@ -2366,7 +3720,6 @@ msgstr "Use it at svitpc.ua"
 msgid ""
 "З Днем народження, %(name)s!\n"
 "Промокод 10%%: %(code)s (до %(valid_to)s).\n"
-"Бонусів нараховано: +%(bonus)s грн.\n"
 "Сайт: %(url)s"
 msgstr ""
 
@@ -2387,7 +3740,7 @@ msgstr ""
 msgid "СвітПК: замовлення #%(pk)s — «%(status)s»."
 msgstr "SvitPC: order #%(pk)s — «%(status)s»."
 
-#| msgid "ТТН:"
+#, python-format
 msgid "ТТН: %(ttn)s."
 msgstr "Tracking: %(ttn)s."
 
@@ -2398,8 +3751,111 @@ msgid ""
 "Відстеження: %(url)s%(order_url)s"
 msgstr ""
 
+msgid ""
+"Додавайте товари до списку бажань — так легше повернутися до них пізніше."
+msgstr ""
+
 msgid "Список бажань порожній."
 msgstr "Wishlist is empty."
+
+#~ msgid "Brain: синхронізувати (ціни, залишки, фото, опції)"
+#~ msgstr "Brain: sync (prices, stock, photos, options)"
+
+#~ msgid "Некоректна сума бонусів."
+#~ msgstr "Invalid bonus amount."
+
+#~ msgid "СвітПК"
+#~ msgstr "SvitPC"
+
+#~ msgid "Бонусний баланс"
+#~ msgstr "Bonus balance"
+
+#~ msgid "Запитати AI-консультанта про цей товар"
+#~ msgstr "Ask the AI consultant about this product"
+
+#~ msgid "Запитати AI"
+#~ msgstr "Ask AI"
+
+#~ msgid "Бонуси"
+#~ msgstr "Bonuses"
+
+#~ msgid "Миттєва розстрочка"
+#~ msgstr "Instant installment"
+
+#, python-format
+#~ msgid "Розстрочка 0%% через LiqPay Installment"
+#~ msgstr "0%% installment via LiqPay Installment"
+
+#~ msgid "Промокод і бонуси"
+#~ msgstr "Promo code and bonuses"
+
+#~ msgid "Доступно бонусів:"
+#~ msgstr "Available bonuses:"
+
+#~ msgid "Списати бонуси"
+#~ msgstr "Redeem bonuses"
+
+#~ msgid "Сума бонусів (грн)"
+#~ msgstr "Bonus amount (UAH)"
+
+#~ msgid "Максимум для цього замовлення:"
+#~ msgstr "Maximum for this order:"
+
+#~ msgid ", щоб списати бонуси."
+#~ msgstr " to redeem bonuses."
+
+#~ msgid "Відкрити чат з консультантом"
+#~ msgstr "Open chat with consultant"
+
+#~ msgid "Закрити чат"
+#~ msgstr "Close chat"
+
+#~ msgid "Привіт! Напишіть ваше запитання, і менеджер відповість якнайшвидше."
+#~ msgstr ""
+#~ "Hello! Send your question and a manager will reply as soon as possible."
+
+#~ msgid "Ваше повідомлення…"
+#~ msgstr "Your message…"
+
+#~ msgid "Бонусний баланс:"
+#~ msgstr "Bonus balance:"
+
+#~ msgid "Сповіщення"
+#~ msgstr "Notifications"
+
+#~ msgid "Поточний баланс"
+#~ msgstr "Current balance"
+
+#~ msgid "Телефон:"
+#~ msgstr "Phone:"
+
+#~ msgid "Email:"
+#~ msgstr "Email:"
+
+#~ msgid "До"
+#~ msgstr "Until"
+
+#~ msgid "Акцій зараз немає."
+#~ msgstr "No promotions at the moment."
+
+#~ msgid "Створення заявки"
+#~ msgstr "Create request"
+
+#~ msgid "Немає доступу. Увійдіть як співробітник (staff)."
+#~ msgstr "Access denied. Sign in as staff."
+
+#~ msgid "Створити нову заявку"
+#~ msgstr "Create new request"
+
+#~ msgid "Серійний номер, RMA, товар..."
+#~ msgstr "Serial number, RMA, product..."
+
+#~ msgid "Заявок ще немає."
+#~ msgstr "No requests yet."
+
+#, python-format
+#~ msgid "На ваш бонусний рахунок нараховано +%(bonus)s грн"
+#~ msgstr "%(bonus)s UAH credited to your bonus balance"
 
 #~ msgid "Реєстрація успішна! Ласкаво просимо!"
 #~ msgstr "Registration successful! Welcome!"

@@ -10,6 +10,12 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from .models import PriceItem, Service, ServiceCategory
+from .i18n import (
+    translate_category_name,
+    translate_price_item_name,
+    translate_service_description,
+    translate_service_name,
+)
 
 DEFAULT_WORKBOOK = Path("ТЗ/Прейскурант цен .xlsx")
 FOOTNOTE_CATEGORY = "* Вид робіт без урахування матеріалу"
@@ -182,6 +188,7 @@ def import_service_prices(path: Path, *, replace: bool = True) -> dict[str, int]
             slug=category_slug,
             defaults={
                 "name": category_data.name,
+                "name_en": translate_category_name(category_data.name),
                 "sort_order": int(meta.get("sort_order", category_data.sort_order)),
             },
         )
@@ -194,7 +201,9 @@ def import_service_prices(path: Path, *, replace: bool = True) -> dict[str, int]
             defaults={
                 "category": category,
                 "name": service_name,
+                "name_en": translate_service_name(category_data.name, service_name),
                 "description": str(meta.get("description", "")),
+                "description_en": translate_service_description(category_data.name),
                 "is_active": True,
                 "show_on_home": bool(meta.get("show_on_home", False)),
                 "sort_order": 1,
@@ -208,6 +217,7 @@ def import_service_prices(path: Path, *, replace: bool = True) -> dict[str, int]
                 service=service,
                 name=item.name,
                 defaults={
+                    "name_en": translate_price_item_name(item.name),
                     "unit": item.unit,
                     "price_from": item.price,
                     "price_to": None,

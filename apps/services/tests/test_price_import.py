@@ -47,7 +47,11 @@ class ImportServicePricesTests(TestCase):
 
         laptop_service = Service.objects.get(name="Ремонт ноутбуків")
         self.assertTrue(laptop_service.show_on_home)
+        self.assertEqual(laptop_service.name_en, "Laptop repair")
+        self.assertTrue(laptop_service.description_en)
         self.assertEqual(laptop_service.prices.count(), 16)
+        first_price = laptop_service.prices.order_by("sort_order").first()
+        self.assertTrue(first_price.name_en)
 
     def test_import_is_idempotent(self):
         if not WORKBOOK.exists():
