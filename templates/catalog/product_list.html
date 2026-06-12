@@ -19,6 +19,9 @@
     {% endfor %}
   </div>
   {% endwith %}
+  {% if total_pages and total_pages > 1 %}
+  {% include "catalog/partials/product_grid_pagination.html" with page=page total_pages=total_pages query_params=query_params %}
+  {% endif %}
   {% else %}
   <p class="catalog-product-list__empty">{% trans "Товарів не знайдено." %}</p>
   {% endif %}

@@ -8,6 +8,7 @@ from django.db.models import Avg, Count, Q
 from django.http import HttpRequest, HttpResponse
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
+from django.utils.translation import gettext as _
 from django.views.decorators.cache import cache_page
 
 from apps.analytics.ecommerce import product_list_payload, product_view_payload
@@ -324,7 +325,7 @@ def new_products_view(request: HttpRequest) -> HttpResponse:
     if not products:
         products = order_stock_first(qs, "-date_added", "-pk")[:24]
     return render(request, "catalog/product_list.html", {
-        "title": "Новинки",
+        "title": _("Новинки"),
         "products": products,
     })
 
@@ -338,15 +339,40 @@ def hit_products_view(request: HttpRequest) -> HttpResponse:
     if not products:
         products = order_stock_first(qs, "-viewed", "-pk")[:24]
     return render(request, "catalog/product_list.html", {
-        "title": "Хіти продажів",
+        "title": _("Хіти продажів"),
         "products": products,
     })
 
 
+@cache_page(300)
 def sale_products_view(request: HttpRequest) -> HttpResponse:
-    products = order_stock_first(with_active_promotions(get_sale_products_queryset()), "sort_order", "name")
-    return render(request, "catalog/product_list.html", {
-        "title": "Акції та знижки",
-        "products": products,
-        "show_promotions_link": True,
-    })
+    per_page = 24
+    try:
+        page = max(1, int(request.GET.get("page", 1) or 1))
+    except (TypeError, ValueError):
+        page = 1
+
+    qs = order_stock_first(
+        with_active_promotions(get_sale_products_queryset()),
+        "sort_order",
+        "name",
+    )
+    total = qs.count()
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+
+    products = qs[(page - 1) * per_page : page * per_page]
+
+    return render(
+        request,
+        "catalog/product_list.html",
+        {
+            "title": _("Акції та знижки"),
+            "products": products,
+            "show_promotions_link": True,
+            "page": page,
+            "total_pages": total_pages,
+            "query_params": "",
+        },
+    )

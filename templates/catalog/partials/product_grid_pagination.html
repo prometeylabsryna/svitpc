@@ -1,0 +1,18 @@
+{% load i18n %}
+{% with base=query_params|default:"" %}
+<nav class="pagination" aria-label="{% trans 'Сторінки' %}">
+  {% if page > 1 %}
+  <a href="?{% if base %}{{ base }}&{% endif %}page={{ page|add:"-1" }}" class="pagination__item" aria-label="{% trans 'Попередня' %}">‹</a>
+  {% endif %}
+  {% for i in "123456789"|make_list %}
+    {% with pi=forloop.counter %}
+      {% if pi <= total_pages %}
+      <a href="?{% if base %}{{ base }}&{% endif %}page={{ pi }}" class="pagination__item {% if pi == page %}is-active{% endif %}" {% if pi == page %}aria-current="page"{% endif %}>{{ pi }}</a>
+      {% endif %}
+    {% endwith %}
+  {% endfor %}
+  {% if page < total_pages %}
+  <a href="?{% if base %}{{ base }}&{% endif %}page={{ page|add:"1" }}" class="pagination__item" aria-label="{% trans 'Наступна' %}">›</a>
+  {% endif %}
+</nav>
+{% endwith %}
