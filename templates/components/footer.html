@@ -82,6 +82,13 @@
 
     </div>
 
+    {% if SITE_HAS_LEGAL_INFO %}
+    <div class="site-footer__legal site-legal">
+      <h3 class="site-legal__title">{% trans "Юридична інформація" %}</h3>
+      {% include "components/legal_entity.html" %}
+    </div>
+    {% endif %}
+
     <div class="site-footer__bottom">
       <div class="site-footer__bottom-col site-footer__bottom-col--start">
         <span>&copy; {% now "Y" %} {{ SITE_NAME }}. {% trans "Всі права захищені." %}</span>

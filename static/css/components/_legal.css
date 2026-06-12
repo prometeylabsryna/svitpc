@@ -1,0 +1,88 @@
+@layer components {
+  .site-legal__title {
+    font-size: var(--text-xs);
+    font-weight: var(--fw-bold);
+    color: var(--footer-fg, var(--clr-neutral-900));
+    margin: 0 0 var(--space-4);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .site-legal__list {
+    margin: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .site-legal__row {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+
+    @media (min-width: 640px) {
+      grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
+      gap: var(--space-4);
+      align-items: start;
+    }
+  }
+
+  .site-legal__row dt {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--fw-semibold);
+    color: var(--footer-fg-muted, var(--clr-neutral-600));
+  }
+
+  .site-legal__row dd {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--footer-fg-subtle, var(--clr-neutral-700));
+    overflow-wrap: anywhere;
+  }
+
+  .site-legal__row a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+
+    &:hover {
+      color: var(--clr-primary-500);
+    }
+  }
+
+  .site-footer__legal {
+    margin-top: var(--space-8);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--footer-border);
+    min-width: 0;
+  }
+
+  .contact-legal,
+  .payment-legal {
+    margin-block: var(--space-8);
+    padding: var(--space-6);
+    border: 1px solid var(--clr-neutral-200);
+    border-radius: var(--radius-xl);
+    background: var(--clr-neutral-50);
+    min-width: 0;
+  }
+
+  .contact-legal .site-legal__title,
+  .payment-legal .site-legal__title {
+    color: var(--clr-neutral-900);
+    font-size: var(--text-base);
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .contact-legal .site-legal__row dt,
+  .payment-legal .site-legal__row dt {
+    color: var(--clr-neutral-700);
+  }
+
+  .contact-legal .site-legal__row dd,
+  .payment-legal .site-legal__row dd {
+    color: var(--clr-neutral-900);
+  }
+}

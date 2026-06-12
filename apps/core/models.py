@@ -36,6 +36,31 @@ class SiteSettings(models.Model):
     )
     tagline_en = models.TextField(_("Короткий опис у футері (EN)"), blank=True)
     address = models.CharField(_("Адреса"), max_length=255, blank=True)
+    legal_entity = models.CharField(
+        _("Форма суб'єкта"),
+        max_length=20,
+        blank=True,
+        default="ФОП",
+        help_text=_("Напр.: ФОП або ТОВ — для блоку юридичної інформації на сайті."),
+    )
+    legal_name = models.CharField(
+        _("ПІБ / назва юрособи"),
+        max_length=255,
+        blank=True,
+        help_text=_("Як у документах для LiqPay та податкової (ПІБ ФОП або повна назва ТОВ)."),
+    )
+    tax_id = models.CharField(
+        _("РНОКПП / ЄДРПОУ"),
+        max_length=20,
+        blank=True,
+        help_text=_("ІПН для ФОП або ЄДРПОУ для ТОВ."),
+    )
+    legal_address = models.CharField(
+        _("Юридична адреса"),
+        max_length=500,
+        blank=True,
+        help_text=_("Адреса реєстрації з податкової або виписки."),
+    )
     facebook_url = models.URLField(_("Facebook"), blank=True)
     instagram_url = models.URLField(_("Instagram"), blank=True)
     telegram_url = models.URLField(
@@ -84,6 +109,9 @@ class SiteSettings(models.Model):
         obj, _ = cls.objects.select_related("used_category").get_or_create(pk=1)
         cache.set(SITE_SETTINGS_CACHE_KEY, obj.pk, timeout=None)
         return obj
+
+    def has_legal_info(self) -> bool:
+        return bool(str(self.legal_name or "").strip() and str(self.tax_id or "").strip())
 
     def effective_viber_phone(self) -> str:
         custom = str(self.viber_phone or "").strip()

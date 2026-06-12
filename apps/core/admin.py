@@ -18,6 +18,16 @@ class SiteSettingsAdmin(ModelAdmin):
             },
         ),
         (
+            _("Юридична інформація"),
+            {
+                "fields": ("legal_entity", "legal_name", "tax_id", "legal_address"),
+                "description": _(
+                    "Відображається у футері та на сторінках контактів/оплати. "
+                    "Дані мають збігатися з документами в кабінеті LiqPay."
+                ),
+            },
+        ),
+        (
             _("Тексти"),
             {
                 "fields": ("tagline", "tagline_en"),

@@ -17,6 +17,7 @@
 
 @import "components/_header.css"            layer(components);
 @import "components/_footer.css"            layer(components);
+@import "components/_legal.css"             layer(components);
 @import "components/_card.css"             layer(components);
 @import "components/_forms.css"            layer(components);
 @import "components/_filters.css"          layer(components);

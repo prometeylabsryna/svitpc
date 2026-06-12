@@ -23,6 +23,13 @@
       </p>
     </header>
 
+    {% if SITE_HAS_LEGAL_INFO %}
+    <section class="contact-legal site-legal" aria-labelledby="contact-legal-heading">
+      <h2 class="contact-legal__title site-legal__title" id="contact-legal-heading">{% trans "Юридична інформація" %}</h2>
+      {% include "components/legal_entity.html" %}
+    </section>
+    {% endif %}
+
     <section class="contact-cards" aria-label="{% trans "Способи зв'язку" %}">
       <article class="contact-card">
         <div class="contact-card__icon" aria-hidden="true">

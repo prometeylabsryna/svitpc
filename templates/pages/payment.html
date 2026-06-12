@@ -171,6 +171,13 @@
       </div>
     </section>
 
+    {% if SITE_HAS_LEGAL_INFO %}
+    <section class="payment-legal site-legal" aria-labelledby="payment-legal-heading">
+      <h2 class="payment-legal__title site-legal__title" id="payment-legal-heading">{% trans "Юридична інформація продавця" %}</h2>
+      {% include "components/legal_entity.html" %}
+    </section>
+    {% endif %}
+
     <div class="payment-cta">
       <p class="payment-cta__text">{% trans "Готові оформити замовлення?" %}</p>
       <div class="payment-cta__actions">

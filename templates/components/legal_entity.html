@@ -1,0 +1,27 @@
+{% load i18n %}
+{% if SITE_HAS_LEGAL_INFO %}
+<dl class="site-legal__list">
+  <div class="site-legal__row">
+    <dt>{% trans "Продавець" %}</dt>
+    <dd>{{ SITE_LEGAL_ENTITY }} {{ SITE_LEGAL_NAME }}</dd>
+  </div>
+  <div class="site-legal__row">
+    <dt>{% trans "РНОКПП" %}</dt>
+    <dd>{{ SITE_TAX_ID }}</dd>
+  </div>
+  {% if SITE_LEGAL_ADDRESS %}
+  <div class="site-legal__row">
+    <dt>{% trans "Адреса реєстрації" %}</dt>
+    <dd>{{ SITE_LEGAL_ADDRESS }}</dd>
+  </div>
+  {% endif %}
+  <div class="site-legal__row">
+    <dt>{% trans "Телефон" %}</dt>
+    <dd><a href="tel:{{ SITE_PHONE }}">{{ SITE_PHONE }}</a></dd>
+  </div>
+  <div class="site-legal__row">
+    <dt>Email</dt>
+    <dd><a href="mailto:{{ SITE_EMAIL }}">{{ SITE_EMAIL }}</a></dd>
+  </div>
+</dl>
+{% endif %}
