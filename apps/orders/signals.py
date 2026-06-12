@@ -30,7 +30,7 @@ def schedule_coin_accrual(order_pk: int) -> None:
 
 @receiver(post_save, sender=Order)
 def on_order_created(sender, instance: Order, created: bool, **kwargs) -> None:
-    """Notify admin via Telegram when a new order is placed."""
+    """Notify store owner via email when a new order is placed."""
     if not created:
         return
     from apps.notifications.tasks import notify_new_order

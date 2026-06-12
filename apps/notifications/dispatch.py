@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from django.conf import settings
@@ -9,6 +10,8 @@ from django.conf import settings
 from apps.core.models import SiteSettings
 
 from .service import send_notification
+
+logger = logging.getLogger(__name__)
 
 
 def site_url() -> str:
@@ -71,6 +74,23 @@ def notify_order_customer(
                 "tag": push_tag or f"order-{order.pk}",
             },
         )
+
+
+def notify_site_owner(template_name: str, context: dict[str, Any] | None = None) -> None:
+    """Email store owner (SiteSettings.email) about internal events."""
+    site = SiteSettings.load()
+    recipient = (site.email or settings.DEFAULT_FROM_EMAIL or "").strip()
+    if not recipient:
+        logger.warning("notify_site_owner skipped: no recipient, template=%s", template_name)
+        return
+    ctx = dict(context or {})
+    ctx.setdefault("site_name", site.name)
+    ctx.setdefault("site_phone", site.phone)
+    ctx.setdefault("site_email", site.email)
+    try:
+        send_notification("email", recipient, template_name, ctx)
+    except Exception:
+        logger.exception("Failed to notify site owner, template=%s", template_name)
 
 
 def notify_customer_channels(

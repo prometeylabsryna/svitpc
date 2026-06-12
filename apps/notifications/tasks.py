@@ -3,7 +3,7 @@ from celery import shared_task
 from django.conf import settings
 from django.utils.translation import gettext as _
 
-from .dispatch import notify_order_customer
+from .dispatch import notify_order_customer, notify_site_owner, order_context
 from .service import send_notification
 
 
@@ -12,7 +12,11 @@ def notify_new_order(order_pk: int) -> None:
     from apps.orders.models import Order
 
     try:
-        order = Order.objects.select_related("customer", "status").get(pk=order_pk)
+        order = (
+            Order.objects.select_related("customer", "status")
+            .prefetch_related("items")
+            .get(pk=order_pk)
+        )
     except Order.DoesNotExist:
         return
 
@@ -24,13 +28,7 @@ def notify_new_order(order_pk: int) -> None:
         push_tag=f"order-new-{order.pk}",
     )
 
-    if settings.TELEGRAM_ADMIN_CHAT_ID:
-        send_notification(
-            "telegram",
-            settings.TELEGRAM_ADMIN_CHAT_ID,
-            "order_created_admin",
-            {"order": order},
-        )
+    notify_site_owner("order_created_admin", order_context(order))
 
 
 @shared_task

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family: PT Sans, Arial, sans-serif; color: #050505; line-height: 1.5; max-width: 640px; margin: 0 auto; padding: 24px;">
+  <h2 style="color: #0fa2f0; margin-top: 0;">Нове замовлення #{{ order.pk }}</h2>
+
+  <table cellpadding="6" cellspacing="0" border="0" style="width: 100%;">
+    <tr><td style="color: #555; width: 140px;"><strong>ПІБ:</strong></td><td>{{ order.first_name }} {{ order.last_name }}</td></tr>
+    <tr><td style="color: #555;"><strong>Телефон:</strong></td><td><a href="tel:{{ order.phone }}">{{ order.phone }}</a></td></tr>
+    {% if order.email %}
+    <tr><td style="color: #555;"><strong>Email:</strong></td><td><a href="mailto:{{ order.email }}">{{ order.email }}</a></td></tr>
+    {% endif %}
+    <tr><td style="color: #555;"><strong>Сума:</strong></td><td><strong>{{ order.total }} ₴</strong>{% if order.delivery_cost %} + доставка {{ order.delivery_cost }} ₴{% endif %}</td></tr>
+    <tr><td style="color: #555;"><strong>Оплата:</strong></td><td>{{ order.get_payment_method_display }}</td></tr>
+    <tr><td style="color: #555;"><strong>Доставка:</strong></td><td>{{ order.get_delivery_type_display }}{% if order.city %} — {{ order.city }}{% endif %}</td></tr>
+    {% if order.warehouse %}
+    <tr><td style="color: #555;"><strong>Відділення:</strong></td><td>{{ order.warehouse }}</td></tr>
+    {% endif %}
+    {% if order.comment %}
+    <tr><td style="color: #555;" valign="top"><strong>Коментар:</strong></td><td>{{ order.comment|linebreaksbr }}</td></tr>
+    {% endif %}
+  </table>
+
+  {% if order.items.all %}
+  <h3 style="margin: 24px 0 12px; font-size: 16px;">Товари</h3>
+  <table cellpadding="8" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr style="background: #f5f5f5;">
+        <th align="left" style="border-bottom: 1px solid #ddd;">Назва</th>
+        <th align="center" style="border-bottom: 1px solid #ddd;">К-сть</th>
+        <th align="right" style="border-bottom: 1px solid #ddd;">Ціна</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in order.items.all %}
+      <tr>
+        <td style="border-bottom: 1px solid #eee;">{{ item.name }}{% if item.sku %} <span style="color: #888;">({{ item.sku }})</span>{% endif %}</td>
+        <td align="center" style="border-bottom: 1px solid #eee;">{{ item.qty }}</td>
+        <td align="right" style="border-bottom: 1px solid #eee;">{{ item.subtotal }} ₴</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if site_url %}
+  <p style="margin-top: 24px;">
+    <a href="{{ site_url }}/admin/orders/order/{{ order.pk }}/change/" style="color: #0fa2f0;">Відкрити в адмінці</a>
+  </p>
+  {% endif %}
+</body>
+</html>
