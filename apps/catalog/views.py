@@ -28,6 +28,7 @@ from .services import (
     visible_catalog_products,
 )
 from .facet_cache import catalog_filter_params, count_cache_key, facet_cache_key
+from .home_cache import get_home_hit_products, get_home_new_products, get_home_sale_products
 
 
 def home_view(request: HttpRequest) -> HttpResponse:
@@ -37,32 +38,18 @@ def home_view(request: HttpRequest) -> HttpResponse:
         recommended_banner_size,
     )
 
-    visible = with_active_promotions(
-        visible_catalog_products().select_related("brand").prefetch_related("images")
-    )
-
     home_ad_settings = get_home_ad_settings()
     home_ads = list(active_home_banners())
     home_ad_columns = home_ad_settings.visible_columns
     slot_w, slot_h = recommended_banner_size(home_ad_columns)
     home_ads_carousel = len(home_ads) > home_ad_columns
 
-    new_products = order_stock_first(visible.filter(is_new=True), "sort_order", "name")[:6]
-    if not new_products:
-        new_products = order_stock_first(visible, "-date_added", "-pk")[:6]
-
-    hit_products = order_stock_first(visible.filter(is_hit=True), "-viewed", "sort_order")[:6]
-    if not hit_products:
-        hit_products = order_stock_first(visible, "-viewed", "-pk")[:6]
-
-    sale_products = order_stock_first(with_active_promotions(get_sale_products_queryset()), "sort_order", "name")[:6]
-
     from apps.services.querysets import home_featured_services
 
     return render(request, "catalog/home.html", {
-        "new_products": new_products,
-        "hit_products": hit_products,
-        "sale_products": sale_products,
+        "new_products": get_home_new_products(),
+        "hit_products": get_home_hit_products(),
+        "sale_products": get_home_sale_products(),
         "home_services": list(home_featured_services()),
         "home_ads": home_ads,
         "home_ad_columns": home_ad_columns,

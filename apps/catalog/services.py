@@ -210,17 +210,20 @@ def get_sale_products_queryset() -> QuerySet[Product]:
     """Products on sale: discounted (old_price > price) or in a running promotion."""
     from apps.promotions.services import running_promotions_qs
 
-    promo_ids = list(
-        running_promotions_qs().values_list("product_id", flat=True).distinct()
-    )
+    discounted_pks = Product.objects.filter(
+        is_visible=True,
+        old_price__isnull=False,
+        old_price__gt=F("price"),
+    ).values_list("pk", flat=True)
+    promo_pks = running_promotions_qs().values_list("product_id", flat=True).distinct()
+    sale_pks = set(discounted_pks) | set(promo_pks)
+    if not sale_pks:
+        return Product.objects.none()
 
-    discounted = Q(old_price__isnull=False, old_price__gt=F("price"))
-    qs = visible_catalog_products()
-    if promo_ids:
-        qs = qs.filter(discounted | Q(pk__in=promo_ids))
-    else:
-        qs = qs.filter(discounted)
-    return qs.select_related("brand").prefetch_related("images").distinct()
+    qs = filter_products_with_display_image(
+        Product.objects.filter(pk__in=sale_pks, is_visible=True)
+    )
+    return qs.select_related("brand").prefetch_related("images")
 
 
 def apply_markup(base_price: Decimal, brand_id: int | None, category_ids: list[int]) -> Decimal:
