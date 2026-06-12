@@ -142,7 +142,7 @@ CACHES = {
         "LOCATION": env("REDIS_URL", default="redis://127.0.0.1:6379/0"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+            "SERIALIZER": "django_redis.serializers.pickle.PickleSerializer",
         },
         "TIMEOUT": 300,
         "KEY_PREFIX": "svitpc",
