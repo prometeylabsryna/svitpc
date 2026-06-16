@@ -67,6 +67,7 @@ def sync_products() -> None:
 
     from apps.catalog.models import Product
     from apps.catalog.services import apply_markup
+    from .client import products_page_limit
     from .services import (
         brain_stock_from_detail,
         brain_visibility,
@@ -85,7 +86,7 @@ def sync_products() -> None:
     for brain_cat in top_cats:
         cat_id = int(brain_cat["categoryID"])
         offset = 0
-        limit = 1000
+        limit = products_page_limit()
 
         while True:
             items, total = client.get_products(cat_id, offset=offset, limit=limit)

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from django.db.models import Q
 
+from .client import products_page_limit
 from .services import (
     brain_hide_out_of_stock_enabled,
     brain_stock_from_detail,
@@ -82,7 +83,7 @@ def sync_all_availability_from_brain(
     for brain_cat in top_cats:
         cat_id = int(brain_cat["categoryID"])
         offset = 0
-        limit = 1000
+        limit = products_page_limit()
 
         while True:
             items, total = client.get_products(cat_id, offset=offset, limit=limit)
@@ -134,6 +135,13 @@ def sync_all_availability_from_brain(
         stock__lte=0,
         is_visible=True,
     ).count()
+
+    if stats["scanned_api"] == 0 and top_cats:
+        logger.error(
+            "Brain sync_all_availability: no products from API — check limit/rate limits "
+            "(BRAIN_PRODUCTS_PAGE_LIMIT=%s)",
+            products_page_limit(),
+        )
 
     logger.info(
         "Brain sync_all_availability: scanned=%d updated=%d missing_hidden=%d visible_zero=%d dry_run=%s",

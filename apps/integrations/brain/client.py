@@ -10,12 +10,17 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import time
 
 import httpx
 from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 BASE_URL = "https://api.brain.com.ua"
+
+# Brain API: max 3 requests/sec (error 115 → HTTP 429)
+_RATE_INTERVAL_SEC = 0.35
+_LAST_REQUEST_AT = 0.0
 
 # Cache TTLs
 _SID_CACHE_KEY = "brain:sid"
@@ -27,6 +32,23 @@ _TTL_CONTENT = 60 * 30        # 30 min — options, images
 
 # Brain API error codes that mean "session expired / invalid"
 _SESSION_ERRORS = {2, 3, 4, 14}
+
+
+def products_page_limit() -> int:
+    """Brain page size: 100 without OWN_MODE, up to 1000 with OWN_MODE."""
+    from django.conf import settings
+
+    raw = int(getattr(settings, "BRAIN_PRODUCTS_PAGE_LIMIT", 100))
+    return max(100, min(raw, 1000))
+
+
+def _throttle_brain_request() -> None:
+    global _LAST_REQUEST_AT
+    now = time.monotonic()
+    wait = _RATE_INTERVAL_SEC - (now - _LAST_REQUEST_AT)
+    if wait > 0:
+        time.sleep(wait)
+    _LAST_REQUEST_AT = time.monotonic()
 
 
 class BrainAPIClient:
@@ -90,27 +112,45 @@ class BrainAPIClient:
         if (hit := cache.get(ckey)) is not None:
             return hit
 
-        try:
-            resp = self._http.get(path, params=params or {})
-            resp.raise_for_status()
-            data = resp.json()
+        last_exc: Exception | None = None
+        for attempt in range(6):
+            _throttle_brain_request()
+            try:
+                resp = self._http.get(path, params=params or {})
+                if resp.status_code == 429:
+                    delay = 1.0 * (attempt + 1)
+                    logger.warning("Brain API rate limit %s, retry in %.1fs", path, delay)
+                    time.sleep(delay)
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
 
-            # Detect session error → re-auth once
-            if isinstance(data, dict) and data.get("status") == 0:
-                if _retry and data.get("error_code") in _SESSION_ERRORS:
-                    cache.delete(_SID_CACHE_KEY)
-                    return self._get(path_tpl, params, cache_ttl, _retry=False, **path_kwargs)
-                logger.warning("Brain API %s → %s", path, data.get("error_message"))
+                if isinstance(data, dict) and data.get("status") == 0:
+                    if _retry and data.get("error_code") in _SESSION_ERRORS:
+                        cache.delete(_SID_CACHE_KEY)
+                        return self._get(path_tpl, params, cache_ttl, _retry=False, **path_kwargs)
+                    logger.warning("Brain API %s → %s", path, data.get("error_message"))
+                    return None
+
+                result = data.get("result") if isinstance(data, dict) and "result" in data else data
+                if result is not None:
+                    cache.set(ckey, result, cache_ttl)
+                return result
+            except httpx.HTTPStatusError as exc:
+                last_exc = exc
+                if exc.response.status_code == 429 and attempt < 5:
+                    time.sleep(1.0 * (attempt + 1))
+                    continue
+                logger.error("Brain API request failed [%s]: %s", path_tpl, exc)
+                return None
+            except Exception as exc:
+                last_exc = exc
+                logger.error("Brain API request failed [%s]: %s", path_tpl, exc)
                 return None
 
-            result = data.get("result") if isinstance(data, dict) and "result" in data else data
-            if result is not None:
-                cache.set(ckey, result, cache_ttl)
-            return result
-
-        except Exception as exc:
-            logger.error("Brain API request failed [%s]: %s", path_tpl, exc)
-            return None
+        if last_exc is not None:
+            logger.error("Brain API request failed after retries [%s]: %s", path_tpl, last_exc)
+        return None
 
     # ── Categories ───────────────────────────────────────────────────────────────
 
@@ -144,13 +184,20 @@ class BrainAPIClient:
         self,
         category_id: int,
         offset: int = 0,
-        limit: int = 1000,
+        limit: int | None = None,
         lang: str = "ua",
     ) -> tuple[list[dict], int]:
         """Return (product list, total count) for a category (includes all sub-categories)."""
+        page_limit = limit if limit is not None else products_page_limit()
         data = self._get(
             "/products/{cat_id}/{sid}",
-            {"offset": offset, "limit": limit, "lang": lang, "sortby": "productID", "order": "asc"},
+            {
+                "offset": offset,
+                "limit": page_limit,
+                "lang": lang,
+                "sortby": "productID",
+                "order": "asc",
+            },
             cache_ttl=_TTL_PRODUCTS,
             cat_id=category_id,
         )
