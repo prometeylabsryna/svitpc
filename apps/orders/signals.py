@@ -33,8 +33,15 @@ def on_order_created(sender, instance: Order, created: bool, **kwargs) -> None:
     """Notify store owner via email when a new order is placed."""
     if not created:
         return
-    from apps.notifications.tasks import notify_new_order
-    notify_new_order.delay(instance.pk)
+
+    def _enqueue() -> None:
+        from apps.notifications.tasks import notify_new_order_customer, notify_new_order_owner
+
+        # Owner email first (fast); customer SMS/push in a separate task.
+        notify_new_order_owner.delay(instance.pk)
+        notify_new_order_customer.delay(instance.pk)
+
+    transaction.on_commit(_enqueue)
 
 
 @receiver(post_save, sender=Order)

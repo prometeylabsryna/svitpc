@@ -6,6 +6,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
+from django.db import transaction
 
 
 @pytest.mark.django_db
@@ -80,3 +81,59 @@ def test_notify_new_order_sends_owner_email_via_mail(settings, mailoutbox):
     assert msg.to == ["owner@svitpc.com.ua"]
     assert f"#{order.pk}" in msg.subject
     assert "Марія" in msg.alternatives[0][0]
+
+
+@pytest.mark.django_db
+def test_notify_new_order_owner_before_customer(settings):
+    from apps.core.models import SiteSettings
+    from apps.notifications.tasks import notify_new_order
+    from apps.orders.models import Order, OrderStatus
+
+    site = SiteSettings.load()
+    site.email = "owner@svitpc.com.ua"
+    site.save()
+
+    status = OrderStatus.objects.create(name="Новий")
+    order = Order.objects.create(
+        status=status,
+        first_name="Тест",
+        phone="+380501234567",
+        total=Decimal("100.00"),
+    )
+
+    call_order: list[str] = []
+
+    def track_send(channel, recipient, template, ctx=None):
+        call_order.append(f"{channel}:{template}")
+        return True
+
+    with patch("apps.notifications.dispatch.send_notification", side_effect=track_send):
+        notify_new_order(order.pk)
+
+    assert call_order[0] == "email:order_created_admin"
+    assert any(c.startswith("email:order_created") or c.startswith("sms:") for c in call_order[1:])
+
+
+@pytest.mark.django_db
+def test_on_order_created_enqueues_after_commit(django_capture_on_commit_callbacks):
+    from apps.orders.models import Order, OrderStatus
+
+    status = OrderStatus.objects.create(name="Новий")
+
+    with patch("apps.notifications.tasks.notify_new_order_owner.delay") as owner_delay, patch(
+        "apps.notifications.tasks.notify_new_order_customer.delay",
+    ) as customer_delay:
+        with transaction.atomic():
+            Order.objects.create(
+                status=status,
+                first_name="Олег",
+                phone="+380671111111",
+                total=Decimal("200.00"),
+            )
+        owner_delay.assert_not_called()
+        customer_delay.assert_not_called()
+
+        django_capture_on_commit_callbacks()
+
+    owner_delay.assert_called_once()
+    customer_delay.assert_called_once()

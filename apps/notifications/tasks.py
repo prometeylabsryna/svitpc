@@ -7,19 +7,34 @@ from .dispatch import notify_order_customer, notify_site_owner, order_context
 from .service import send_notification
 
 
-@shared_task
-def notify_new_order(order_pk: int) -> None:
+def _load_new_order(order_pk: int):
     from apps.orders.models import Order
 
     try:
-        order = (
+        return (
             Order.objects.select_related("customer", "status")
             .prefetch_related("items")
             .get(pk=order_pk)
         )
     except Order.DoesNotExist:
-        return
+        return None
 
+
+@shared_task
+def notify_new_order_owner(order_pk: int) -> None:
+    """Email store owner — lightweight task, queued first on new orders."""
+    order = _load_new_order(order_pk)
+    if order is None:
+        return
+    notify_site_owner("order_created_admin", order_context(order))
+
+
+@shared_task
+def notify_new_order_customer(order_pk: int) -> None:
+    """Customer channels (email/SMS/push) — may call external APIs."""
+    order = _load_new_order(order_pk)
+    if order is None:
+        return
     notify_order_customer(
         order,
         "order_created",
@@ -28,7 +43,12 @@ def notify_new_order(order_pk: int) -> None:
         push_tag=f"order-new-{order.pk}",
     )
 
-    notify_site_owner("order_created_admin", order_context(order))
+
+@shared_task
+def notify_new_order(order_pk: int) -> None:
+    """Backward-compatible wrapper (owner first, then customer)."""
+    notify_new_order_owner(order_pk)
+    notify_new_order_customer(order_pk)
 
 
 @shared_task
