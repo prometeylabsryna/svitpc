@@ -15,7 +15,10 @@ from .models import Category, Filter, Product
 
 def visible_catalog_products() -> QuerySet[Product]:
     """Visible products with a real display photo (no placeholder/stale URLs)."""
-    return filter_products_with_display_image(Product.objects.filter(is_visible=True))
+    qs = Product.objects.filter(is_visible=True).filter(
+        Q(stock__gt=0) | Q(hide_if_out_of_stock=False),
+    )
+    return filter_products_with_display_image(qs)
 
 
 def order_stock_first(qs: QuerySet[Product], *order_fields: str) -> QuerySet[Product]:

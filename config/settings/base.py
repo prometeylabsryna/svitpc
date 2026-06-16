@@ -252,6 +252,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.integrations.brain.tasks.reconcile_stale_stock",
         "schedule": 4 * 3600,  # every 4 hours — fix placeholder stock values
     },
+    "brain-sync-all-availability": {
+        "task": "apps.integrations.brain.tasks.sync_all_availability",
+        "schedule": 86400,  # daily — full is_archive pass + hide missing Brain SKUs
+        "kwargs": {"hide_missing": True},
+    },
     "brain-sync-new-products": {
         "task": "apps.integrations.brain.tasks.sync_new_products",
         "schedule": 6 * 3600,  # every 6 h — import new Brain products between nightly syncs

@@ -40,6 +40,28 @@ class TestGetFilteredProducts:
         qs = get_filtered_products(Product.objects.all(), in_stock_only=True)
         assert all(p.stock > 0 for p in qs)
 
+    def test_visible_catalog_hides_zero_stock_when_flag_set(self, product_factory):
+        from apps.catalog.services import visible_catalog_products
+
+        product_factory(
+            slug="hidden-oos",
+            is_visible=True,
+            stock=0,
+            hide_if_out_of_stock=True,
+        )
+        product_factory(
+            slug="shown-oos-allowed",
+            is_visible=True,
+            stock=0,
+            hide_if_out_of_stock=False,
+        )
+        product_factory(slug="in-stock", is_visible=True, stock=3, hide_if_out_of_stock=True)
+
+        slugs = set(visible_catalog_products().values_list("slug", flat=True))
+        assert "hidden-oos" not in slugs
+        assert "shown-oos-allowed" in slugs
+        assert "in-stock" in slugs
+
     def test_filters_or_within_group(
         self, product_factory, filter_group_factory, filter_factory, product_filter_factory
     ):

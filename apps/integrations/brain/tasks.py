@@ -218,7 +218,7 @@ def sync_stock() -> None:
     vendor_map = client.get_all_vendors()
     cat_map = build_category_map_from_db(client)
 
-    modified_ids = client.get_modified_since(_utc_since(3), limit=10000)
+    modified_ids = client.get_modified_since(_utc_since(24), limit=10000)
     if not modified_ids:
         logger.info("Brain sync_stock: no modified products")
         return
@@ -515,6 +515,21 @@ def apply_hide_out_of_stock_policy() -> None:
     ).count()
     if hidden:
         logger.warning("Brain apply_hide_out_of_stock_policy: %d still visible with stock<=0", hidden)
+
+
+@shared_task
+def sync_all_availability(hide_missing: bool = True) -> dict[str, int]:
+    """Daily full availability pass — is_archive for entire Brain catalog."""
+    from .availability import sync_all_availability_from_brain
+
+    client = _brain_client()
+    stats = sync_all_availability_from_brain(
+        client,
+        hide_missing=hide_missing,
+        dry_run=False,
+    )
+    apply_hide_out_of_stock_policy()
+    return stats
 
 
 @shared_task
