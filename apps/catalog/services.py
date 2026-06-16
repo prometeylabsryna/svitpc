@@ -221,7 +221,10 @@ def get_sale_products_queryset() -> QuerySet[Product]:
         return Product.objects.none()
 
     qs = filter_products_with_display_image(
-        Product.objects.filter(pk__in=sale_pks, is_visible=True)
+        Product.objects.filter(pk__in=sale_pks, is_visible=True).exclude(
+            purchase_price__gt=0,
+            price__lt=F("purchase_price"),
+        )
     )
     return qs.select_related("brand").prefetch_related("images")
 

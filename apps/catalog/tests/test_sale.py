@@ -22,3 +22,13 @@ class TestGetSaleProductsQueryset:
         pks = set(get_sale_products_queryset().values_list("pk", flat=True))
         assert Product.objects.get(slug="discounted").pk in pks
         assert Product.objects.get(slug="regular").pk not in pks
+
+    def test_excludes_price_below_purchase(self, product_factory):
+        product_factory(
+            slug="loss-leader",
+            price=Decimal("50"),
+            old_price=Decimal("100"),
+            purchase_price=Decimal("80"),
+        )
+        pks = set(get_sale_products_queryset().values_list("pk", flat=True))
+        assert Product.objects.get(slug="loss-leader").pk not in pks

@@ -705,11 +705,25 @@ class Command(BaseCommand):
             return
 
         updated = 0
-        for prod in Product.objects.filter(oc_id__in=active.keys()).only("pk", "oc_id", "price"):
+        for prod in Product.objects.filter(oc_id__in=active.keys()).select_related("brand").prefetch_related(
+            "categories"
+        ):
             special = active.get(prod.oc_id)
             if special is None or special >= prod.price:
                 continue
-            Product.objects.filter(pk=prod.pk).update(price=special, old_price=prod.price)
+            from apps.catalog.pricing import enforce_retail_price, reconcile_old_price
+
+            cat_ids = list(prod.categories.values_list("pk", flat=True))
+            new_price = enforce_retail_price(
+                special,
+                prod.purchase_price,
+                brand_id=prod.brand_id,
+                category_ids=cat_ids,
+            )
+            if new_price >= prod.price:
+                continue
+            old = reconcile_old_price(new_price, prod.price)
+            Product.objects.filter(pk=prod.pk).update(price=new_price, old_price=old)
             updated += 1
 
         self.stdout.write(f"  {updated} products updated with special prices")

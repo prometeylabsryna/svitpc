@@ -165,6 +165,7 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
 
     from apps.catalog.models import Product
     from apps.catalog.services import apply_markup
+    from apps.catalog.pricing import enforce_retail_price, reconcile_old_price
 
     from apps.catalog.ru_localization import localize_ru_to_uk
 
@@ -191,6 +192,12 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
     category = ctx.get_or_create_category((item.get("category") or "").strip())
     cat_ids = [category.pk] if category else []
     final_price = apply_markup(price, brand.pk if brand else None, cat_ids)
+    shelf = enforce_retail_price(
+        final_price,
+        price,
+        brand_id=brand.pk if brand else None,
+        category_ids=cat_ids,
+    )
 
     prod = ctx.get_product(ext_id)
     if prod is not None:
@@ -198,8 +205,9 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
 
         clear_en_if_uk_changed(prod, "name", name)
         prod.name = name
-        prod.price = final_price
+        prod.price = shelf
         prod.purchase_price = price
+        prod.old_price = reconcile_old_price(shelf, prod.old_price)
         prod.stock = qty
         prod.is_visible = qty > 0
         if image_url:
@@ -215,6 +223,7 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
             update_fields=[
                 "name",
                 "price",
+                "old_price",
                 "purchase_price",
                 "stock",
                 "is_visible",
@@ -238,7 +247,7 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
             external_id=ext_id,
             name=name,
             slug=slug,
-            price=final_price,
+            price=shelf,
             purchase_price=price,
             stock=qty,
             sku=sku,

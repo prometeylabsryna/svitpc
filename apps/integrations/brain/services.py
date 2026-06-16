@@ -274,6 +274,7 @@ def apply_detail_to_product(
     """Apply Brain /product payload to an existing Product. Returns True if updated."""
     from apps.catalog.models import Product
     from apps.catalog.services import apply_markup
+    from apps.catalog.pricing import enforce_retail_price, reconcile_old_price
 
     if not detail:
         return False
@@ -328,12 +329,22 @@ def apply_detail_to_product(
         upd["image_url"] = main_img
     if update_price and price_raw > 0:
         upd["purchase_price"] = price_raw
-        upd["price"] = apply_markup(price_raw, brand_id, cat_ids)
+        marked = apply_markup(price_raw, brand_id, cat_ids)
+        upd["price"] = enforce_retail_price(
+            marked,
+            price_raw,
+            brand_id=brand_id,
+            category_ids=cat_ids,
+        )
 
     if price_raw > 0:
         old = brain_sale_old_price(detail, price_raw, brand_id, cat_ids)
-        if old is not None:
-            upd["old_price"] = old
+        retail = upd.get("price", product.price)
+        reconciled = reconcile_old_price(retail, old)
+        if reconciled is not None:
+            upd["old_price"] = reconciled
+        elif "old_price" not in upd and product.old_price and product.old_price <= retail:
+            upd["old_price"] = None
 
     if not upd:
         if local_cat and update_category:
@@ -361,6 +372,7 @@ def upsert_product_from_detail(
 
     from apps.catalog.models import Product
     from apps.catalog.services import apply_markup
+    from apps.catalog.pricing import enforce_retail_price, reconcile_old_price
     from apps.catalog.ru_localization import localize_ru_to_uk
 
     name = localize_ru_to_uk((detail.get("name") or "").strip())
@@ -388,13 +400,18 @@ def upsert_product_from_detail(
 
     brand_id = brand.pk if brand else None
     old_price = brain_sale_old_price(detail, price_raw, brand_id, cat_ids) if price_raw > 0 else None
+    shelf = (
+        enforce_retail_price(final_price, price_raw, brand_id=brand_id, category_ids=cat_ids)
+        if price_raw > 0
+        else final_price
+    )
 
     defaults = {
         "name": name[:500],
         "slug": slug,
         "brand": brand,
-        "price": final_price if final_price > 0 else price_raw,
-        "old_price": old_price,
+        "price": shelf if shelf > 0 else price_raw,
+        "old_price": reconcile_old_price(shelf, old_price),
         "purchase_price": price_raw if price_raw > 0 else None,
         "stock": stock,
         "sku": sku[:100],

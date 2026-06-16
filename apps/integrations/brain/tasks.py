@@ -110,12 +110,20 @@ def sync_products() -> None:
 
                 from decimal import Decimal
 
+                from apps.catalog.pricing import enforce_retail_price, reconcile_old_price
+
                 price_raw = Decimal(str(item.get("price_uah") or item.get("price") or 0))
                 stock = brain_stock_from_detail(item)
                 sku = (item.get("articul") or item.get("product_code") or "").strip()
                 cat_ids = [local_cat.pk] if local_cat else []
                 brand_id = brand.pk if brand else None
                 final_price = apply_markup(price_raw, brand_id, cat_ids)
+                shelf = enforce_retail_price(
+                    final_price,
+                    price_raw,
+                    brand_id=brand_id,
+                    category_ids=cat_ids,
+                )
                 old_price = brain_sale_old_price(item, price_raw, brand_id, cat_ids) if price_raw > 0 else None
                 slug_base = _slug(name, allow_unicode=True) or f"brain-p-{brain_id}"
                 slug = unique_product_slug(slug_base, brain_id)
@@ -134,8 +142,8 @@ def sync_products() -> None:
                             "name": name,
                             "slug": slug,
                             "brand": brand,
-                            "price": final_price,
-                            "old_price": old_price,
+                            "price": shelf,
+                            "old_price": reconcile_old_price(shelf, old_price),
                             "purchase_price": price_raw,
                             "stock": stock,
                             "sku": sku,
