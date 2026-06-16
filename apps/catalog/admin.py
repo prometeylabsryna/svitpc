@@ -26,6 +26,7 @@ from .models import (
     Redirect,
     SeoUrl,
 )
+from .admin_category_tree import get_admin_category_tree_nodes
 from .widgets import CategoryTreeWidget
 
 
@@ -82,13 +83,8 @@ class ProductAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         field = self.fields["categories"]
-        queryset = Category.objects.filter(is_active=True).order_by("tree_id", "lft")
-        field.queryset = queryset
-        nodes = [
-            {"pk": category.pk, "name": category.name, "level": category.level, "path": category.admin_path}
-            for category in queryset
-        ]
-        field.widget = CategoryTreeWidget(nodes=nodes)
+        field.queryset = Category.objects.filter(is_active=True).order_by("tree_id", "lft")
+        field.widget = CategoryTreeWidget(nodes=get_admin_category_tree_nodes())
 
 
 class BrandAdminForm(forms.ModelForm):
@@ -153,6 +149,18 @@ class CategoryAdmin(DraggableMPTTAdmin, ModelAdmin):
     def product_count_display(self, obj: Category) -> int:
         return getattr(obj, "_product_count", 0)
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        from .admin_category_tree import invalidate_admin_category_tree_cache
+
+        invalidate_admin_category_tree_cache()
+
+    def delete_model(self, request, obj):
+        super().delete_model(request, obj)
+        from .admin_category_tree import invalidate_admin_category_tree_cache
+
+        invalidate_admin_category_tree_cache()
+
     @admin.action(description=_("Згенерувати AI-опис категорій"))
     def generate_ai_description(self, request, queryset):
         from apps.ai.services.content import generate_category_description
@@ -183,6 +191,8 @@ class ProductAdmin(ModelAdmin):
     list_filter = ("source", "is_visible", "is_new", "is_hit", "brand")
     search_fields = ("name", "name_uk", "name_en", "sku", "external_id", "slug")
     list_editable = ("is_visible", "is_new", "is_hit", "price")
+    list_per_page = 50
+    show_full_result_count = False
     prepopulated_fields = {"slug": ("name",)}
     autocomplete_fields = ("brand",)
     inlines = [ProductImageInline, ProductAttributeInline, ProductFilterInline]
@@ -215,6 +225,14 @@ class ProductAdmin(ModelAdmin):
             "classes": ("collapse",),
         }),
     )
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("brand")
+            .prefetch_related("images")
+        )
+
     actions = [
         "generate_seo_action",
         "generate_description_action",

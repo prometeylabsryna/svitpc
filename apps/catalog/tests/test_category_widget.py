@@ -4,6 +4,7 @@ import pytest
 from django.contrib.admin.sites import site
 
 from apps.catalog.admin import ProductAdmin, ProductAdminForm
+from apps.catalog.admin_category_tree import get_admin_category_tree_nodes
 from apps.catalog.models import Category
 from apps.catalog.widgets import CategoryTreeWidget
 
@@ -35,6 +36,19 @@ def test_product_admin_form_builds_tree_nodes(category_factory):
     paths = [node["path"] for node in form.fields["categories"].widget.nodes]
 
     assert "Root › Child" in paths
+
+
+@pytest.mark.django_db
+def test_admin_category_tree_nodes_single_query(category_factory, django_assert_num_queries):
+    root = category_factory(name="Root", slug="cache-root", is_active=True)
+    category_factory(name="Child", slug="cache-child", parent=root, is_active=True)
+
+    get_admin_category_tree_nodes()
+
+    with django_assert_num_queries(0):
+        nodes = get_admin_category_tree_nodes()
+
+    assert any("Root › Child" in node["path"] for node in nodes)
 
 
 @pytest.mark.django_db
