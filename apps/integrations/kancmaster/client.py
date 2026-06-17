@@ -66,10 +66,18 @@ def _parse_item_element(
     image_urls = _picture_urls(el)
     description_el = el.find("description")
 
+    # Kancmaster YML fields:
+    #   <price>      — wholesale/purchase price (закупівельна)
+    #   <msrp>       — recommended retail price (РРЦ)
+    #   <pricetov>   — price for ТОВ (same as <price> usually)
+    #   <pricefop>   — price for ФОП (slightly higher than <price>)
+    msrp = (el.findtext("msrp") or "").strip()
+
     return {
         "id": ext_id,
         "name": (el.findtext("name") or "").strip(),
         "price": (el.findtext("price") or "0").strip(),
+        "msrp": msrp,
         "quantity": _resolve_quantity(el, is_offer=is_offer),
         "category": cat_name,
         "brand": (el.findtext("vendor") or "").strip(),

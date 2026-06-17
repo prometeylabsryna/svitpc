@@ -192,22 +192,29 @@ def _sync_gallery(prod: "Product", image_urls: list[str]) -> None:  # type: igno
 
 def _compute_shelf_price(
     price: Decimal,
+    msrp: Decimal,
     brand_id: int | None,
     cat_ids: list[int],
 ) -> Decimal:
     """
-    Compute retail shelf price from the XML feed price.
+    Compute the retail shelf price from Kancmaster XML feed fields.
 
-    When KANCMASTER_USE_FEED_PRICE_AS_RETAIL=True (default) the feed already
-    provides the retail price — use it directly with no markup applied.
-    Set to False only when Kancmaster provides wholesale/purchase prices.
+    Priority:
+    1. <msrp> (РРЦ) — use when it is greater than the purchase <price>.
+       Kancmaster publishes the recommended retail price in this field.
+    2. Markup rule — fallback when <msrp> is absent or not above purchase price.
+       Controlled by KANCMASTER_USE_FEED_PRICE_AS_RETAIL (True = skip markup,
+       False = apply MarkupRule from DB).
     """
+    if msrp > price:
+        return msrp
+
     from django.conf import settings
 
     from apps.catalog.pricing import enforce_retail_price
     from apps.catalog.services import apply_markup
 
-    use_feed_as_retail: bool = getattr(settings, "KANCMASTER_USE_FEED_PRICE_AS_RETAIL", True)
+    use_feed_as_retail: bool = getattr(settings, "KANCMASTER_USE_FEED_PRICE_AS_RETAIL", False)
     if use_feed_as_retail:
         return price
 
@@ -234,6 +241,11 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
         price = Decimal("0")
 
     try:
+        msrp = Decimal(str(item.get("msrp") or "0").replace(",", "."))
+    except InvalidOperation:
+        msrp = Decimal("0")
+
+    try:
         qty = int(item.get("quantity") or 0)
     except (ValueError, TypeError):
         qty = 0
@@ -249,7 +261,7 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
     category = ctx.get_or_create_category((item.get("category") or "").strip())
     cat_ids = [category.pk] if category else []
     brand_id = brand.pk if brand else None
-    shelf = _compute_shelf_price(price, brand_id, cat_ids)
+    shelf = _compute_shelf_price(price, msrp, brand_id, cat_ids)
 
     prod = ctx.get_product(ext_id)
     if prod is not None:
