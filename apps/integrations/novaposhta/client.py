@@ -7,6 +7,7 @@ import re
 
 import httpx
 from django.conf import settings
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 NP_API_URL = "https://api.novaposhta.ua/v2.0/json/"
@@ -34,6 +35,11 @@ NP_STATUS_MAP: dict[str, str] = {
 }
 DELIVERED_CODES = {"12"}
 IN_TRANSIT_CODES = {"5", "6", "7", "101"}
+
+
+def _np_shipment_date() -> str:
+    """Return shipment date in dd.mm.yyyy format required by Nova Poshta API."""
+    return timezone.localdate().strftime("%d.%m.%Y")
 
 
 def _normalize_np_phone(phone: str) -> str:
@@ -235,6 +241,7 @@ class NovaPoshtaClient:
 
         props = {
             **self._payment_props(order),
+            "DateTime": _np_shipment_date(),
             "CargoType": "Parcel",
             "Weight": str(round(weight, 2)),
             "SeatsAmount": "1",

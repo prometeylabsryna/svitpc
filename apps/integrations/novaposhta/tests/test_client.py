@@ -97,6 +97,7 @@ def test_create_ttn_success(settings):
     assert error == ""
     assert mock_post.call_count == 2
     doc_payload = mock_post.call_args_list[1].kwargs["json"]["methodProperties"]
+    assert doc_payload["DateTime"]
     assert doc_payload["Recipient"] == "recipient-ref"
     assert doc_payload["ContactRecipient"] == "recipient-contact-ref"
     assert doc_payload["PayerType"] == "Sender"
