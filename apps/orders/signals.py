@@ -113,6 +113,30 @@ def on_order_paid(sender, instance: Order, created: bool, update_fields=None, **
     transaction.on_commit(_fiscalize)
 
 
+@receiver(post_save, sender=Order)
+def on_order_delivery_updated(
+    sender, instance: Order, created: bool, update_fields=None, **kwargs
+) -> None:
+    """Queue TTN when admin fills Nova Poshta delivery after order was created."""
+    if created:
+        return
+    if instance.delivery_type != Order.DELIVERY_NP or instance.ttn:
+        return
+
+    delivery_fields = {"delivery_type", "city_ref", "warehouse_ref", "city", "warehouse"}
+    if update_fields and not delivery_fields.intersection(update_fields):
+        return
+    if not instance.city_ref or not instance.warehouse_ref:
+        return
+
+    from apps.shipping.dispatch import dispatch_shipment_for_order, order_ready_for_shipment
+
+    if not order_ready_for_shipment(instance):
+        return
+
+    transaction.on_commit(lambda: dispatch_shipment_for_order(instance.pk))
+
+
 @receiver(pre_save, sender=Order)
 def order_cache_previous_status(sender, instance: Order, **kwargs) -> None:
     if instance.pk:

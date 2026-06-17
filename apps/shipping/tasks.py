@@ -60,13 +60,24 @@ def create_ttn_for_order(order_pk: int) -> None:
     try:
         with transaction.atomic():
             order = Order.objects.select_for_update().get(pk=order_pk)
-            if not order_ready_for_shipment(order) or order.ttn:
+            if order.ttn:
+                return
+            if not order_ready_for_shipment(order):
+                logger.info("create_ttn_for_order #%s: skipped (not ready for shipment)", order_pk)
+                return
+            if not order.city_ref or not order.warehouse_ref:
+                logger.warning(
+                    "create_ttn_for_order #%s: missing city_ref/warehouse_ref",
+                    order_pk,
+                )
                 return
             client = NovaPoshtaClient()
             ttn = client.create_ttn(order)
             if ttn:
                 order.ttn = ttn
                 order.save(update_fields=["ttn"])
+            else:
+                logger.error("create_ttn_for_order #%s: Nova Poshta returned no TTN", order_pk)
     except Order.DoesNotExist:
         return
     except Exception as exc:

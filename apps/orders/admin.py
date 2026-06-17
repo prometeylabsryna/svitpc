@@ -66,14 +66,63 @@ class OrderAdmin(ModelAdmin):
                 obj.status = default
         super().save_model(request, obj, form, change)
 
+        if obj.delivery_type != Order.DELIVERY_NP or obj.ttn:
+            return
+
+        from apps.shipping.dispatch import order_ready_for_shipment
+
+        if not obj.city_ref or not obj.warehouse_ref:
+            self.message_user(
+                request,
+                "Для ТТН оберіть місто і відділення з підказок (не просто текст).",
+                level=messages.WARNING,
+            )
+            return
+
+        if order_ready_for_shipment(obj):
+            self.message_user(
+                request,
+                "ТТН поставлено в чергу. Оновіть сторінку через 5–10 секунд.",
+                level=messages.INFO,
+            )
+
     @admin.action(description="Створити ТТН (Нова Пошта)")
     def create_ttn_action(self, request, queryset):
+        from apps.shipping.dispatch import order_ready_for_shipment
         from apps.shipping.tasks import create_ttn_for_order
-        count = 0
+
+        success = 0
+        skipped: list[str] = []
+        failed: list[str] = []
+
         for order in queryset.filter(delivery_type="nova_poshta", ttn=""):
-            create_ttn_for_order.delay(order.pk)
-            count += 1
-        self.message_user(request, f"ТТН поставлено в чергу: {count} замовлень")
+            if not order.city_ref or not order.warehouse_ref:
+                skipped.append(f"#{order.pk} — немає міста/відділення з підказок")
+                continue
+            if not order_ready_for_shipment(order):
+                skipped.append(f"#{order.pk} — не оплачено (картка) або вже має ТТН")
+                continue
+            create_ttn_for_order(order.pk)
+            order.refresh_from_db()
+            if order.ttn:
+                success += 1
+            else:
+                failed.append(str(order.pk))
+
+        parts: list[str] = []
+        if success:
+            parts.append(f"ТТН створено: {success}")
+        if skipped:
+            parts.append("пропущено: " + "; ".join(skipped))
+        if failed:
+            parts.append(
+                f"помилка API для №: {', '.join(failed)} — перевірте NP_SENDER_* у .env і логи worker"
+            )
+        if not parts:
+            parts.append("жодне замовлення не обрано")
+
+        level = messages.ERROR if failed and not success else messages.WARNING if failed or skipped else messages.SUCCESS
+        self.message_user(request, "ТТН: " + ". ".join(parts) + ".", level=level)
 
     @admin.action(description="Надіслати сповіщення про статус")
     def send_status_notification(self, request, queryset):
