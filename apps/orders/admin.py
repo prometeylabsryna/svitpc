@@ -26,7 +26,7 @@ class OrderStatusAdmin(ModelAdmin):
 @admin.register(Order)
 class OrderAdmin(ModelAdmin):
     form = OrderAdminForm
-    list_display = ("pk", "first_name", "last_name", "phone", "status", "total", "is_paid", "delivery_type", "ttn", "up_barcode", "created_at")
+    list_display = ("pk", "first_name", "last_name", "phone", "status", "total", "is_paid", "delivery_type", "ttn", "created_at")
     list_filter = ("status", "is_paid", "delivery_type", "payment_method")
     search_fields = ("first_name", "last_name", "phone", "email", "ttn")
     list_editable = ("is_paid",)
@@ -44,9 +44,7 @@ class OrderAdmin(ModelAdmin):
                     "city_ref",
                     "warehouse",
                     "warehouse_ref",
-                    "postcode",
                     "ttn",
-                    "up_barcode",
                 ),
             },
         ),
@@ -55,7 +53,7 @@ class OrderAdmin(ModelAdmin):
         (_("Статус замовлення"), {"fields": ("status",)}),
         ("Системне", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     )
-    actions = ["create_ttn_action", "create_up_shipment_action", "send_status_notification", "fiscalize_orders_action"]
+    actions = ["create_ttn_action", "send_status_notification", "fiscalize_orders_action"]
 
     class Media:
         css = {"all": ("css/admin_extra.css",)}
@@ -76,15 +74,6 @@ class OrderAdmin(ModelAdmin):
             create_ttn_for_order.delay(order.pk)
             count += 1
         self.message_user(request, f"ТТН поставлено в чергу: {count} замовлень")
-
-    @admin.action(description="Створити відправлення (УкрПошта)")
-    def create_up_shipment_action(self, request, queryset):
-        from apps.integrations.ukrposhta.tasks import create_up_shipment_for_order
-        count = 0
-        for order in queryset.filter(delivery_type="ukrposhta", up_barcode=""):
-            create_up_shipment_for_order.delay(order.pk)
-            count += 1
-        self.message_user(request, f"Відправлення УкрПошта поставлено в чергу: {count} замовлень")
 
     @admin.action(description="Надіслати сповіщення про статус")
     def send_status_notification(self, request, queryset):

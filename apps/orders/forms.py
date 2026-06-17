@@ -22,6 +22,10 @@ class OrderAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["status"].queryset = admin_status_queryset()
+        self.fields["delivery_type"].choices = [
+            (Order.DELIVERY_NP, _("Нова Пошта")),
+            (Order.DELIVERY_PICKUP, _("Самовивіз")),
+        ]
         self.fields["city"].widget.attrs.update(
             {
                 "autocomplete": "off",
