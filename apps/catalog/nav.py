@@ -109,7 +109,7 @@ def _load_categories_from_order(order: dict, limit: int, *, hidden: frozenset[in
     return categories
 
 
-def get_top_categories(limit: int = 12) -> list[Category]:
+def get_top_categories(limit: int = 20) -> list[Category]:
     """Top-level categories for site nav, with prefetched active children."""
     hidden = _hidden_nav_pks()
     cached_order = cache.get(NAV_ORDER_CACHE_KEY)
