@@ -115,9 +115,7 @@
   }
 
   .catalog-subcategories--collapsible .catalog-subcategories__toggle:not(:checked) ~ .catalog-subcategories__list .catalog-subcategories__item--extra {
-    @media (max-width: 639px) {
-      display: none;
-    }
+    display: none;
   }
 
   .catalog-subcategories__more {
@@ -150,10 +148,10 @@
     }
 
     .catalog-subcategories__more-label--less { display: none; }
+  }
 
-    @media (max-width: 639px) {
-      display: flex;
-    }
+  .catalog-subcategories--collapsible .catalog-subcategories__more {
+    display: flex;
   }
 
   .catalog-subcategories__toggle:checked ~ .catalog-subcategories__more {

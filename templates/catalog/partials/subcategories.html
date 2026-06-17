@@ -1,6 +1,6 @@
 {% load i18n svitpc_tags %}
 {% if subcategories %}
-{% with visible_limit=8 total=subcategories|length %}
+{% with visible_limit=10 total=subcategories|length %}
 <section class="catalog-subcategories{% if total > visible_limit %} catalog-subcategories--collapsible{% endif %}" aria-labelledby="subcategories-heading">
   <h2 class="catalog-subcategories__title" id="subcategories-heading">{% trans "Підкатегорії" %}</h2>
   {% if total > visible_limit %}
