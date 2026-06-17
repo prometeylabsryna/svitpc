@@ -622,6 +622,9 @@ BRAIN_PRODUCTS_PAGE_LIMIT = env.int("BRAIN_PRODUCTS_PAGE_LIMIT", default=100)
 KANCMASTER_XML_URL = env("KANCMASTER_XML_URL", default="https://kancmaster.com.ua/xml_export_request")
 KANCMASTER_LOGIN = env("KANCMASTER_LOGIN", default="")
 KANCMASTER_PASSWORD = env("KANCMASTER_PASSWORD", default="")
+# When True (default), treat the XML price as the final retail shelf price — no markup applied.
+# Set to False only if Kancmaster provides wholesale/purchase prices that require markup.
+KANCMASTER_USE_FEED_PRICE_AS_RETAIL = env.bool("KANCMASTER_USE_FEED_PRICE_AS_RETAIL", default=True)
 NOVA_POSHTA_API_KEY = env("NOVA_POSHTA_API_KEY", default="")
 # Nova Poshta sender configuration (required for TTN creation)
 NP_SENDER_REF = env("NP_SENDER_REF", default="")

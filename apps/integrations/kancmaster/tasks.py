@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 _PROGRESS_EVERY = 2000
 
 
+_PARENT_CATEGORY_SLUG = "kantseliarski-tovary"
+_PARENT_CATEGORY_NAME = "Канцелярські товари"
+
+
 class _SyncContext:
     """In-memory caches to avoid repeated DB lookups during full feed import."""
 
@@ -24,21 +28,39 @@ class _SyncContext:
 
         self._Category = Category
         self._Brand = Brand
+        self._parent_category: "Category | None" = self._ensure_parent_category()
         self._category_by_name: dict[str, Category] = {}
-        for cat in Category.objects.only("pk", "name", "slug", "kancmaster_name"):
+        for cat in Category.objects.only("pk", "name", "slug", "kancmaster_name", "parent_id"):
             if cat.kancmaster_name:
                 self._category_by_name[cat.kancmaster_name] = cat
             self._category_by_name[cat.name] = cat
         self._brand_by_name: dict[str, Brand] = {
             b.name: b for b in Brand.objects.only("pk", "name", "slug")
         }
-        self._existing_slugs: set[str] = set(Product.objects.values_list("slug", flat=True))
+        self._existing_slugs: set[str] = set(
+            Category.objects.values_list("slug", flat=True)
+        ) | set(Product.objects.values_list("slug", flat=True))
         self._products: dict[str, Product] = {
             p.external_id: p
             for p in Product.objects.filter(source=Product.SOURCE_KANCMASTER).prefetch_related(
                 "images"
             )
         }
+
+    def _ensure_parent_category(self) -> "Category":
+        """Get or create the root 'Канцелярські товари' category."""
+        cat, created = self._Category.objects.get_or_create(
+            slug=_PARENT_CATEGORY_SLUG,
+            defaults={
+                "name": _PARENT_CATEGORY_NAME,
+                "is_active": True,
+                "is_top": True,
+                "sort_order": 50,
+            },
+        )
+        if created:
+            logger.info("Kancmaster: created parent category '%s'", _PARENT_CATEGORY_NAME)
+        return cat
 
     def get_or_create_category(self, name: str) -> "Category | None":  # type: ignore[name-defined]
         from apps.catalog.ru_localization import localize_ru_to_uk
@@ -55,6 +77,10 @@ class _SyncContext:
             if not cached.kancmaster_name:
                 cached.kancmaster_name = raw
                 cached.save(update_fields=["kancmaster_name"])
+            # Ensure the category is under the parent (idempotent fix for existing categories)
+            if self._parent_category and cached.parent_id != self._parent_category.pk:
+                cached.parent = self._parent_category
+                cached.save(update_fields=["parent"])
             self._category_by_name[raw] = cached
             self._category_by_name[display] = cached
             return cached
@@ -66,7 +92,12 @@ class _SyncContext:
             slug = f"{slug_base}-{i}"
             i += 1
 
-        cat = self._Category.objects.create(name=display, slug=slug, kancmaster_name=raw)
+        cat = self._Category.objects.create(
+            name=display,
+            slug=slug,
+            kancmaster_name=raw,
+            parent=self._parent_category,
+        )
         self._existing_slugs.add(slug)
         self._category_by_name[raw] = cat
         self._category_by_name[display] = cat
@@ -159,14 +190,37 @@ def _sync_gallery(prod: "Product", image_urls: list[str]) -> None:  # type: igno
         ProductImage.objects.bulk_create(to_create)
 
 
+def _compute_shelf_price(
+    price: Decimal,
+    brand_id: int | None,
+    cat_ids: list[int],
+) -> Decimal:
+    """
+    Compute retail shelf price from the XML feed price.
+
+    When KANCMASTER_USE_FEED_PRICE_AS_RETAIL=True (default) the feed already
+    provides the retail price — use it directly with no markup applied.
+    Set to False only when Kancmaster provides wholesale/purchase prices.
+    """
+    from django.conf import settings
+
+    from apps.catalog.pricing import enforce_retail_price
+    from apps.catalog.services import apply_markup
+
+    use_feed_as_retail: bool = getattr(settings, "KANCMASTER_USE_FEED_PRICE_AS_RETAIL", True)
+    if use_feed_as_retail:
+        return price
+
+    final_price = apply_markup(price, brand_id, cat_ids)
+    return enforce_retail_price(final_price, price, brand_id=brand_id, category_ids=cat_ids)
+
+
 def _apply_item(ctx: _SyncContext, item: dict) -> str:
     """Upsert one feed item. Returns 'created', 'updated', or 'skipped'."""
     from django.db import transaction
 
     from apps.catalog.models import Product
-    from apps.catalog.services import apply_markup
-    from apps.catalog.pricing import enforce_retail_price, reconcile_old_price
-
+    from apps.catalog.pricing import reconcile_old_price
     from apps.catalog.ru_localization import localize_ru_to_uk
 
     ext_id = (item.get("id") or "").strip()
@@ -184,20 +238,18 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
     except (ValueError, TypeError):
         qty = 0
 
-    description = localize_ru_to_uk((item.get("description") or "").strip())
+    # Save the raw description from the feed without word-by-word localization —
+    # localize_ru_to_uk works well for short product names but corrupts long
+    # paragraph descriptions (partial glossary match leaves a mix of languages).
+    description = (item.get("description") or "").strip()
     image_url = (item.get("image_url") or "").strip()
     image_urls: list[str] = item.get("image_urls") or ([image_url] if image_url else [])
     sku = (item.get("sku") or "").strip()
     brand = ctx.get_or_create_brand((item.get("brand") or "").strip())
     category = ctx.get_or_create_category((item.get("category") or "").strip())
     cat_ids = [category.pk] if category else []
-    final_price = apply_markup(price, brand.pk if brand else None, cat_ids)
-    shelf = enforce_retail_price(
-        final_price,
-        price,
-        brand_id=brand.pk if brand else None,
-        category_ids=cat_ids,
-    )
+    brand_id = brand.pk if brand else None
+    shelf = _compute_shelf_price(price, brand_id, cat_ids)
 
     prod = ctx.get_product(ext_id)
     if prod is not None:
