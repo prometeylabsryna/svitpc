@@ -39,8 +39,9 @@ def test_create_ttn_missing_sender_returns_none(settings):
 
     client = NovaPoshtaClient()
     fake_order = MagicMock()
-    result = client.create_ttn(fake_order)
+    result, error = client.create_ttn(fake_order)
     assert result is None
+    assert error
 
 
 @pytest.mark.django_db
@@ -90,9 +91,10 @@ def test_create_ttn_success(settings):
 
     with patch.object(httpx, "post", side_effect=[counterparty_resp, ttn_resp]) as mock_post:
         client = NovaPoshtaClient()
-        result = client.create_ttn(fake_order)
+        result, error = client.create_ttn(fake_order)
 
     assert result == "20450000000001"
+    assert error == ""
     assert mock_post.call_count == 2
     doc_payload = mock_post.call_args_list[1].kwargs["json"]["methodProperties"]
     assert doc_payload["Recipient"] == "recipient-ref"

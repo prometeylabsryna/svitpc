@@ -204,11 +204,10 @@ class NovaPoshtaClient:
             return {"PayerType": "Recipient", "PaymentMethod": "Cash"}
         return {"PayerType": "Sender", "PaymentMethod": "Cash"}
 
-    def create_ttn(self, order) -> str | None:
-        """Create TTN (waybill) for an order. Returns IntDocNumber or None."""
+    def create_ttn(self, order) -> tuple[str | None, str]:
+        """Create TTN (waybill). Returns (IntDocNumber or None, error_message)."""
         if not self._key:
-            logger.warning("NP create_ttn: NOVA_POSHTA_API_KEY not configured")
-            return None
+            return None, "NOVA_POSHTA_API_KEY не задано"
 
         sender_ref = getattr(settings, "NP_SENDER_REF", "")
         contact_ref = getattr(settings, "NP_SENDER_CONTACT_REF", "")
@@ -217,16 +216,14 @@ class NovaPoshtaClient:
         sender_wh_ref = getattr(settings, "NP_SENDER_WAREHOUSE_REF", "")
 
         if not all([sender_ref, contact_ref, sender_phone, sender_city_ref, sender_wh_ref]):
-            logger.warning("NP create_ttn: sender settings not configured (NP_SENDER_*)")
-            return None
+            return None, "Не налаштовано NP_SENDER_* у .env (перезапустіть контейнери після змін)"
 
         if not order.city_ref or not order.warehouse_ref:
-            logger.warning("NP create_ttn: order #%s missing city_ref/warehouse_ref", order.pk)
-            return None
+            return None, "У замовлення немає city_ref/warehouse_ref — оберіть місто і відділення з підказок"
 
         recipient = self._ensure_recipient(order)
         if not recipient:
-            return None
+            return None, "Не вдалося створити одержувача в НП (телефон, імʼя або API)"
         recipient_ref, recipient_contact_ref = recipient
         recipient_phone = _normalize_np_phone(order.phone)
 
@@ -259,10 +256,14 @@ class NovaPoshtaClient:
         if resp.get("success") and resp.get("data"):
             ttn = resp["data"][0].get("IntDocNumber")
             logger.info("NP TTN created: %s for order #%s", ttn, order.pk)
-            return ttn
-        errors = resp.get("errors", [])
-        logger.error("NP create_ttn failed for order #%s: %s", order.pk, errors)
-        return None
+            return ttn, ""
+
+        errors = resp.get("errors") or resp.get("errorCodes") or []
+        warning = resp.get("warnings") or []
+        details = "; ".join(str(item) for item in [*errors, *warning] if item)
+        message = details or "Нова Пошта відхилила створення накладної"
+        logger.error("NP create_ttn failed for order #%s: %s", order.pk, message)
+        return None, message
 
     def track_ttn(self, ttn: str) -> dict | None:
         resp = self._post("TrackingDocument", "getStatusDocuments", {"Documents": [{"DocumentNumber": ttn}]})

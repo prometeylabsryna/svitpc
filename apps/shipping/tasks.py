@@ -47,8 +47,8 @@ def update_delivery_statuses() -> None:
 
 
 @shared_task(queue="priority")
-def create_ttn_for_order(order_pk: int) -> None:
-    """Create Nova Poshta TTN for an order and notify customer."""
+def create_ttn_for_order(order_pk: int) -> str | None:
+    """Create Nova Poshta TTN. Returns error message on failure, None on success."""
     from django.db import transaction
 
     from apps.integrations.novaposhta.client import NovaPoshtaClient
@@ -57,32 +57,28 @@ def create_ttn_for_order(order_pk: int) -> None:
     from apps.shipping.dispatch import order_ready_for_shipment
 
     ttn = None
+    error = ""
     try:
         with transaction.atomic():
             order = Order.objects.select_for_update().get(pk=order_pk)
             if order.ttn:
-                return
+                return None
             if not order_ready_for_shipment(order):
                 logger.info("create_ttn_for_order #%s: skipped (not ready for shipment)", order_pk)
-                return
-            if not order.city_ref or not order.warehouse_ref:
-                logger.warning(
-                    "create_ttn_for_order #%s: missing city_ref/warehouse_ref",
-                    order_pk,
-                )
-                return
+                return None
             client = NovaPoshtaClient()
-            ttn = client.create_ttn(order)
+            ttn, error = client.create_ttn(order)
             if ttn:
                 order.ttn = ttn
                 order.save(update_fields=["ttn"])
-            else:
-                logger.error("create_ttn_for_order #%s: Nova Poshta returned no TTN", order_pk)
+            elif error:
+                logger.error("create_ttn_for_order #%s: %s", order_pk, error)
+                return error
     except Order.DoesNotExist:
-        return
+        return None
     except Exception as exc:
         logger.error("create_ttn_for_order #%s: %s", order_pk, exc)
-        return
+        return str(exc)
 
     if ttn:
         try:
@@ -90,3 +86,4 @@ def create_ttn_for_order(order_pk: int) -> None:
             notify_order_customer(order, "ttn_created", extra_context={"ttn": ttn})
         except Exception as exc:
             logger.error("create_ttn_for_order notify #%s: %s", order_pk, exc)
+    return None

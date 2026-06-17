@@ -102,12 +102,14 @@ class OrderAdmin(ModelAdmin):
             if not order_ready_for_shipment(order):
                 skipped.append(f"#{order.pk} — не оплачено (картка) або вже має ТТН")
                 continue
-            create_ttn_for_order(order.pk)
+            err = create_ttn_for_order(order.pk)
             order.refresh_from_db()
             if order.ttn:
                 success += 1
+            elif err:
+                failed.append(f"#{order.pk}: {err}")
             else:
-                failed.append(str(order.pk))
+                failed.append(f"#{order.pk}: невідома помилка")
 
         parts: list[str] = []
         if success:
