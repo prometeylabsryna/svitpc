@@ -9,27 +9,40 @@ from celery import shared_task
 logger = logging.getLogger(__name__)
 
 
-@shared_task
+@shared_task(queue="priority")
 def create_up_shipment_for_order(order_pk: int) -> None:
     """Create Ukrposhta shipment for an order and save barcode."""
+    from django.db import transaction
+
     from apps.integrations.ukrposhta.client import UkrPoshtaClient
     from apps.notifications.dispatch import notify_order_customer
     from apps.orders.models import Order
     from apps.shipping.dispatch import order_ready_for_shipment
 
+    barcode = None
     try:
-        order = Order.objects.get(pk=order_pk)
-        if not order_ready_for_shipment(order) or order.up_barcode:
-            return
-        client = UkrPoshtaClient()
-        barcode = client.create_shipment(order)
-        if barcode:
-            order.up_barcode = barcode
-            order.save(update_fields=["up_barcode"])
-            logger.info("UP barcode %s saved for order #%s", barcode, order_pk)
-            notify_order_customer(order, "ttn_created", extra_context={"ttn": barcode})
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(pk=order_pk)
+            if not order_ready_for_shipment(order) or order.up_barcode:
+                return
+            client = UkrPoshtaClient()
+            barcode = client.create_shipment(order)
+            if barcode:
+                order.up_barcode = barcode
+                order.save(update_fields=["up_barcode"])
+                logger.info("UP barcode %s saved for order #%s", barcode, order_pk)
+    except Order.DoesNotExist:
+        return
     except Exception as exc:
         logger.error("create_up_shipment_for_order #%s: %s", order_pk, exc)
+        return
+
+    if barcode:
+        try:
+            order = Order.objects.get(pk=order_pk)
+            notify_order_customer(order, "ttn_created", extra_context={"ttn": barcode})
+        except Exception as exc:
+            logger.error("create_up_shipment_for_order notify #%s: %s", order_pk, exc)
 
 
 @shared_task

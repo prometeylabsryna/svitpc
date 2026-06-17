@@ -26,6 +26,11 @@ services:
     env_file:
       - .env
 
+  celery_worker_priority:
+    restart: always
+    env_file:
+      - .env
+
   celery_beat:
     restart: always
     env_file:

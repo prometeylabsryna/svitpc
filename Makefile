@@ -13,7 +13,8 @@ help:
 	@echo "  make test          — запустити тести"
 	@echo "  make lint          — ruff + mypy + djlint"
 	@echo "  make fmt           — ruff format + isort"
-	@echo "  make celery        — запустити Celery worker + beat"
+	@echo "  make celery        — Celery worker (brain/catalog) + beat"
+	@echo "  make worker-priority — окремий worker для ТТН (priority queue)"
 	@echo "  make import-sql    — імпорт із OpenCart SQL-бекапу"
 	@echo "  make import-prices — імпорт прейскуранта сервісного центру"
 	@echo "  make superuser     — створити суперкористувача"
@@ -70,10 +71,13 @@ fmt:
 	ruff format apps config
 
 celery:
-	celery -A config worker --beat --loglevel=info
+	celery -A config worker --beat --loglevel=info -Q celery
 
 worker:
-	celery -A config worker --loglevel=info
+	celery -A config worker --loglevel=info -Q celery
+
+worker-priority:
+	celery -A config worker --loglevel=info -Q priority -c 1
 
 beat:
 	celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler

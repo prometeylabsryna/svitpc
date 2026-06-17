@@ -198,6 +198,12 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Europe/Kyiv"
+# High-priority queue for shipping (TTN) — consumed by dedicated worker (see docker-compose).
+CELERY_TASK_DEFAULT_QUEUE = "celery"
+CELERY_TASK_ROUTES = {
+    "apps.shipping.tasks.create_ttn_for_order": {"queue": "priority"},
+    "apps.integrations.ukrposhta.tasks.create_up_shipment_for_order": {"queue": "priority"},
+}
 CELERY_BEAT_SCHEDULE = {
     "brain-sync-categories": {
         "task": "apps.integrations.brain.tasks.sync_categories",

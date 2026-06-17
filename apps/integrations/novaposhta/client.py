@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 import httpx
 from django.conf import settings
@@ -33,6 +34,75 @@ NP_STATUS_MAP: dict[str, str] = {
 }
 DELIVERED_CODES = {"12"}
 IN_TRANSIT_CODES = {"5", "6", "7", "101"}
+
+
+def _normalize_np_phone(phone: str) -> str:
+    """Return phone in 380XXXXXXXXX format for Nova Poshta API."""
+    digits = re.sub(r"\D", "", phone or "")
+    if digits.startswith("380"):
+        return digits
+    if digits.startswith("80"):
+        return f"3{digits}"
+    if digits.startswith("0"):
+        return f"38{digits}"
+    if len(digits) == 9:
+        return f"380{digits}"
+    return digits
+
+
+_LATIN_DIGRAPHS = (
+    ("shch", "щ"),
+    ("zh", "ж"),
+    ("kh", "х"),
+    ("ts", "ц"),
+    ("ch", "ч"),
+    ("sh", "ш"),
+    ("yu", "ю"),
+    ("ya", "я"),
+    ("ye", "є"),
+    ("yi", "ї"),
+)
+_LATIN_SINGLES = {
+    "a": "а", "b": "б", "c": "к", "d": "д", "e": "е", "f": "ф", "g": "г",
+    "h": "г", "i": "і", "j": "й", "k": "к", "l": "л", "m": "м", "n": "н",
+    "o": "о", "p": "п", "q": "к", "r": "р", "s": "с", "t": "т", "u": "у",
+    "v": "в", "w": "в", "x": "кс", "y": "и", "z": "з",
+}
+
+
+def _latin_to_ukrainian(text: str) -> str:
+    """Rough Latin→Ukrainian transliteration for NP name fields."""
+    text = (text or "").lower()
+    result: list[str] = []
+    idx = 0
+    while idx < len(text):
+        matched = False
+        for latin, cyrillic in _LATIN_DIGRAPHS:
+            if text.startswith(latin, idx):
+                result.append(cyrillic)
+                idx += len(latin)
+                matched = True
+                break
+        if matched:
+            continue
+        char = text[idx]
+        if char in _LATIN_SINGLES:
+            result.append(_LATIN_SINGLES[char])
+        elif char in " -'":
+            result.append(char)
+        idx += 1
+    return "".join(result)
+
+
+def _np_name_part(value: str, *, fallback: str) -> str:
+    """Return Cyrillic-safe name fragment for Nova Poshta API."""
+    value = (value or "").strip()
+    if not value:
+        return fallback
+    if re.search(r"[а-яА-ЯіІїЇєЄґҐ]", value):
+        return value
+    transliterated = _latin_to_ukrainian(value)
+    return transliterated or fallback
 
 
 class NovaPoshtaClient:
@@ -87,6 +157,53 @@ class NovaPoshtaClient:
             props["Page"] = str(int(props["Page"]) + 1)
         return warehouses
 
+    def _ensure_recipient(self, order) -> tuple[str, str] | None:
+        """Create or reuse NP recipient counterparty. Returns (recipient_ref, contact_ref)."""
+        phone = _normalize_np_phone(order.phone)
+        first_name = _np_name_part(order.first_name, fallback="Клієнт")
+        last_name = _np_name_part(order.last_name, fallback="")
+        if not last_name:
+            last_name = first_name
+        if not phone:
+            logger.warning("NP create_ttn: order #%s has no phone", order.pk)
+            return None
+
+        resp = self._post(
+            "Counterparty",
+            "save",
+            {
+                "FirstName": first_name,
+                "LastName": last_name,
+                "Phone": phone,
+                "Email": (order.email or "").strip(),
+                "CounterpartyType": "PrivatePerson",
+                "CounterpartyProperty": "Recipient",
+            },
+        )
+        if not resp.get("success") or not resp.get("data"):
+            logger.error(
+                "NP ensure_recipient failed for order #%s: %s",
+                order.pk,
+                resp.get("errors", []),
+            )
+            return None
+
+        item = resp["data"][0]
+        recipient_ref = item.get("Ref", "")
+        contact_person = item.get("ContactPerson") or {}
+        contacts = contact_person.get("data") or []
+        contact_ref = contacts[0].get("Ref", "") if contacts else ""
+        if not recipient_ref or not contact_ref:
+            logger.error("NP ensure_recipient missing refs for order #%s", order.pk)
+            return None
+        return recipient_ref, contact_ref
+
+    def _payment_props(self, order) -> dict[str, str]:
+        """Map order payment to NP payer settings (Cash-only for private senders)."""
+        if order.payment_method == "cod":
+            return {"PayerType": "Recipient", "PaymentMethod": "Cash"}
+        return {"PayerType": "Sender", "PaymentMethod": "Cash"}
+
     def create_ttn(self, order) -> str | None:
         """Create TTN (waybill) for an order. Returns IntDocNumber or None."""
         if not self._key:
@@ -103,7 +220,16 @@ class NovaPoshtaClient:
             logger.warning("NP create_ttn: sender settings not configured (NP_SENDER_*)")
             return None
 
-        # Calculate weight/cost from order items
+        if not order.city_ref or not order.warehouse_ref:
+            logger.warning("NP create_ttn: order #%s missing city_ref/warehouse_ref", order.pk)
+            return None
+
+        recipient = self._ensure_recipient(order)
+        if not recipient:
+            return None
+        recipient_ref, recipient_contact_ref = recipient
+        recipient_phone = _normalize_np_phone(order.phone)
+
         total = float(order.total)
         weight = sum(
             float(getattr(item.product, "weight", 0) or 0.5)
@@ -111,8 +237,7 @@ class NovaPoshtaClient:
         ) or 0.5
 
         props = {
-            "PayerType": "Recipient",
-            "PaymentMethod": "Cash" if order.payment_method == "cod" else "NonCash",
+            **self._payment_props(order),
             "CargoType": "Parcel",
             "Weight": str(round(weight, 2)),
             "SeatsAmount": "1",
@@ -123,12 +248,12 @@ class NovaPoshtaClient:
             "Sender": sender_ref,
             "SenderAddress": sender_wh_ref,
             "ContactSender": contact_ref,
-            "SendersPhone": sender_phone,
+            "SendersPhone": _normalize_np_phone(sender_phone),
             "CityRecipient": order.city_ref,
+            "Recipient": recipient_ref,
             "RecipientAddress": order.warehouse_ref,
-            "RecipientsPhone": order.phone,
-            "RecipientName": f"{order.first_name} {order.last_name}".strip(),
-            "RecipientType": "PrivatePerson",
+            "ContactRecipient": recipient_contact_ref,
+            "RecipientsPhone": recipient_phone,
         }
         resp = self._post("InternetDocument", "save", props)
         if resp.get("success") and resp.get("data"):

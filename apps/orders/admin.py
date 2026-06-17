@@ -1,20 +1,10 @@
-from django import forms
 from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, TabularInline
 
+from .forms import OrderAdminForm
 from .models import Order, OrderItem, OrderStatus
 from .statuses import admin_status_queryset
-
-
-class OrderAdminForm(forms.ModelForm):
-    class Meta:
-        model = Order
-        fields = "__all__"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["status"].queryset = admin_status_queryset()
 
 
 class OrderItemInline(TabularInline):
@@ -45,13 +35,31 @@ class OrderAdmin(ModelAdmin):
     readonly_fields = ("created_at", "updated_at", "payment_id", "fiscal_check_url")
     fieldsets = (
         ("Клієнт", {"fields": ("customer", "first_name", "last_name", "email", "phone", "comment")}),
-        ("Доставка", {"fields": ("delivery_type", "city", "warehouse", "postcode", "ttn", "up_barcode")}),
+        (
+            "Доставка",
+            {
+                "fields": (
+                    "delivery_type",
+                    "city",
+                    "city_ref",
+                    "warehouse",
+                    "warehouse_ref",
+                    "postcode",
+                    "ttn",
+                    "up_barcode",
+                ),
+            },
+        ),
         ("Оплата", {"fields": ("payment_method", "is_paid", "payment_id", "total", "delivery_cost", "discount", "bonus_used", "coupon")}),
         ("Фіскалізація", {"fields": ("fiscal_check_url",)}),
         (_("Статус замовлення"), {"fields": ("status",)}),
         ("Системне", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     )
     actions = ["create_ttn_action", "create_up_shipment_action", "send_status_notification", "fiscalize_orders_action"]
+
+    class Media:
+        css = {"all": ("css/admin_extra.css",)}
+        js = ("admin/js/order_np_delivery.js",)
 
     def save_model(self, request, obj, form, change):
         if not obj.status_id:

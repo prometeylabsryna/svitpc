@@ -46,23 +46,36 @@ def update_delivery_statuses() -> None:
             logger.error("update_delivery_statuses order #%s: %s", order.pk, exc)
 
 
-@shared_task
+@shared_task(queue="priority")
 def create_ttn_for_order(order_pk: int) -> None:
     """Create Nova Poshta TTN for an order and notify customer."""
+    from django.db import transaction
+
     from apps.integrations.novaposhta.client import NovaPoshtaClient
     from apps.notifications.dispatch import notify_order_customer
     from apps.orders.models import Order
     from apps.shipping.dispatch import order_ready_for_shipment
 
+    ttn = None
     try:
-        order = Order.objects.get(pk=order_pk)
-        if not order_ready_for_shipment(order) or order.ttn:
-            return
-        client = NovaPoshtaClient()
-        ttn = client.create_ttn(order)
-        if ttn:
-            order.ttn = ttn
-            order.save(update_fields=["ttn"])
-            notify_order_customer(order, "ttn_created", extra_context={"ttn": ttn})
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(pk=order_pk)
+            if not order_ready_for_shipment(order) or order.ttn:
+                return
+            client = NovaPoshtaClient()
+            ttn = client.create_ttn(order)
+            if ttn:
+                order.ttn = ttn
+                order.save(update_fields=["ttn"])
+    except Order.DoesNotExist:
+        return
     except Exception as exc:
         logger.error("create_ttn_for_order #%s: %s", order_pk, exc)
+        return
+
+    if ttn:
+        try:
+            order = Order.objects.get(pk=order_pk)
+            notify_order_customer(order, "ttn_created", extra_context={"ttn": ttn})
+        except Exception as exc:
+            logger.error("create_ttn_for_order notify #%s: %s", order_pk, exc)

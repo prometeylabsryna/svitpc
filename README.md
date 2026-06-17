@@ -41,6 +41,7 @@ make migrate
 ```bash
 make run         # Django dev server: http://localhost:8000
 make worker      # Celery worker (окремий термінал)
+make worker-priority  # Celery worker для ТТН/доставки (окремий термінал)
 make beat        # Celery beat — планувальник (окремий термінал)
 ```
 
@@ -197,6 +198,63 @@ make createsuperuser
 - **Категорії** → «Згенерувати AI-опис категорій» (синхронно, без Celery); drag-and-drop для зміни порядку (MPTT)
 - **Товари** → дії Brain (синхронізація, ціни/залишки, приховування без залишку)
 - **Замовлення** → "Створити ТТН НП", "Відправити повідомлення про статус"
+
+## Деплой на сервер (Docker)
+
+На сервері проєкт зазвичай лежить у `/var/www/svitpc`.
+
+### 1. Локально (Mac) — спочатку push
+
+```bash
+git add -A
+git commit -m "ТТН НП: autocomplete в адмінці, priority worker, виправлення API"
+git push origin main
+```
+
+### 2. На сервері
+
+```bash
+cd /var/www/svitpc   # або ваш шлях до клону репозиторію
+git pull origin main
+```
+
+Перевірте `.env` (ключі Нової Пошти обовʼязкові для ТТН):
+
+```bash
+grep -E '^NOVA_POSHTA_API_KEY=|^NP_SENDER_' .env
+```
+
+Якщо порожньо — допишіть значення в `.env` і збережіть.
+
+### 3. Перезбірка і запуск
+
+```bash
+bash deploy/docker/deploy.sh
+```
+
+Скрипт сам: `docker compose build`, `up -d`, міграції через backend, `collectstatic`.
+
+### 4. Перевірка після деплою
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=50 celery_worker_priority
+curl -sf http://127.0.0.1/healthz/ && echo OK
+```
+
+У списку контейнерів має бути **`celery_worker_priority`** у статусі Up — без нього ТТН не створюються.
+
+### 5. Тест ТТН
+
+1. Адмінка → Замовлення → створити/відкрити НП-замовлення з містом і відділенням з підказок.
+2. Післяплата — зберегти; або картка — увімкнути «Оплачено».
+3. Через 1–2 хв у полі **ТТН** зʼявиться номер, або action «Створити ТТН (Нова Пошта)».
+
+Логи помилок API:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs celery_worker_priority | grep -i 'NP create_ttn'
+```
 
 ## Бекап БД
 

@@ -62,3 +62,8 @@ if [[ "$USE_HTTPS" == "true" ]] && curl -sfk https://127.0.0.1/healthz/ >/dev/nu
 fi
 
 "${COMPOSE[@]}" ps
+
+if ! "${COMPOSE[@]}" ps celery_worker_priority 2>/dev/null | grep -qE "Up|running"; then
+  echo "WARN: celery_worker_priority is not running — TTN/Укрпошта tasks will stay in the priority queue."
+  echo "      Check: ${COMPOSE[*]} logs celery_worker_priority"
+fi
