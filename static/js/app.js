@@ -15,6 +15,7 @@ import { initHomeAds } from "./modules/home-ads.js";
 import { initCoinsProgress, initCouponCopy } from "./modules/coins.js";
 import { initSvitik } from "./modules/svitik.js";
 import { initCountdownTimers } from "./modules/timer.js";
+import { initSiteNav } from "./modules/site-nav.js";
 import "./modules/fonts.js";
 import "./modules/ecommerce.js";
 // htmx-bridge auto-init runs on import
@@ -42,6 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initCouponCopy();
   initSvitik();
   initCountdownTimers();
+  initSiteNav();
 
   // Django messages → toasts
   document.querySelectorAll("[data-toast]").forEach((el) => {

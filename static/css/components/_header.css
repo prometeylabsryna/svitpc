@@ -343,7 +343,8 @@
   }
 
   .site-nav__group:hover .site-nav__dropdown,
-  .site-nav__group:focus-within .site-nav__dropdown {
+  .site-nav__group:focus-within .site-nav__dropdown,
+  .site-nav__group.is-open .site-nav__dropdown {
     grid-template-rows: 1fr;
   }
 
