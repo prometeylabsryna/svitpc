@@ -315,6 +315,20 @@
     min-width: 0;
   }
 
+  .site-nav__chevron {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    color: var(--clr-text-subtle);
+    transition: transform 220ms ease;
+    margin-left: auto;
+    padding-left: var(--space-1);
+  }
+
+  .site-nav__group.is-open > .site-nav__item .site-nav__chevron {
+    transform: rotate(180deg);
+  }
+
   .site-nav__item--accent {
     color: var(--clr-danger);
 
@@ -341,20 +355,11 @@
     padding-block: 2px;
   }
 
-  .site-nav__group:hover .site-nav__dropdown,
   .site-nav__group:focus-within .site-nav__dropdown,
   .site-nav__group.is-open .site-nav__dropdown {
     max-height: 640px;
     opacity: 1;
-    transition: max-height 280ms ease, opacity 200ms ease 60ms;
-  }
-
-  /* Delay on hover open — prevents flicker when passing mouse through */
-  .site-nav__group:hover .site-nav__dropdown {
-    transition-delay: 80ms;
-  }
-  .site-nav__group.is-open .site-nav__dropdown {
-    transition-delay: 0ms;
+    transition: max-height 280ms ease, opacity 200ms ease 40ms;
   }
 
   .site-nav__dropdown-item {
