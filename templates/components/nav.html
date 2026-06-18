@@ -12,9 +12,11 @@
       {% with children=cat.children.all %}
       {% if children %}
       <div class="site-nav__dropdown" role="menu" aria-label="{{ cat|localized:'name' }}">
-        {% for sub in children %}
-        <a href="{{ sub.get_absolute_url }}" class="site-nav__dropdown-item" role="menuitem">{{ sub|localized:"name" }}</a>
-        {% endfor %}
+        <div class="site-nav__dropdown-inner">
+          {% for sub in children %}
+          <a href="{{ sub.get_absolute_url }}" class="site-nav__dropdown-item" role="menuitem">{{ sub|localized:"name" }}</a>
+          {% endfor %}
+        </div>
       </div>
       {% endif %}
       {% endwith %}
