@@ -4,22 +4,11 @@
 <nav class="site-nav" aria-label="{% trans 'Каталог' %}">
   <ul class="site-nav__list">
     {% for cat in top_categories %}
-    <li class="site-nav__group">
-      <a href="{{ cat.get_absolute_url }}" class="site-nav__item">
+    <li class="site-nav__item-wrap">
+      <a href="{{ cat.get_absolute_url }}" class="site-nav__item" data-nav-href="{{ cat.get_absolute_url }}">
         {% include "catalog/partials/category_icon.html" with category=cat %}
         <span class="site-nav__label">{{ cat|localized:"name" }}</span>
       </a>
-      {% with children=cat.children.all %}
-      {% if children %}
-      <div class="site-nav__dropdown" role="menu" aria-label="{{ cat|localized:'name' }}">
-        <div class="site-nav__dropdown-inner">
-          {% for sub in children %}
-          <a href="{{ sub.get_absolute_url }}" class="site-nav__dropdown-item" role="menuitem">{{ sub|localized:"name" }}</a>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-      {% endwith %}
     </li>
     {% endfor %}
   </ul>
