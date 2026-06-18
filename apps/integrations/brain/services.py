@@ -352,6 +352,12 @@ def apply_detail_to_product(
             category_ids=cat_ids,
         )
 
+    # Description — available only via /product/{pid} detail endpoint.
+    # Write directly to _uk column to bypass modeltranslation language routing.
+    raw_desc = (detail.get("description") or detail.get("description_ua") or "").strip()
+    if raw_desc and raw_desc != (product.description_uk or ""):
+        upd["description_uk"] = raw_desc
+
     if wholesale_raw > 0:
         old = brain_sale_old_price(detail, wholesale_raw, brand_id, cat_ids)
         retail = upd.get("price", product.price)
@@ -438,6 +444,9 @@ def upsert_product_from_detail(
         "hide_if_out_of_stock": hide,
         "is_visible": visible,
     }
+    raw_desc = (detail.get("description") or detail.get("description_ua") or "").strip()
+    if raw_desc:
+        defaults["description_uk"] = raw_desc
 
     with transaction.atomic():
         product, created = Product.objects.update_or_create(
