@@ -95,6 +95,51 @@
     padding-bottom: var(--space-1);
   }
 
+  .home-ads__arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(calc(-50% - 16px));
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--clr-border);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--clr-text);
+    cursor: pointer;
+    transition: background var(--transition-fast), box-shadow var(--transition-fast),
+                border-color var(--transition-fast), opacity var(--transition-fast);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    &:hover {
+      background: var(--clr-surface);
+      border-color: rgba(var(--clr-accent-rgb), 0.3);
+      box-shadow: var(--shadow-glow-sm);
+    }
+
+    &--prev { left: var(--space-3); }
+    &--next { right: var(--space-3); }
+
+    @media (max-width: 480px) {
+      width: 32px;
+      height: 32px;
+
+      svg { width: 16px; height: 16px; }
+
+      &--prev { left: var(--space-2); }
+      &--next { right: var(--space-2); }
+    }
+  }
+
+  /* Section needs position:relative so arrows are positioned correctly */
+  .home-ads {
+    position: relative;
+  }
+
   .home-ads__dot {
     width: 8px;
     height: 8px;

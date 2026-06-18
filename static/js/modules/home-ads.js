@@ -48,6 +48,8 @@ export function initHomeAds() {
     const viewport = root.querySelector(".home-ads__viewport");
     const track = root.querySelector("[data-home-ads-track]");
     const dotsRoot = root.querySelector("[data-home-ads-dots]");
+    const prevBtn = root.querySelector("[data-home-ads-prev]");
+    const nextBtn = root.querySelector("[data-home-ads-next]");
     if (!viewport || !track || !dotsRoot) {
       return;
     }
@@ -62,6 +64,19 @@ export function initHomeAds() {
     let maxIndex = Math.max(0, slides.length - columns);
     let autoplayTimer;
 
+    const updateArrows = () => {
+      if (!prevBtn || !nextBtn) return;
+      if (maxIndex <= 0) {
+        prevBtn.hidden = true;
+        nextBtn.hidden = true;
+        return;
+      }
+      prevBtn.hidden = false;
+      nextBtn.hidden = false;
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index >= maxIndex;
+    };
+
     const scrollToIndex = (next) => {
       index = Math.max(0, Math.min(maxIndex, next));
       const slide = slides[index];
@@ -69,6 +84,7 @@ export function initHomeAds() {
         viewport.scrollTo({ left: slide.offsetLeft, behavior: "smooth" });
       }
       setActiveDot(dotsRoot, index);
+      updateArrows();
     };
 
     const syncFromScroll = () => {
@@ -84,6 +100,7 @@ export function initHomeAds() {
       }
       index = nearest;
       setActiveDot(dotsRoot, index);
+      updateArrows();
     };
 
     const updateLayout = () => {
@@ -101,15 +118,34 @@ export function initHomeAds() {
         viewport.classList.remove("home-ads__viewport--scroll");
         viewport.scrollLeft = 0;
       }
+      updateArrows();
+    };
+
+    const resetAutoplay = () => {
+      clearInterval(autoplayTimer);
+      startAutoplay();
     };
 
     dotsRoot.addEventListener("click", (event) => {
       const btn = event.target.closest(".home-ads__dot");
-      if (!btn) {
-        return;
-      }
+      if (!btn) return;
       scrollToIndex(parseInt(btn.dataset.index, 10));
+      resetAutoplay();
     });
+
+    if (prevBtn) {
+      prevBtn.addEventListener("click", () => {
+        scrollToIndex(index - 1);
+        resetAutoplay();
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener("click", () => {
+        scrollToIndex(index + 1);
+        resetAutoplay();
+      });
+    }
 
     viewport.addEventListener("scroll", () => {
       window.requestAnimationFrame(syncFromScroll);
@@ -117,9 +153,7 @@ export function initHomeAds() {
 
     const startAutoplay = () => {
       clearInterval(autoplayTimer);
-      if (maxIndex <= 0) {
-        return;
-      }
+      if (maxIndex <= 0) return;
       autoplayTimer = setInterval(() => {
         scrollToIndex(index >= maxIndex ? 0 : index + 1);
       }, 6000);

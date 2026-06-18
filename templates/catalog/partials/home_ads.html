@@ -40,6 +40,26 @@
     </div>
   </div>
   {% if home_ads_carousel %}
+  <button
+    class="home-ads__arrow home-ads__arrow--prev"
+    data-home-ads-prev
+    aria-label="{% trans 'Попередній банер' %}"
+    hidden
+  >
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+  <button
+    class="home-ads__arrow home-ads__arrow--next"
+    data-home-ads-next
+    aria-label="{% trans 'Наступний банер' %}"
+    hidden
+  >
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
   <div class="home-ads__dots" data-home-ads-dots role="tablist" aria-label="{% trans 'Навігація банерів' %}"></div>
   {% endif %}
 </section>
