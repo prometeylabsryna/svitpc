@@ -354,6 +354,9 @@
     color: var(--clr-text-muted);
     text-decoration: none;
     border-radius: var(--radius-md);
+    white-space: normal;
+    word-break: break-word;
+    line-height: var(--leading-normal);
     transition: color var(--transition-fast), background var(--transition-fast);
 
     &:hover {
