@@ -619,6 +619,10 @@ BRAIN_API_URL = env("BRAIN_API_URL", default="https://api.brain.com.ua")
 BRAIN_HIDE_OUT_OF_STOCK = env.bool("BRAIN_HIDE_OUT_OF_STOCK", default=True)
 # Brain /products limit: 100 without OWN_MODE, up to 1000 with OWN_MODE (API docs)
 BRAIN_PRODUCTS_PAGE_LIMIT = env.int("BRAIN_PRODUCTS_PAGE_LIMIT", default=100)
+# Default markup % applied on top of Brain retail price when no MarkupRule matches.
+# Brain retail = max(retail_price_uah, recommendable_price, retail_price).
+# 5 means: shelf_price = brain_retail * 1.05
+BRAIN_DEFAULT_MARKUP_PERCENT = env.int("BRAIN_DEFAULT_MARKUP_PERCENT", default=5)
 KANCMASTER_XML_URL = env("KANCMASTER_XML_URL", default="https://kancmaster.com.ua/xml_export_request")
 KANCMASTER_LOGIN = env("KANCMASTER_LOGIN", default="")
 KANCMASTER_PASSWORD = env("KANCMASTER_PASSWORD", default="")

@@ -233,7 +233,13 @@ def get_sale_products_queryset() -> QuerySet[Product]:
 
 
 def apply_markup(base_price: Decimal, brand_id: int | None, category_ids: list[int]) -> Decimal:
-    """Apply the highest-priority markup rule matching brand/category."""
+    """Apply the highest-priority MarkupRule matching brand/category.
+
+    Fallback: when no rule matches, BRAIN_DEFAULT_MARKUP_PERCENT from settings is applied
+    (default 5 %). This ensures Brain retail prices are never sold below cost.
+    """
+    from django.conf import settings
+
     from .models import MarkupRule
 
     rules = MarkupRule.objects.filter(is_active=True).order_by("-priority")
@@ -245,4 +251,7 @@ def apply_markup(base_price: Decimal, brand_id: int | None, category_ids: list[i
             continue
         return rule.apply(base_price)
 
+    default_pct = Decimal(str(getattr(settings, "BRAIN_DEFAULT_MARKUP_PERCENT", 0)))
+    if default_pct > 0:
+        return (base_price * (Decimal("1") + default_pct / Decimal("100"))).quantize(Decimal("0.01"))
     return base_price

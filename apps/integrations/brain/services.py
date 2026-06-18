@@ -19,18 +19,24 @@ _RETAIL_PRICE_KEYS = ("retail_price_uah", "recommendable_price", "retail_price")
 
 
 def brain_retail_price_raw(detail: dict) -> Decimal:
-    """Wholesale/RRP reference from Brain payload (before markup)."""
+    """Return the HIGHEST available retail/RRP price from Brain payload.
+
+    Brain can return several retail price fields simultaneously
+    (retail_price_uah, recommendable_price, retail_price).
+    We take the maximum so that our shelf price is never below any of them.
+    """
+    best = Decimal("0")
     for key in _RETAIL_PRICE_KEYS:
         val = detail.get(key)
         if val is None or val == "":
             continue
         try:
             parsed = Decimal(str(val).replace(",", "."))
-            if parsed > 0:
-                return parsed
+            if parsed > best:
+                best = parsed
         except Exception:
             continue
-    return Decimal("0")
+    return best
 
 
 def brain_sale_old_price(
@@ -39,7 +45,14 @@ def brain_sale_old_price(
     brand_id: int | None,
     category_ids: list[int],
 ) -> Decimal | None:
-    """Marked-up RRP when Brain retail/recommendable price exceeds wholesale."""
+    """Return a crossed-out old_price ONLY when Brain is genuinely discounting
+    (wholesale_raw is meaningfully below its own retail).
+
+    Base logic: our shelf price = apply_markup(retail_raw).
+    A "sale" exists only when Brain's wholesale is below retail — we show
+    the non-discounted retail+markup as old_price.
+    If wholesale >= retail (no discount) → return None (no crossed-out price).
+    """
     from apps.catalog.services import apply_markup
 
     if wholesale_raw <= 0:
@@ -47,8 +60,8 @@ def brain_sale_old_price(
     retail_raw = brain_retail_price_raw(detail)
     if retail_raw <= wholesale_raw:
         return None
-    current = apply_markup(wholesale_raw, brand_id, category_ids)
     old = apply_markup(retail_raw, brand_id, category_ids)
+    current = apply_markup(wholesale_raw, brand_id, category_ids)
     return old if old > current else None
 
 
@@ -282,7 +295,9 @@ def apply_detail_to_product(
     from apps.catalog.ru_localization import localize_ru_to_uk
 
     name = localize_ru_to_uk((detail.get("name") or product.name or "").strip())
-    price_raw = Decimal(str(detail.get("price_uah") or detail.get("price") or 0))
+    wholesale_raw = Decimal(str(detail.get("price_uah") or detail.get("price") or 0))
+    retail_raw = brain_retail_price_raw(detail)
+    base_price = retail_raw if retail_raw > wholesale_raw else wholesale_raw
     stock = brain_stock_from_detail(detail)
     sku = (detail.get("articul") or detail.get("product_code") or product.sku or "").strip()
     from apps.catalog.gallery import normalize_brain_image_url
@@ -327,18 +342,18 @@ def apply_detail_to_product(
         upd["is_visible"] = stock > 0
     if update_image and main_img:
         upd["image_url"] = main_img
-    if update_price and price_raw > 0:
-        upd["purchase_price"] = price_raw
-        marked = apply_markup(price_raw, brand_id, cat_ids)
+    if update_price and base_price > 0:
+        upd["purchase_price"] = wholesale_raw if wholesale_raw > 0 else None
+        marked = apply_markup(base_price, brand_id, cat_ids)
         upd["price"] = enforce_retail_price(
             marked,
-            price_raw,
+            wholesale_raw,
             brand_id=brand_id,
             category_ids=cat_ids,
         )
 
-    if price_raw > 0:
-        old = brain_sale_old_price(detail, price_raw, brand_id, cat_ids)
+    if wholesale_raw > 0:
+        old = brain_sale_old_price(detail, wholesale_raw, brand_id, cat_ids)
         retail = upd.get("price", product.price)
         reconciled = reconcile_old_price(retail, old)
         if reconciled is not None:
@@ -381,7 +396,11 @@ def upsert_product_from_detail(
 
     brand = resolve_brand(detail, vendor_map)
     local_cat = resolve_local_category(detail, cat_map)
-    price_raw = Decimal(str(detail.get("price_uah") or detail.get("price") or 0))
+    wholesale_raw = Decimal(str(detail.get("price_uah") or detail.get("price") or 0))
+    retail_raw = brain_retail_price_raw(detail)
+    # Use Brain's highest retail price as the base for shelf price.
+    # Fall back to wholesale when retail is unavailable.
+    base_price = retail_raw if retail_raw > wholesale_raw else wholesale_raw
     stock = brain_stock_from_detail(detail)
     sku = (detail.get("articul") or detail.get("product_code") or "").strip()
     from apps.catalog.gallery import normalize_brain_image_url
@@ -391,18 +410,18 @@ def upsert_product_from_detail(
     )
 
     cat_ids = [local_cat.pk] if local_cat else []
-    final_price = apply_markup(price_raw, brand.pk if brand else None, cat_ids) if price_raw > 0 else Decimal("0")
+    brand_id = brand.pk if brand else None
+    final_price = apply_markup(base_price, brand_id, cat_ids) if base_price > 0 else Decimal("0")
 
     slug_base = slugify(name, allow_unicode=True) or f"brain-p-{brain_id}"
     slug = unique_product_slug(slug_base, brain_id)
     hide = brain_hide_out_of_stock_enabled()
     visible = brain_visibility(stock, hide)
 
-    brand_id = brand.pk if brand else None
-    old_price = brain_sale_old_price(detail, price_raw, brand_id, cat_ids) if price_raw > 0 else None
+    old_price = brain_sale_old_price(detail, wholesale_raw, brand_id, cat_ids) if wholesale_raw > 0 else None
     shelf = (
-        enforce_retail_price(final_price, price_raw, brand_id=brand_id, category_ids=cat_ids)
-        if price_raw > 0
+        enforce_retail_price(final_price, wholesale_raw, brand_id=brand_id, category_ids=cat_ids)
+        if wholesale_raw > 0
         else final_price
     )
 
@@ -410,9 +429,9 @@ def upsert_product_from_detail(
         "name": name[:500],
         "slug": slug,
         "brand": brand,
-        "price": shelf if shelf > 0 else price_raw,
+        "price": shelf if shelf > 0 else base_price,
         "old_price": reconcile_old_price(shelf, old_price),
-        "purchase_price": price_raw if price_raw > 0 else None,
+        "purchase_price": wholesale_raw if wholesale_raw > 0 else None,
         "stock": stock,
         "sku": sku[:100],
         "image_url": main_img,

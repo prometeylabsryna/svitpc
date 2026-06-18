@@ -10,11 +10,17 @@ from celery import shared_task
 from .services import (
     apply_detail_to_product,
     brain_hide_out_of_stock_enabled,
+    brain_retail_price_raw,
     brain_sale_old_price,
+    brain_stock_from_detail,
+    brain_visibility,
     build_category_map_from_db,
+    resolve_brand,
+    resolve_local_category,
     sync_brain_categories,
     sync_product_options,
     sync_product_pictures,
+    unique_product_slug,
     upsert_product_from_detail,
 )
 
@@ -68,13 +74,6 @@ def sync_products() -> None:
     from apps.catalog.models import Product
     from apps.catalog.services import apply_markup
     from .client import products_page_limit
-    from .services import (
-        brain_stock_from_detail,
-        brain_visibility,
-        resolve_brand,
-        resolve_local_category,
-        unique_product_slug,
-    )
 
     client = _brain_client()
     cat_map = sync_brain_categories(client)
@@ -113,19 +112,21 @@ def sync_products() -> None:
 
                 from apps.catalog.pricing import enforce_retail_price, reconcile_old_price
 
-                price_raw = Decimal(str(item.get("price_uah") or item.get("price") or 0))
+                wholesale_raw = Decimal(str(item.get("price_uah") or item.get("price") or 0))
+                retail_raw = brain_retail_price_raw(item)
+                base_price = retail_raw if retail_raw > wholesale_raw else wholesale_raw
                 stock = brain_stock_from_detail(item)
                 sku = (item.get("articul") or item.get("product_code") or "").strip()
                 cat_ids = [local_cat.pk] if local_cat else []
                 brand_id = brand.pk if brand else None
-                final_price = apply_markup(price_raw, brand_id, cat_ids)
+                final_price = apply_markup(base_price, brand_id, cat_ids)
                 shelf = enforce_retail_price(
                     final_price,
-                    price_raw,
+                    wholesale_raw,
                     brand_id=brand_id,
                     category_ids=cat_ids,
                 )
-                old_price = brain_sale_old_price(item, price_raw, brand_id, cat_ids) if price_raw > 0 else None
+                old_price = brain_sale_old_price(item, wholesale_raw, brand_id, cat_ids) if wholesale_raw > 0 else None
                 slug_base = _slug(name, allow_unicode=True) or f"brain-p-{brain_id}"
                 slug = unique_product_slug(slug_base, brain_id)
                 from apps.catalog.gallery import normalize_brain_image_url
@@ -145,7 +146,7 @@ def sync_products() -> None:
                             "brand": brand,
                             "price": shelf,
                             "old_price": reconcile_old_price(shelf, old_price),
-                            "purchase_price": price_raw,
+                            "purchase_price": wholesale_raw if wholesale_raw > 0 else None,
                             "stock": stock,
                             "sku": sku,
                             "image_url": main_img,
