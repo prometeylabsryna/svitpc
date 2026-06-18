@@ -22,6 +22,7 @@ class PromotionAdmin(ModelAdmin):
     list_display = (
         "title_uk",
         "product",
+        "sale_price",
         "start_date",
         "end_date",
         "is_active",
@@ -32,13 +33,23 @@ class PromotionAdmin(ModelAdmin):
     list_editable = ("is_active",)
     date_hierarchy = "end_date"
     search_fields = ("title_uk", "title_en", "product__name_uk", "product__name_en")
-    readonly_fields = ("auto_synced",)
+    readonly_fields = ("auto_synced", "original_price", "product_current_prices")
     autocomplete_fields = ("product",)
-    actions = ["send_push_notification"]
+    actions = ["send_push_notification", "restore_prices"]
     fieldsets = (
         (
             _("Загальне"),
-            {"fields": ("product", "start_date", "end_date", "is_active", "auto_synced")},
+            {"fields": ("product", "product_current_prices", "start_date", "end_date", "is_active", "auto_synced")},
+        ),
+        (
+            _("💰 Акційна ціна"),
+            {
+                "fields": ("sale_price", "original_price"),
+                "description": _(
+                    "Вкажіть акційну ціну щоб автоматично оновити ціну товару. "
+                    "Оригінальна ціна збережеться і відновиться після деактивації акції."
+                ),
+            },
         ),
         (
             _("🇺🇦 Українська"),
@@ -49,6 +60,30 @@ class PromotionAdmin(ModelAdmin):
             {"fields": ("title_en", "description_en")},
         ),
     )
+
+    @admin.display(description=_("Поточні ціни товару"))
+    def product_current_prices(self, obj: Promotion) -> str:
+        if not obj or not obj.product_id:
+            return "—"
+        try:
+            p = obj.product
+            price_str = f"<strong>{p.price} ₴</strong>"
+            old_str = f" &nbsp;|&nbsp; стара: <s>{p.old_price} ₴</s>" if p.old_price else ""
+            purchase_str = f" &nbsp;|&nbsp; закупка: {p.purchase_price} ₴" if p.purchase_price else ""
+            return format_html(
+                '<span style="font-size:13px">{}{}{}</span>',
+                format_html(price_str),
+                format_html(old_str),
+                format_html(purchase_str),
+            )
+        except Exception:
+            return "—"
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if obj.sale_price:
+            obj.apply_sale_price()
+            type(obj).objects.filter(pk=obj.pk).update(original_price=obj.original_price)
 
     @admin.display(description=_("Статус"))
     def is_running_display(self, obj: Promotion) -> str:
@@ -71,6 +106,18 @@ class PromotionAdmin(ModelAdmin):
             notify_promotion_push.delay(promo.pk)
             n += 1
         self.message_user(request, _("Push-розсилку поставлено в чергу: %(n)d акцій") % {"n": n})
+
+    @admin.action(description=_("Відновити оригінальні ціни товарів"))
+    def restore_prices(self, request, queryset):
+        n = 0
+        for promo in queryset:
+            if promo.original_price:
+                promo.restore_original_price()
+                type(promo).objects.filter(pk=promo.pk).update(
+                    original_price=None, sale_price=None
+                )
+                n += 1
+        self.message_user(request, _("Відновлено ціни для %(n)d акцій") % {"n": n})
 
 
 @admin.register(HomeAdSettings)

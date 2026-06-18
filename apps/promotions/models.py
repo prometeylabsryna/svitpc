@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -11,6 +13,27 @@ class Promotion(models.Model):
         verbose_name=_("Товар"),
         related_name="promotions",
         on_delete=models.CASCADE,
+    )
+    # Promotional pricing
+    sale_price = models.DecimalField(
+        _("Акційна ціна"),
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=_(
+            "Залиште порожнім щоб не змінювати ціну товару. "
+            "При збереженні — ціна товару стане акційною, стара ціна збережеться автоматично."
+        ),
+    )
+    original_price = models.DecimalField(
+        _("Ціна до акції"),
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        editable=False,
+        help_text=_("Ціна товару до початку акції. Відновлюється автоматично після деактивації."),
     )
     title_uk = models.CharField(
         _("Підзаголовок акції"),
@@ -63,6 +86,34 @@ class Promotion(models.Model):
         if now < self.end_date:
             return (self.end_date - now).total_seconds()
         return 0.0
+
+    def apply_sale_price(self) -> None:
+        """Apply sale_price to product: save original, set new price and old_price."""
+        if not self.sale_price or not self.product_id:
+            return
+        from apps.catalog.models import Product
+
+        product = Product.objects.filter(pk=self.product_id).first()
+        if not product:
+            return
+        if not self.original_price:
+            self.original_price = product.price
+        Product.objects.filter(pk=product.pk).update(
+            price=self.sale_price,
+            old_price=self.original_price,
+        )
+
+    def restore_original_price(self) -> None:
+        """Restore product price to original_price after promotion ends."""
+        if not self.original_price or not self.product_id:
+            return
+        from apps.catalog.models import Product
+
+        Product.objects.filter(pk=self.product_id).update(
+            price=self.original_price,
+            old_price=None,
+        )
+        self.original_price = None
 
 
 class HomeAdSettings(models.Model):
