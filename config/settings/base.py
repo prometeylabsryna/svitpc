@@ -250,6 +250,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.integrations.brain.tasks.backfill_metadata",
         "schedule": 2 * 3600,  # every 2 hours — brands/categories for OC-imported rows
     },
+    "brain-backfill-descriptions": {
+        "task": "apps.integrations.brain.tasks.backfill_descriptions",
+        "schedule": 6 * 3600,  # every 6 hours — description_uk for new Brain products
+    },
     "brain-backfill-images": {
         "task": "apps.integrations.brain.tasks.backfill_images",
         "schedule": 2 * 3600,  # every 2 hours — photos after placeholder cleanup / late Brain uploads

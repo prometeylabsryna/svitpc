@@ -405,7 +405,65 @@ def backfill_metadata() -> None:
 
 
 @shared_task
-def backfill_images() -> None:
+def backfill_descriptions() -> None:
+    """Fill description_uk for Brain products that don't have one yet.
+
+    Runs automatically every 6 hours; processes up to _BACKFILL_CHUNK products
+    per run so it's safe to schedule alongside other Brain tasks.
+    After a full sync_products run creates ~87K new products, this task
+    will gradually fill their descriptions without extra manual steps.
+    """
+    from apps.catalog.models import Product
+
+    client = _brain_client()
+    vendor_map = client.get_all_vendors()
+    cat_map = build_category_map_from_db(client)
+
+    qs = (
+        Product.objects.filter(
+            source=Product.SOURCE_BRAIN,
+            external_id__gt="",
+        )
+        .filter(description_uk="")
+        .only("pk", "external_id", "name", "brand_id", "description_uk")
+        .order_by("pk")[:_BACKFILL_CHUNK]
+    )
+
+    updated = 0
+    for product in qs:
+        try:
+            brain_id = int(product.external_id)
+        except (TypeError, ValueError):
+            continue
+        detail = client.get_product(brain_id, lang="ua")
+        if not detail:
+            continue
+        if apply_detail_to_product(
+            product,
+            detail,
+            vendor_map=vendor_map,
+            cat_map=cat_map,
+            update_price=False,
+            update_stock=False,
+            update_brand=False,
+            update_category=False,
+            update_image=False,
+        ):
+            updated += 1
+
+    remaining = Product.objects.filter(
+        source=Product.SOURCE_BRAIN,
+        external_id__gt="",
+        description_uk="",
+    ).count()
+    logger.info(
+        "Brain backfill_descriptions: %d updated, %d without description remain",
+        updated,
+        remaining,
+    )
+
+
+
     """Pull Brain photos for products missing a displayable image."""
     from apps.catalog.gallery import filter_products_missing_display_image, resolve_product_image_url
     from apps.catalog.models import Product
