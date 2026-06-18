@@ -81,7 +81,11 @@ export function initHomeAds() {
       index = Math.max(0, Math.min(maxIndex, next));
       const slide = slides[index];
       if (slide) {
-        viewport.scrollTo({ left: slide.offsetLeft, behavior: "smooth" });
+        const offset =
+          slide.getBoundingClientRect().left -
+          viewport.getBoundingClientRect().left +
+          viewport.scrollLeft;
+        viewport.scrollTo({ left: offset, behavior: "smooth" });
       }
       setActiveDot(dotsRoot, index);
       updateArrows();
