@@ -24,7 +24,8 @@
 
   .pdp-gallery__main {
     aspect-ratio: 1;
-    max-height: min(380px, 45vh);
+    width: 100%;
+    max-width: min(460px, 100%);
     border-radius: var(--radius-xl);
     border: 1px solid var(--clr-border);
     background: var(--clr-surface);
