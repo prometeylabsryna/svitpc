@@ -463,7 +463,8 @@ def backfill_descriptions() -> None:
     )
 
 
-
+@shared_task
+def backfill_images() -> None:
     """Pull Brain photos for products missing a displayable image."""
     from apps.catalog.gallery import filter_products_missing_display_image, resolve_product_image_url
     from apps.catalog.models import Product
