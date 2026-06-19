@@ -166,6 +166,7 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
 
 def product_detail_view(request: HttpRequest, slug: str) -> HttpResponse:
     _approved = Q(reviews__is_approved=True)
+    # Allow direct links to out-of-stock Brain items (is_visible=False when hide_if_out_of_stock).
     product = get_object_or_404(
         with_active_promotions(
             Product.objects.annotate(
@@ -176,7 +177,6 @@ def product_detail_view(request: HttpRequest, slug: str) -> HttpResponse:
             .prefetch_related("images", "attributes__attribute__group")
         ),
         slug=slug,
-        is_visible=True,
     )
     # Increment viewed
     Product.objects.filter(pk=product.pk).update(viewed=product.viewed + 1)
