@@ -11,8 +11,7 @@
     }
 
     @media (min-width: 1024px) {
-      /* Equal columns: gallery ≤ 50% → max ~480px on typical screens */
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 3fr 2fr;
     }
   }
 
@@ -26,13 +25,11 @@
 
   .pdp-gallery__main {
     aspect-ratio: 1;
-    /* Mobile single-column: limit height so it doesn't fill full screen */
-    max-height: 420px;
-
-    @media (min-width: 768px) {
-      /* 2-col equal grid limits width to ~50% of content → reasonable square */
-      max-height: none;
-    }
+    width: 100%;
+    /* Both max-width AND max-height to the same value guarantees a square ≤ 460px
+       regardless of parent column width or viewport height */
+    max-width: 460px;
+    max-height: 460px;
 
     border-radius: var(--radius-xl);
     border: 1px solid var(--clr-border);
