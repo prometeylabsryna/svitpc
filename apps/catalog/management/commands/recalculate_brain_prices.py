@@ -40,6 +40,12 @@ class Command(BaseCommand):
             default=BATCH,
             help=f"Розмір батчу UPDATE (default {BATCH})",
         )
+        parser.add_argument(
+            "--markup-percent",
+            type=int,
+            default=None,
+            help="Відсоток націнки (ігнорує settings). Наприклад: --markup-percent 5",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         from django.conf import settings
@@ -50,9 +56,10 @@ class Command(BaseCommand):
 
         dry_run: bool = options["dry_run"]
         chunk: int = options["chunk"]
+        markup_override: int | None = options["markup_percent"]
 
-        default_pct = getattr(settings, "BRAIN_DEFAULT_MARKUP_PERCENT", 5)
-        self.stdout.write(f"[recalculate_brain_prices] dry_run={dry_run}, default_markup={default_pct}%")
+        default_pct = markup_override if markup_override is not None else getattr(settings, "BRAIN_DEFAULT_MARKUP_PERCENT", 5)
+        self.stdout.write(f"[recalculate_brain_prices] dry_run={dry_run}, default_markup={default_pct}% {'(--markup-percent override)' if markup_override else ''}")
 
         from django.db.models import F, ExpressionWrapper, DecimalField as DField
 
@@ -91,7 +98,10 @@ class Command(BaseCommand):
                 else:
                     base = p.purchase_price  # type: ignore[assignment]
 
-                new_price = apply_markup(base, p.brand_id, cat_ids)
+                # Apply markup directly (bypass apply_markup to avoid settings dependency)
+                from decimal import Decimal as D
+                pct = D(str(default_pct))
+                new_price = (base * (D("1") + pct / D("100"))).quantize(D("0.01"))
                 # After applying markup on retail, old_price should be None
                 # (we already sell above Brain's retail — no fake discount needed).
                 new_old_price: Decimal | None = None
