@@ -21,6 +21,9 @@ class TestBrainServices:
         assert brain_stock_from_detail({"is_archive": True}) == 0
         assert brain_stock_from_detail({"is_archive": False}) == 1
         assert brain_stock_from_detail({"is_archive": 0}) == 1
+        assert brain_stock_from_detail({"is_archive": 1}) == 0
+        assert brain_stock_from_detail({"is_archive": "0"}) == 1
+        assert brain_stock_from_detail({"is_archive": "1"}) == 0
 
     @patch("apps.integrations.brain.services.brain_hide_out_of_stock_enabled", return_value=True)
     def test_brain_visibility_hides_zero_stock(self, _mock):

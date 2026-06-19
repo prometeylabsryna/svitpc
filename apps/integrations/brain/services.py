@@ -169,9 +169,21 @@ def brain_hide_out_of_stock_enabled() -> bool:
     return bool(getattr(settings, "BRAIN_HIDE_OUT_OF_STOCK", True))
 
 
+def _brain_is_archived(detail: dict) -> bool:
+    """Parse Brain is_archive (0/1, bool, or string from JSON)."""
+    val = detail.get("is_archive")
+    if val is None or val == "":
+        return False
+    if isinstance(val, str):
+        return val.strip().lower() in ("1", "true", "yes")
+    if isinstance(val, (int, float)):
+        return int(val) != 0
+    return bool(val)
+
+
 def brain_stock_from_detail(detail: dict) -> int:
-    """Brain exposes availability via is_archive, not warehouse qty."""
-    return 0 if detail.get("is_archive") else 1
+    """Brain exposes availability via is_archive (1 = archived / out of stock)."""
+    return 0 if _brain_is_archived(detail) else 1
 
 
 def brain_visibility(stock: int, hide_if_out_of_stock: bool) -> bool:

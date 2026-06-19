@@ -183,7 +183,7 @@ def sync_prices() -> None:
             vendor_map=vendor_map,
             cat_map=cat_map,
             update_price=True,
-            update_stock=False,
+            update_stock=True,
             update_brand=True,
             update_category=True,
             force_hide_flag=True,

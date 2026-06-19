@@ -43,7 +43,7 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any) -> None:
         from apps.catalog.models import Product
         from apps.integrations.brain.client import BrainAPIClient
-        from apps.integrations.brain.services import brain_shelf_prices
+        from apps.integrations.brain.services import brain_shelf_prices, brain_stock_from_detail, brain_visibility
 
         dry_run: bool = options["dry_run"]
         limit: int = options["limit"]
@@ -84,6 +84,9 @@ class Command(BaseCommand):
                 continue
 
             shelf, old_price, wholesale = brain_shelf_prices(detail)
+            stock = brain_stock_from_detail(detail)
+            hide = product.hide_if_out_of_stock
+            visible = brain_visibility(stock, hide)
             if shelf <= 0:
                 skipped += 1
                 continue
@@ -93,6 +96,8 @@ class Command(BaseCommand):
                 product.price == shelf
                 and product.old_price == old_price
                 and product.purchase_price == purchase
+                and product.stock == stock
+                and product.is_visible == visible
             ):
                 skipped += 1
                 continue
@@ -108,6 +113,8 @@ class Command(BaseCommand):
                     price=shelf,
                     old_price=old_price,
                     purchase_price=purchase,
+                    stock=stock,
+                    is_visible=visible,
                 )
             updated += 1
 
