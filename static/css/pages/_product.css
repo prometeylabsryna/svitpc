@@ -24,14 +24,19 @@
 
   .pdp-gallery__main {
     aspect-ratio: 1;
-    width: 100%;
-    max-width: min(460px, 100%);
+    /* Mobile: limit height so full-width single-column doesn't become too tall */
+    max-height: 420px;
     border-radius: var(--radius-xl);
     border: 1px solid var(--clr-border);
     background: var(--clr-surface);
     overflow: hidden;
     position: relative;
     transition: border-color var(--transition-base), box-shadow var(--transition-base);
+
+    @media (min-width: 768px) {
+      /* Desktop: 2-col grid limits width naturally, remove height constraint */
+      max-height: none;
+    }
 
     &:hover {
       border-color: rgba(var(--clr-accent-rgb), 0.3);
