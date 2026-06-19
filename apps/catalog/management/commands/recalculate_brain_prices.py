@@ -54,12 +54,17 @@ class Command(BaseCommand):
         default_pct = getattr(settings, "BRAIN_DEFAULT_MARKUP_PERCENT", 5)
         self.stdout.write(f"[recalculate_brain_prices] dry_run={dry_run}, default_markup={default_pct}%")
 
+        from django.db.models import F, ExpressionWrapper, DecimalField as DField
+
+        # Only process products where price ≈ purchase_price (no meaningful markup applied yet).
+        # Products with price > purchase_price * 1.15 already have correct pricing — skip them.
         qs = Product.objects.filter(
             source=Product.SOURCE_BRAIN,
             purchase_price__isnull=False,
             purchase_price__gt=0,
+        ).filter(
+            price__lte=ExpressionWrapper(F('purchase_price') * 1.15, output_field=DField(max_digits=12, decimal_places=2))
         ).only("pk", "price", "old_price", "purchase_price", "brand_id")
-
         total = qs.count()
         self.stdout.write(f"Brain products with purchase_price: {total}")
 
