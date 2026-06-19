@@ -236,7 +236,7 @@ def apply_markup(base_price: Decimal, brand_id: int | None, category_ids: list[i
     """Apply the highest-priority MarkupRule matching brand/category.
 
     Fallback: when no rule matches, BRAIN_DEFAULT_MARKUP_PERCENT from settings is applied
-    (default 5 %). This ensures Brain retail prices are never sold below cost.
+    (default 0 for Brain-matched prices; used mainly for Kancmaster / manual rules).
     """
     from django.conf import settings
 

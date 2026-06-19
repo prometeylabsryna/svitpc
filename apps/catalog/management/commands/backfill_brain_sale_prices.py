@@ -11,7 +11,7 @@ from apps.catalog.models import Product
 from apps.integrations.brain.client import BrainAPIClient
 from apps.integrations.brain.services import (
     apply_detail_to_product,
-    brain_sale_old_price,
+    brain_shelf_prices,
     build_category_map_from_db,
 )
 
@@ -68,9 +68,7 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
 
-            price_raw = Decimal(str(detail.get("price_uah") or detail.get("price") or 0))
-            cat_ids = list(product.categories.values_list("pk", flat=True))
-            old = brain_sale_old_price(detail, price_raw, product.brand_id, cat_ids)
+            shelf, old, price_raw = brain_shelf_prices(detail)
 
             if old is None or old <= product.price:
                 skipped += 1

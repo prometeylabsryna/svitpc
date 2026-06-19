@@ -1,22 +1,17 @@
-"""Recalculate shelf prices for all Brain-sourced products using the new pricing logic.
+"""Recalculate Brain product prices to match brain.com.ua (no extra markup).
 
-The command uses data already in the database:
-  - purchase_price  = Brain wholesale (price_uah)
-  - old_price       = Brain retail (was stored as old_price under the broken 0%-markup logic)
-
-New logic:  shelf = apply_markup(retail)  where retail = old_price (if > purchase_price)
-            OR apply_markup(purchase_price) when retail is unknown.
-
-Run BEFORE Brain full-sync so existing products are fixed immediately.
+Fetches /product/{id} from Brain API and applies brain_shelf_prices logic.
 
 Usage:
     python manage.py recalculate_brain_prices --dry-run
     python manage.py recalculate_brain_prices --confirm
+    python manage.py recalculate_brain_prices --confirm --limit 100
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from decimal import Decimal
 from typing import Any
 
@@ -24,125 +19,109 @@ from django.core.management.base import BaseCommand, CommandParser
 
 logger = logging.getLogger(__name__)
 
-BATCH = 500
-
 
 class Command(BaseCommand):
-    help = "Перерахувати ціни всіх Brain-товарів: retail * (1 + markup%) замість wholesale"
+    help = "Перерахувати ціни Brain-товарів = як на brain.com.ua (без додаткової націнки)"
 
     def add_arguments(self, parser: CommandParser) -> None:
         group = parser.add_mutually_exclusive_group(required=True)
         group.add_argument("--dry-run", action="store_true", help="Показати зміни, нічого не писати")
         group.add_argument("--confirm", action="store_true", help="Застосувати зміни")
         parser.add_argument(
-            "--chunk",
+            "--limit",
             type=int,
-            default=BATCH,
-            help=f"Розмір батчу UPDATE (default {BATCH})",
+            default=0,
+            help="Обмежити кількість товарів (0 = усі)",
         )
         parser.add_argument(
-            "--markup-percent",
-            type=int,
-            default=None,
-            help="Відсоток націнки (ігнорує settings). Наприклад: --markup-percent 5",
+            "--sleep",
+            type=float,
+            default=0.35,
+            help="Пауза між запитами до Brain API (сек)",
         )
 
     def handle(self, *args: Any, **options: Any) -> None:
-        from django.conf import settings
-
         from apps.catalog.models import Product
-        from apps.catalog.services import apply_markup
-        from apps.catalog.pricing import reconcile_old_price
+        from apps.integrations.brain.client import BrainAPIClient
+        from apps.integrations.brain.services import brain_shelf_prices
 
         dry_run: bool = options["dry_run"]
-        chunk: int = options["chunk"]
-        markup_override: int | None = options["markup_percent"]
+        limit: int = options["limit"]
+        sleep_s: float = options["sleep"]
 
-        default_pct = markup_override if markup_override is not None else getattr(settings, "BRAIN_DEFAULT_MARKUP_PERCENT", 5)
-        self.stdout.write(f"[recalculate_brain_prices] dry_run={dry_run}, default_markup={default_pct}% {'(--markup-percent override)' if markup_override else ''}")
-
-        from django.db.models import F, ExpressionWrapper, DecimalField as DField
-
-        # Only process products where price ≈ purchase_price (no meaningful markup applied yet).
-        # Products with price > purchase_price * 1.15 already have correct pricing — skip them.
-        qs = Product.objects.filter(
-            source=Product.SOURCE_BRAIN,
-            purchase_price__isnull=False,
-            purchase_price__gt=0,
-        ).filter(
-            price__lte=ExpressionWrapper(F('purchase_price') * 1.15, output_field=DField(max_digits=12, decimal_places=2))
-        ).only("pk", "price", "old_price", "purchase_price", "brand_id")
+        qs = (
+            Product.objects.filter(source=Product.SOURCE_BRAIN, external_id__gt="")
+            .only("pk", "external_id", "price", "old_price", "purchase_price")
+            .order_by("pk")
+        )
+        if limit:
+            qs = qs[:limit]
         total = qs.count()
-        self.stdout.write(f"Brain products with purchase_price: {total}")
+        self.stdout.write(f"[recalculate_brain_prices] total={total} dry_run={dry_run}")
 
+        client = BrainAPIClient()
         updated = 0
         skipped = 0
+        errors = 0
         sample: list[str] = []
 
-        offset = 0
-        while offset < total:
-            batch = list(qs.prefetch_related("categories")[offset : offset + chunk])
-            offset += chunk
+        for i, product in enumerate(qs.iterator(chunk_size=100), start=1):
+            try:
+                brain_id = int(product.external_id)
+            except (TypeError, ValueError):
+                skipped += 1
+                continue
 
-            to_update: list[tuple[int, Decimal, Decimal | None]] = []
+            try:
+                detail = client.get_product(brain_id, lang="ua")
+            except Exception:
+                logger.exception("Brain get_product failed for %s", product.external_id)
+                errors += 1
+                continue
 
-            for p in batch:
-                cat_ids = list(p.categories.values_list("pk", flat=True))
+            if not detail:
+                skipped += 1
+                continue
 
-                # Determine the retail base:
-                # Under old (broken) logic: price == purchase_price, old_price == retail.
-                # If old_price > purchase_price → old_price is Brain's retail.
-                # Otherwise we only have wholesale — apply markup on it.
-                if p.old_price and p.old_price > (p.purchase_price or Decimal("0")):
-                    base = p.old_price
-                else:
-                    base = p.purchase_price  # type: ignore[assignment]
+            shelf, old_price, wholesale = brain_shelf_prices(detail)
+            if shelf <= 0:
+                skipped += 1
+                continue
 
-                # Apply markup directly (bypass apply_markup to avoid settings dependency)
-                from decimal import Decimal as D
-                pct = D(str(default_pct))
-                new_price = (base * (D("1") + pct / D("100"))).quantize(D("0.01"))
-                # After applying markup on retail, old_price should be None
-                # (we already sell above Brain's retail — no fake discount needed).
-                new_old_price: Decimal | None = None
+            purchase = wholesale if wholesale > 0 else None
+            if (
+                product.price == shelf
+                and product.old_price == old_price
+                and product.purchase_price == purchase
+            ):
+                skipped += 1
+                continue
 
-                if new_price == p.price and new_old_price == p.old_price:
-                    skipped += 1
-                    continue
+            if len(sample) < 5:
+                sample.append(
+                    f"  {product.external_id}: {product.price} → {shelf}"
+                    f" (old: {product.old_price} → {old_price})"
+                )
 
-                to_update.append((p.pk, new_price, new_old_price))
+            if not dry_run:
+                Product.objects.filter(pk=product.pk).update(
+                    price=shelf,
+                    old_price=old_price,
+                    purchase_price=purchase,
+                )
+            updated += 1
 
-                if len(sample) < 5:
-                    sample.append(
-                        f"  {p.pk}: {p.price} → {new_price} "
-                        f"(base={base}, old_price: {p.old_price} → {new_old_price})"
-                    )
+            if sleep_s > 0:
+                time.sleep(sleep_s)
 
-            if to_update and not dry_run:
-                from django.db import connection
+            if i % 100 == 0:
+                self.stdout.write(f"  {i}/{total} | оновлено={updated} | пропущено={skipped}")
 
-                with connection.cursor() as cur:
-                    for pk, price, op in to_update:
-                        cur.execute(
-                            "UPDATE catalog_product SET price=%s, old_price=%s WHERE id=%s",
-                            [price, op, pk],
-                        )
-                updated += len(to_update)
-            elif dry_run:
-                updated += len(to_update)
+        for line in sample:
+            self.stdout.write(line)
 
-        self.stdout.write(f"\nЗміни:")
-        for s in sample:
-            self.stdout.write(s)
-        if len(sample) == 5:
-            self.stdout.write("  ... (showing first 5)")
-
-        self.stdout.write(f"\nРезультат:")
-        self.stdout.write(f"  Буде/було оновлено: {updated}")
-        self.stdout.write(f"  Без змін (вже правильні): {skipped}")
-
+        self.stdout.write(f"\nРезультат: оновлено={updated}, пропущено={skipped}, помилок={errors}")
         if dry_run:
-            self.stdout.write(self.style.WARNING("\n[DRY RUN] Нічого не записано. Передайте --confirm."))
+            self.stdout.write(self.style.WARNING("[DRY RUN] Нічого не записано."))
         else:
-            self.stdout.write(self.style.SUCCESS(f"\nГотово. Оновлено {updated} товарів."))
-            logger.info("recalculate_brain_prices: updated=%d skipped=%d", updated, skipped)
+            self.stdout.write(self.style.SUCCESS(f"Готово. Оновлено {updated} товарів."))

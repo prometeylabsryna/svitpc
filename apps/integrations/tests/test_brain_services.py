@@ -6,7 +6,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from apps.integrations.brain.services import (
-    brain_sale_old_price,
+    brain_customer_old_price,
+    brain_customer_price,
+    brain_shelf_prices,
     brain_stock_from_detail,
     brain_visibility,
     resolve_brand,
@@ -38,16 +40,34 @@ class TestBrainServices:
     def test_resolve_brand_missing_vendor(self):
         assert resolve_brand({"vendorID": 999}, {1: "X"}) is None
 
-    def test_brain_sale_old_price_from_retail(self):
-        detail = {"price_uah": "100", "retail_price_uah": "150"}
-        with patch("apps.catalog.services.apply_markup", side_effect=lambda p, *_: p):
-            old = brain_sale_old_price(detail, Decimal("100"), None, [])
-        assert old == Decimal("150")
+    def test_brain_customer_price_uses_retail_rrp(self):
+        detail = {"price_uah": "227555", "retail_price_uah": "230120"}
+        assert brain_customer_price(detail) == Decimal("230120.00")
 
-    def test_brain_sale_old_price_none_when_retail_not_higher(self):
-        detail = {"price_uah": "100", "retail_price_uah": "90"}
-        with patch("apps.catalog.services.apply_markup", side_effect=lambda p, *_: p):
-            assert brain_sale_old_price(detail, Decimal("100"), None, []) is None
+    def test_brain_customer_price_promo_uses_recommendable(self):
+        detail = {
+            "price_uah": "100",
+            "retail_price_uah": "140",
+            "recommendable_price": "100",
+        }
+        assert brain_customer_price(detail) == Decimal("100.00")
+        assert brain_customer_old_price(detail) == Decimal("140.00")
+
+    def test_brain_customer_old_price_none_without_promo(self):
+        detail = {"price_uah": "227555", "retail_price_uah": "230120"}
+        shelf = brain_customer_price(detail)
+        assert brain_customer_old_price(detail, shelf) is None
+
+    def test_brain_shelf_prices_tuple(self):
+        detail = {
+            "price_uah": "100",
+            "retail_price_uah": "140",
+            "recommendable_price": "100",
+        }
+        shelf, old, wholesale = brain_shelf_prices(detail)
+        assert shelf == Decimal("100.00")
+        assert old == Decimal("140.00")
+        assert wholesale == Decimal("100.00")
 
     @pytest.mark.django_db
     def test_apply_detail_updates_price(self):
@@ -67,24 +87,25 @@ class TestBrainServices:
         detail = {
             "name": "Test",
             "price_uah": "150.00",
+            "retail_price_uah": "180.00",
             "is_archive": False,
             "vendorID": brand.pk,
         }
-        with patch("apps.catalog.services.apply_markup", side_effect=lambda p, *_: p):
-            ok = apply_detail_to_product(
-                product,
-                detail,
-                vendor_map={},
-                cat_map={},
-                update_price=True,
-                force_hide_flag=True,
-            )
+        ok = apply_detail_to_product(
+            product,
+            detail,
+            vendor_map={},
+            cat_map={},
+            update_price=True,
+            force_hide_flag=True,
+        )
         assert ok
         product.refresh_from_db()
         assert product.purchase_price == Decimal("150.00")
+        assert product.price == Decimal("180.00")
 
     @pytest.mark.django_db
-    def test_apply_detail_sets_old_price_from_retail(self):
+    def test_apply_detail_sets_old_price_from_brain_promo(self):
         from apps.catalog.models import Product
         from apps.integrations.brain.services import apply_detail_to_product
 
@@ -100,16 +121,16 @@ class TestBrainServices:
             "name": "Retail test",
             "price_uah": "100",
             "retail_price_uah": "140",
+            "recommendable_price": "100",
             "is_archive": False,
         }
-        with patch("apps.catalog.services.apply_markup", side_effect=lambda p, *_: p):
-            apply_detail_to_product(
-                product,
-                detail,
-                vendor_map={},
-                cat_map={},
-                update_price=True,
-            )
+        apply_detail_to_product(
+            product,
+            detail,
+            vendor_map={},
+            cat_map={},
+            update_price=True,
+        )
         product.refresh_from_db()
         assert product.price == Decimal("100")
         assert product.old_price == Decimal("140")

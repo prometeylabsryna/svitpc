@@ -98,6 +98,24 @@ class Promotion(models.Model):
             return
         if not self.original_price:
             self.original_price = product.price
+        if product.source == Product.SOURCE_BRAIN and self.sale_price < self.original_price:
+            from django.core.exceptions import ValidationError
+
+            raise ValidationError(
+                "Акційна ціна Brain-товару не може бути нижчою за поточну ціну Brain "
+                f"({self.original_price} ₴)."
+            )
+        if (
+            product.source == Product.SOURCE_BRAIN
+            and product.purchase_price
+            and self.sale_price < product.purchase_price
+        ):
+            from django.core.exceptions import ValidationError
+
+            raise ValidationError(
+                "Акційна ціна не може бути нижчою за закупку Brain "
+                f"({product.purchase_price} ₴)."
+            )
         Product.objects.filter(pk=product.pk).update(
             price=self.sale_price,
             old_price=self.original_price,

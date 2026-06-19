@@ -15,28 +15,78 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_RETAIL_PRICE_KEYS = ("retail_price_uah", "recommendable_price", "retail_price")
+_RRP_PRICE_KEYS = ("retail_price_uah", "retail_price")
+
+
+def _parse_brain_price(val) -> Decimal:
+    if val is None or val == "":
+        return Decimal("0")
+    try:
+        return Decimal(str(val).replace(",", ".")).quantize(Decimal("0.01"))
+    except Exception:
+        return Decimal("0")
+
+
+def brain_wholesale_raw(detail: dict) -> Decimal:
+    """Partner purchase price (price_uah / price)."""
+    return _parse_brain_price(detail.get("price_uah") or detail.get("price"))
+
+
+def brain_rrp_raw(detail: dict) -> Decimal:
+    """Catalog RRP on brain.com.ua before Brain's own discount."""
+    best = Decimal("0")
+    for key in _RRP_PRICE_KEYS:
+        parsed = _parse_brain_price(detail.get(key))
+        if parsed > best:
+            best = parsed
+    return best
 
 
 def brain_retail_price_raw(detail: dict) -> Decimal:
-    """Return the HIGHEST available retail/RRP price from Brain payload.
+    """Backward-compatible alias for RRP lookup."""
+    return brain_rrp_raw(detail)
 
-    Brain can return several retail price fields simultaneously
-    (retail_price_uah, recommendable_price, retail_price).
-    We take the maximum so that our shelf price is never below any of them.
-    """
-    best = Decimal("0")
-    for key in _RETAIL_PRICE_KEYS:
-        val = detail.get(key)
-        if val is None or val == "":
-            continue
-        try:
-            parsed = Decimal(str(val).replace(",", "."))
-            if parsed > best:
-                best = parsed
-        except Exception:
-            continue
-    return best
+
+def brain_customer_price(detail: dict) -> Decimal:
+    """Current end-customer price on brain.com.ua — no extra markup."""
+    wholesale = brain_wholesale_raw(detail)
+    recommendable = _parse_brain_price(detail.get("recommendable_price"))
+    rrp = brain_rrp_raw(detail)
+
+    if recommendable > 0:
+        shelf = recommendable
+    elif rrp > 0:
+        shelf = rrp
+    elif wholesale > 0:
+        shelf = wholesale
+    else:
+        return Decimal("0")
+
+    # Cost floor when Brain payload is inconsistent (never sell below our purchase).
+    if wholesale > 0 and shelf < wholesale:
+        shelf = wholesale
+
+    return shelf
+
+
+def brain_customer_old_price(detail: dict, shelf: Decimal | None = None) -> Decimal | None:
+    """Crossed-out RRP when Brain sells below catalog price (promo on brain.com.ua)."""
+    if shelf is None:
+        shelf = brain_customer_price(detail)
+    rrp = brain_rrp_raw(detail)
+    if rrp > shelf:
+        return rrp
+    return None
+
+
+def brain_shelf_prices(detail: dict) -> tuple[Decimal, Decimal | None, Decimal]:
+    """Return (shelf_price, old_price, wholesale) mirroring brain.com.ua."""
+    from apps.catalog.pricing import reconcile_old_price
+
+    wholesale = brain_wholesale_raw(detail)
+    shelf = brain_customer_price(detail)
+    old = reconcile_old_price(shelf, brain_customer_old_price(detail, shelf))
+    return shelf, old, wholesale
 
 
 def brain_sale_old_price(
@@ -45,24 +95,10 @@ def brain_sale_old_price(
     brand_id: int | None,
     category_ids: list[int],
 ) -> Decimal | None:
-    """Return a crossed-out old_price ONLY when Brain is genuinely discounting
-    (wholesale_raw is meaningfully below its own retail).
-
-    Base logic: our shelf price = apply_markup(retail_raw).
-    A "sale" exists only when Brain's wholesale is below retail — we show
-    the non-discounted retail+markup as old_price.
-    If wholesale >= retail (no discount) → return None (no crossed-out price).
-    """
-    from apps.catalog.services import apply_markup
-
-    if wholesale_raw <= 0:
-        return None
-    retail_raw = brain_retail_price_raw(detail)
-    if retail_raw <= wholesale_raw:
-        return None
-    old = apply_markup(retail_raw, brand_id, category_ids)
-    current = apply_markup(wholesale_raw, brand_id, category_ids)
-    return old if old > current else None
+    """Deprecated alias — use brain_customer_old_price."""
+    _ = wholesale_raw, brand_id, category_ids
+    shelf = brain_customer_price(detail)
+    return brain_customer_old_price(detail, shelf)
 
 
 def sync_product_options(client: "BrainAPIClient", product: "Product", brain_id: int) -> None:  # type: ignore[name-defined]
@@ -286,8 +322,6 @@ def apply_detail_to_product(
 ) -> bool:
     """Apply Brain /product payload to an existing Product. Returns True if updated."""
     from apps.catalog.models import Product
-    from apps.catalog.services import apply_markup
-    from apps.catalog.pricing import enforce_retail_price, reconcile_old_price
 
     if not detail:
         return False
@@ -295,9 +329,7 @@ def apply_detail_to_product(
     from apps.catalog.ru_localization import localize_ru_to_uk
 
     name = localize_ru_to_uk((detail.get("name") or product.name or "").strip())
-    wholesale_raw = Decimal(str(detail.get("price_uah") or detail.get("price") or 0))
-    retail_raw = brain_retail_price_raw(detail)
-    base_price = retail_raw if retail_raw > wholesale_raw else wholesale_raw
+    shelf, old_price, wholesale_raw = brain_shelf_prices(detail)
     stock = brain_stock_from_detail(detail)
     sku = (detail.get("articul") or detail.get("product_code") or product.sku or "").strip()
     from apps.catalog.gallery import normalize_brain_image_url
@@ -342,30 +374,16 @@ def apply_detail_to_product(
         upd["is_visible"] = stock > 0
     if update_image and main_img:
         upd["image_url"] = main_img
-    if update_price and base_price > 0:
+    if update_price and shelf > 0:
         upd["purchase_price"] = wholesale_raw if wholesale_raw > 0 else None
-        marked = apply_markup(base_price, brand_id, cat_ids)
-        upd["price"] = enforce_retail_price(
-            marked,
-            wholesale_raw,
-            brand_id=brand_id,
-            category_ids=cat_ids,
-        )
+        upd["price"] = shelf
+        upd["old_price"] = old_price
 
     # Description — available only via /product/{pid} detail endpoint.
     # Write directly to _uk column to bypass modeltranslation language routing.
     raw_desc = (detail.get("description") or detail.get("description_ua") or "").strip()
     if raw_desc and raw_desc != (product.description_uk or ""):
         upd["description_uk"] = raw_desc
-
-    if wholesale_raw > 0:
-        old = brain_sale_old_price(detail, wholesale_raw, brand_id, cat_ids)
-        retail = upd.get("price", product.price)
-        reconciled = reconcile_old_price(retail, old)
-        if reconciled is not None:
-            upd["old_price"] = reconciled
-        elif "old_price" not in upd and product.old_price and product.old_price <= retail:
-            upd["old_price"] = None
 
     if not upd:
         if local_cat and update_category:
@@ -392,8 +410,6 @@ def upsert_product_from_detail(
     from django.db import transaction
 
     from apps.catalog.models import Product
-    from apps.catalog.services import apply_markup
-    from apps.catalog.pricing import enforce_retail_price, reconcile_old_price
     from apps.catalog.ru_localization import localize_ru_to_uk
 
     name = localize_ru_to_uk((detail.get("name") or "").strip())
@@ -402,11 +418,7 @@ def upsert_product_from_detail(
 
     brand = resolve_brand(detail, vendor_map)
     local_cat = resolve_local_category(detail, cat_map)
-    wholesale_raw = Decimal(str(detail.get("price_uah") or detail.get("price") or 0))
-    retail_raw = brain_retail_price_raw(detail)
-    # Use Brain's highest retail price as the base for shelf price.
-    # Fall back to wholesale when retail is unavailable.
-    base_price = retail_raw if retail_raw > wholesale_raw else wholesale_raw
+    shelf, old_price, wholesale_raw = brain_shelf_prices(detail)
     stock = brain_stock_from_detail(detail)
     sku = (detail.get("articul") or detail.get("product_code") or "").strip()
     from apps.catalog.gallery import normalize_brain_image_url
@@ -415,28 +427,17 @@ def upsert_product_from_detail(
         detail.get("medium_image") or detail.get("large_image") or "",
     )
 
-    cat_ids = [local_cat.pk] if local_cat else []
-    brand_id = brand.pk if brand else None
-    final_price = apply_markup(base_price, brand_id, cat_ids) if base_price > 0 else Decimal("0")
-
     slug_base = slugify(name, allow_unicode=True) or f"brain-p-{brain_id}"
     slug = unique_product_slug(slug_base, brain_id)
     hide = brain_hide_out_of_stock_enabled()
     visible = brain_visibility(stock, hide)
 
-    old_price = brain_sale_old_price(detail, wholesale_raw, brand_id, cat_ids) if wholesale_raw > 0 else None
-    shelf = (
-        enforce_retail_price(final_price, wholesale_raw, brand_id=brand_id, category_ids=cat_ids)
-        if wholesale_raw > 0
-        else final_price
-    )
-
     defaults = {
         "name": name[:500],
         "slug": slug,
         "brand": brand,
-        "price": shelf if shelf > 0 else base_price,
-        "old_price": reconcile_old_price(shelf, old_price),
+        "price": shelf,
+        "old_price": old_price,
         "purchase_price": wholesale_raw if wholesale_raw > 0 else None,
         "stock": stock,
         "sku": sku[:100],
