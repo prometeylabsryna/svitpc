@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from apps.notifications.phone import format_ua_phone_display, normalize_ua_phone
+from apps.notifications.phone import format_ua_phone_display, normalize_ua_phone, InvalidPhoneError
 from apps.notifications.turbosms import TurboSmsError, ping, send_sms
 
 
@@ -12,6 +12,17 @@ def test_normalize_ua_phone_formats():
     assert normalize_ua_phone("+380 (50) 123-45-67") == "380501234567"
     assert normalize_ua_phone("0501234567") == "380501234567"
     assert format_ua_phone_display("0501234567") == "+380501234567"
+
+
+def test_clean_ua_phone_for_storage():
+    from apps.notifications.phone import clean_ua_phone_for_storage
+
+    assert clean_ua_phone_for_storage("0501234567") == "+380501234567"
+    assert clean_ua_phone_for_storage("") == ""
+    with pytest.raises(InvalidPhoneError):
+        clean_ua_phone_for_storage("", required=True)
+    with pytest.raises(InvalidPhoneError):
+        clean_ua_phone_for_storage("12345", required=True)
 
 
 @pytest.mark.django_db

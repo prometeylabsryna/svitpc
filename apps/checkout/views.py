@@ -312,11 +312,32 @@ def checkout_success_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 def one_click_view(request: HttpRequest, product_id: int) -> HttpResponse:
     """HTMX partial — 1-Click buy form."""
+    from apps.notifications.phone import InvalidPhoneError, clean_ua_phone_for_storage
+
     product = get_object_or_404(Product, pk=product_id, is_visible=True)
+    ctx: dict = {
+        "product": product,
+        "name_error": "",
+        "phone_error": "",
+        "posted_name": "",
+        "posted_phone": "",
+    }
     if request.method == "POST":
-        phone = request.POST.get("phone", "").strip()
         name = request.POST.get("name", "").strip()
-        if phone and name:
+        phone_raw = request.POST.get("phone", "").strip()
+        ctx["posted_name"] = name
+        ctx["posted_phone"] = phone_raw
+
+        if not name:
+            ctx["name_error"] = str(_("Вкажіть ім'я."))
+
+        phone = ""
+        try:
+            phone = clean_ua_phone_for_storage(phone_raw, required=True)
+        except InvalidPhoneError:
+            ctx["phone_error"] = str(_("Введіть коректний номер телефону (+380…)."))
+
+        if name and phone:
             order = Order.objects.create(
                 customer=request.user if request.user.is_authenticated else None,
                 status=_default_status(),
@@ -340,4 +361,5 @@ def one_click_view(request: HttpRequest, product_id: int) -> HttpResponse:
                     "ecommerce_purchase": order_purchase_payload(order),
                 },
             )
-    return render(request, "checkout/one_click_form.html", {"product": product})
+        return render(request, "checkout/one_click_form.html", ctx)
+    return render(request, "checkout/one_click_form.html", ctx)

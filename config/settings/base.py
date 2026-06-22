@@ -203,6 +203,10 @@ CELERY_TASK_DEFAULT_QUEUE = "celery"
 CELERY_TASK_ROUTES = {
     "apps.shipping.tasks.create_ttn_for_order": {"queue": "priority"},
     "apps.integrations.ukrposhta.tasks.create_up_shipment_for_order": {"queue": "priority"},
+    # Order emails/SMS — must not wait behind Brain/catalog sync on the default queue.
+    "apps.notifications.tasks.notify_new_order_owner": {"queue": "priority"},
+    "apps.notifications.tasks.notify_new_order_customer": {"queue": "priority"},
+    "apps.notifications.tasks.notify_order_status": {"queue": "priority"},
 }
 CELERY_BEAT_SCHEDULE = {
     "brain-sync-categories": {

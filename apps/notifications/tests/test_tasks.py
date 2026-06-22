@@ -137,3 +137,48 @@ def test_on_order_created_enqueues_after_commit(django_capture_on_commit_callbac
 
     owner_delay.assert_called_once()
     customer_delay.assert_called_once()
+
+
+def test_order_notify_tasks_use_priority_queue():
+    from apps.notifications.tasks import (
+        notify_new_order_customer,
+        notify_new_order_owner,
+        notify_order_status,
+    )
+
+    assert notify_new_order_owner.queue == "priority"
+    assert notify_new_order_customer.queue == "priority"
+    assert notify_order_status.queue == "priority"
+    assert notify_new_order_owner.max_retries == 3
+
+
+@pytest.mark.django_db
+def test_notify_new_order_owner_retries_when_email_fails(settings):
+    from apps.core.models import SiteSettings
+    from apps.notifications.tasks import notify_new_order_owner
+    from apps.orders.models import Order, OrderStatus
+
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    settings.CELERY_TASK_EAGER_PROPAGATES = True
+
+    site = SiteSettings.load()
+    site.email = "owner@svitpc.com.ua"
+    site.save()
+
+    status = OrderStatus.objects.create(name="Новий")
+    order = Order.objects.create(
+        status=status,
+        first_name="Тест",
+        phone="+380501234567",
+        total=Decimal("100.00"),
+    )
+
+    with patch("apps.notifications.tasks.notify_site_owner", return_value=False), patch.object(
+        notify_new_order_owner,
+        "retry",
+        side_effect=RuntimeError("retry called"),
+    ) as mock_retry:
+        with pytest.raises(RuntimeError, match="retry called"):
+            notify_new_order_owner(order.pk)
+
+    mock_retry.assert_called_once()

@@ -1,3 +1,5 @@
+import logging
+
 from celery import shared_task
 
 from django.conf import settings
@@ -5,6 +7,17 @@ from django.utils.translation import gettext as _
 
 from .dispatch import notify_order_customer, notify_site_owner, order_context
 from .service import send_notification
+
+logger = logging.getLogger(__name__)
+
+# Isolated from Brain/catalog sync workers — see celery_worker_priority in docker-compose.
+_NOTIFY_QUEUE = "priority"
+_NOTIFY_TASK_OPTS = {
+    "bind": True,
+    "max_retries": 3,
+    "default_retry_delay": 60,
+    "queue": _NOTIFY_QUEUE,
+}
 
 
 def _load_new_order(order_pk: int):
@@ -20,39 +33,50 @@ def _load_new_order(order_pk: int):
         return None
 
 
-@shared_task
-def notify_new_order_owner(order_pk: int) -> None:
-    """Email store owner — lightweight task, queued first on new orders."""
+@shared_task(**_NOTIFY_TASK_OPTS)
+def notify_new_order_owner(self, order_pk: int) -> None:
+    """Email store owner — priority queue, retries on SMTP/Resend failures."""
     order = _load_new_order(order_pk)
     if order is None:
         return
-    notify_site_owner("order_created_admin", order_context(order))
+    try:
+        if notify_site_owner("order_created_admin", order_context(order)):
+            return
+    except Exception as exc:
+        logger.exception("notify_new_order_owner failed order_pk=%s", order_pk)
+        raise self.retry(exc=exc) from exc
+    logger.warning("notify_new_order_owner: email not sent for order #%s, retrying", order_pk)
+    raise self.retry()
 
 
-@shared_task
-def notify_new_order_customer(order_pk: int) -> None:
-    """Customer channels (email/SMS/push) — may call external APIs."""
+@shared_task(**_NOTIFY_TASK_OPTS)
+def notify_new_order_customer(self, order_pk: int) -> None:
+    """Customer channels (email/SMS/push) — priority queue, isolated from catalog sync."""
     order = _load_new_order(order_pk)
     if order is None:
         return
-    notify_order_customer(
-        order,
-        "order_created",
-        push_title=_("СвітПК — замовлення прийнято"),
-        push_body=_("Замовлення №%(pk)s успішно оформлено") % {"pk": order.pk},
-        push_tag=f"order-new-{order.pk}",
-    )
+    try:
+        notify_order_customer(
+            order,
+            "order_created",
+            push_title=_("СвітПК — замовлення прийнято"),
+            push_body=_("Замовлення №%(pk)s успішно оформлено") % {"pk": order.pk},
+            push_tag=f"order-new-{order.pk}",
+        )
+    except Exception as exc:
+        logger.exception("notify_new_order_customer failed order_pk=%s", order_pk)
+        raise self.retry(exc=exc) from exc
 
 
 @shared_task
 def notify_new_order(order_pk: int) -> None:
     """Backward-compatible wrapper (owner first, then customer)."""
-    notify_new_order_owner(order_pk)
-    notify_new_order_customer(order_pk)
+    notify_new_order_owner.run(order_pk)
+    notify_new_order_customer.run(order_pk)
 
 
-@shared_task
-def notify_order_status(order_pk: int) -> None:
+@shared_task(**_NOTIFY_TASK_OPTS)
+def notify_order_status(self, order_pk: int) -> None:
     from apps.orders.models import Order
 
     try:
@@ -63,14 +87,18 @@ def notify_order_status(order_pk: int) -> None:
     if not order.status.notify_customer:
         return
 
-    notify_order_customer(
-        order,
-        "order_status_changed",
-        push_title=_("СвітПК — статус замовлення"),
-        push_body=_("Замовлення №%(pk)s: %(status)s")
-        % {"pk": order.pk, "status": order.status.name},
-        push_tag=f"order-status-{order.pk}",
-    )
+    try:
+        notify_order_customer(
+            order,
+            "order_status_changed",
+            push_title=_("СвітПК — статус замовлення"),
+            push_body=_("Замовлення №%(pk)s: %(status)s")
+            % {"pk": order.pk, "status": order.status.name},
+            push_tag=f"order-status-{order.pk}",
+        )
+    except Exception as exc:
+        logger.exception("notify_order_status failed order_pk=%s", order_pk)
+        raise self.retry(exc=exc) from exc
 
 
 @shared_task

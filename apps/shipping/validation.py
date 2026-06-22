@@ -15,8 +15,17 @@ def validate_checkout_step1(data: dict) -> list[str]:
         errors.append(_("Вкажіть ім'я."))
     if not (data.get("last_name") or "").strip():
         errors.append(_("Вкажіть прізвище."))
-    if not (data.get("phone") or "").strip():
+
+    phone_raw = (data.get("phone") or "").strip()
+    if not phone_raw:
         errors.append(_("Вкажіть телефон."))
+    else:
+        from apps.notifications.phone import InvalidPhoneError, clean_ua_phone_for_storage
+
+        try:
+            data["phone"] = clean_ua_phone_for_storage(phone_raw)
+        except InvalidPhoneError:
+            errors.append(_("Введіть коректний номер телефону (+380…)."))
 
     delivery_type = (data.get("delivery_type") or Order.DELIVERY_NP).strip()
 

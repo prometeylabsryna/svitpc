@@ -52,6 +52,17 @@ class WarrantyClaimForm(forms.ModelForm):
         value = self.cleaned_data.get("serial_number", "")
         return normalize_serial(value) if value else ""
 
+    def clean_client_phone(self) -> str:
+        from apps.notifications.phone import InvalidPhoneError, clean_ua_phone_for_storage
+
+        value = (self.cleaned_data.get("client_phone") or "").strip()
+        if not value:
+            return ""
+        try:
+            return clean_ua_phone_for_storage(value, required=True)
+        except InvalidPhoneError:
+            raise forms.ValidationError(_("Введіть коректний номер телефону.")) from None
+
     def clean(self) -> dict:
         cleaned = super().clean()
         without_sn = cleaned.get("without_serial_number")

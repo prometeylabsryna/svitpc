@@ -29,6 +29,16 @@ def normalize_ua_phone(phone: str) -> str:
     raise InvalidPhoneError(f"Некоректний формат номера: {phone}")
 
 
+def clean_ua_phone_for_storage(phone: str, *, required: bool = True) -> str:
+    """Normalize user input to +380XXXXXXXXX for DB/forms. Raises InvalidPhoneError if invalid."""
+    raw = (phone or "").strip()
+    if not raw:
+        if required:
+            raise InvalidPhoneError("Порожній номер телефону.")
+        return ""
+    return format_ua_phone_display(raw)
+
+
 def format_ua_phone_display(phone: str) -> str:
     """Store/display as +380XXXXXXXXX."""
     return f"+{normalize_ua_phone(phone)}"

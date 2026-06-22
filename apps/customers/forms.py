@@ -26,11 +26,10 @@ class CustomerRegistrationForm(UserCreationForm):
             self.fields[name].widget.attrs.setdefault("autocomplete", "new-password")
 
     def clean_phone(self) -> str:
-        from apps.notifications.phone import InvalidPhoneError, format_ua_phone_display
+        from apps.notifications.phone import InvalidPhoneError, clean_ua_phone_for_storage
 
-        phone = self.cleaned_data["phone"].strip()
         try:
-            return format_ua_phone_display(phone)
+            return clean_ua_phone_for_storage(self.cleaned_data["phone"], required=True)
         except InvalidPhoneError:
             raise forms.ValidationError(_("Введіть коректний номер телефону.")) from None
 
@@ -74,18 +73,26 @@ class CustomerProfileForm(forms.ModelForm):
         widgets = {"birth_date": forms.DateInput(attrs={"type": "date"})}
 
     def clean_phone(self) -> str:
-        from apps.notifications.phone import InvalidPhoneError, format_ua_phone_display
+        from apps.notifications.phone import InvalidPhoneError, clean_ua_phone_for_storage
 
         phone = self.cleaned_data.get("phone", "").strip()
         if not phone:
             return phone
         try:
-            return format_ua_phone_display(phone)
+            return clean_ua_phone_for_storage(phone, required=True)
         except InvalidPhoneError:
             raise forms.ValidationError(_("Введіть коректний номер телефону.")) from None
 
 
 class AddressForm(forms.ModelForm):
+    def clean_phone(self) -> str:
+        from apps.notifications.phone import InvalidPhoneError, clean_ua_phone_for_storage
+
+        try:
+            return clean_ua_phone_for_storage(self.cleaned_data.get("phone", ""), required=True)
+        except InvalidPhoneError:
+            raise forms.ValidationError(_("Введіть коректний номер телефону.")) from None
+
     class Meta:
         model = Address
         fields = ("label", "first_name", "last_name", "phone", "city", "city_ref", "delivery_type", "warehouse", "warehouse_ref", "is_default")

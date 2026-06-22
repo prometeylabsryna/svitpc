@@ -27,12 +27,23 @@ def test_validate_checkout_step1_errors(data, expected_fragment):
 
 
 def test_validate_checkout_step1_pickup_ok():
-    errors = validate_checkout_step1(
-        {
-            "first_name": "Тест",
-            "last_name": "Клієнт",
-            "phone": "+380501234567",
-            "delivery_type": Order.DELIVERY_PICKUP,
-        }
-    )
+    data = {
+        "first_name": "Тест",
+        "last_name": "Клієнт",
+        "phone": "0501234567",
+        "delivery_type": Order.DELIVERY_PICKUP,
+    }
+    errors = validate_checkout_step1(data)
     assert errors == []
+    assert data["phone"] == "+380501234567"
+
+
+def test_validate_checkout_step1_rejects_invalid_phone():
+    data = {
+        "first_name": "Тест",
+        "last_name": "Клієнт",
+        "phone": "12345",
+        "delivery_type": Order.DELIVERY_PICKUP,
+    }
+    errors = validate_checkout_step1(data)
+    assert any("телефон" in err.lower() for err in errors)

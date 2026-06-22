@@ -76,21 +76,18 @@ def notify_order_customer(
         )
 
 
-def notify_site_owner(template_name: str, context: dict[str, Any] | None = None) -> None:
-    """Email store owner (SiteSettings.email) about internal events."""
+def notify_site_owner(template_name: str, context: dict[str, Any] | None = None) -> bool:
+    """Email store owner (SiteSettings.email) about internal events. Returns True on success."""
     site = SiteSettings.load()
     recipient = (site.email or settings.DEFAULT_FROM_EMAIL or "").strip()
     if not recipient:
         logger.warning("notify_site_owner skipped: no recipient, template=%s", template_name)
-        return
+        return False
     ctx = dict(context or {})
     ctx.setdefault("site_name", site.name)
     ctx.setdefault("site_phone", site.phone)
     ctx.setdefault("site_email", site.email)
-    try:
-        send_notification("email", recipient, template_name, ctx)
-    except Exception:
-        logger.exception("Failed to notify site owner, template=%s", template_name)
+    return send_notification("email", recipient, template_name, ctx)
 
 
 def notify_customer_channels(

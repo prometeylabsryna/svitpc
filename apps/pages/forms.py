@@ -62,6 +62,14 @@ class ReturnRequestForm(forms.ModelForm):
             ),
         }
 
+    def clean_phone(self) -> str:
+        from apps.notifications.phone import InvalidPhoneError, clean_ua_phone_for_storage
+
+        try:
+            return clean_ua_phone_for_storage(self.cleaned_data.get("phone", ""), required=True)
+        except InvalidPhoneError:
+            raise ValidationError(_("Введіть коректний номер телефону.")) from None
+
     def clean_photo(self):
         photo = self.cleaned_data.get("photo")
         if not photo:

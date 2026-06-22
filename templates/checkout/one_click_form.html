@@ -10,11 +10,14 @@
       {% csrf_token %}
       <div class="form-field">
         <label class="form-label" for="oc-name">{% trans "Ваше ім'я" %} *</label>
-        <input class="form-input" id="oc-name" name="name" type="text" required autofocus>
+        <input class="form-input{% if name_error %} is-invalid{% endif %}" id="oc-name" name="name" type="text" required autofocus value="{{ posted_name }}">
+        {% if name_error %}<p class="form-error">{{ name_error }}</p>{% endif %}
       </div>
       <div class="form-field">
         <label class="form-label" for="oc-phone">{% trans "Телефон" %} *</label>
-        <input class="form-input" id="oc-phone" name="phone" type="tel" required placeholder="+38 (0__)">
+        <input class="form-input{% if phone_error %} is-invalid{% endif %}" id="oc-phone" name="phone" type="tel" required
+          inputmode="tel" autocomplete="tel" placeholder="+38 (0__) ___-__-__" value="{{ posted_phone }}">
+        {% if phone_error %}<p class="form-error">{{ phone_error }}</p>{% endif %}
       </div>
       <div class="one-click-form__actions">
         <button type="submit" class="btn btn--primary btn--full">{% trans "Замовити" %}</button>

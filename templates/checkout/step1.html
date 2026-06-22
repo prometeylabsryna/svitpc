@@ -28,7 +28,8 @@
     <div class="checkout-delivery__row">
       <div class="form-field">
         <label class="form-label" for="phone">{% trans "Телефон" %} *</label>
-        <input class="form-input" id="phone" name="phone" type="tel" required placeholder="+38 (0__) ___-__-__"
+        <input class="form-input" id="phone" name="phone" type="tel" required
+          inputmode="tel" autocomplete="tel" placeholder="+38 (0__) ___-__-__"
           value="{{ form_data.phone }}">
       </div>
       <div class="form-field">
