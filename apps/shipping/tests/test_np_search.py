@@ -25,6 +25,21 @@ def test_search_kyiv_prefers_city_over_oblast_villages():
 
 
 @pytest.mark.django_db
+def test_search_kyiv_english_alias():
+    NovaPoshtaCity.objects.create(name="Київ", ref="kyiv-ref", area="Київська", name_en="Киев")
+    NovaPoshtaCity.objects.create(
+        name="Андріївка (Київська обл.)",
+        ref="and-ref",
+        area="Київська",
+    )
+
+    results = list(search_np_cities("Kyiv"))
+
+    assert results
+    assert results[0].name == "Київ"
+
+
+@pytest.mark.django_db
 def test_search_np_cities_uses_api_when_db_empty(settings):
     settings.NOVA_POSHTA_API_KEY = "test_key"
     mock_resp = MagicMock()

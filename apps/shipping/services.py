@@ -132,6 +132,37 @@ def _np_city_from_api(item: dict):
     return SimpleNamespace(name=name, ref=ref, area=area)
 
 
+def _search_np_cities_term(q: str, limit: int):
+    """Single-term city lookup in local DB."""
+    from django.db.models import Case, IntegerField, Q, Value, When
+
+    from apps.shipping.models import NovaPoshtaCity
+
+    ranked = Case(
+        When(name__iexact=q, then=Value(0)),
+        When(name__istartswith=q, then=Value(1)),
+        When(name_en__iexact=q, then=Value(2)),
+        When(name_en__istartswith=q, then=Value(3)),
+        default=Value(4),
+        output_field=IntegerField(),
+    )
+
+    primary = NovaPoshtaCity.objects.filter(
+        Q(name__iexact=q)
+        | Q(name__istartswith=q)
+        | Q(name_en__iexact=q)
+        | Q(name_en__istartswith=q)
+    )
+    if primary.exists():
+        return list(primary.annotate(rank=ranked).order_by("rank", "name")[:limit])
+
+    return list(
+        NovaPoshtaCity.objects.filter(Q(name__icontains=q) | Q(name_en__icontains=q))
+        .annotate(rank=ranked)
+        .order_by("rank", "name")[:limit]
+    )
+
+
 def _search_np_cities_via_api(query: str, limit: int):
     from django.conf import settings
 
@@ -158,34 +189,38 @@ def _search_np_cities_via_api(query: str, limit: int):
 
 def search_np_cities(query: str, limit: int = 10):
     """Return Nova Poshta cities matching user input, best matches first."""
-    from django.db.models import Case, IntegerField, Q, Value, When
+    from apps.shipping.np_query import city_search_variants
 
-    from apps.shipping.models import NovaPoshtaCity
+    variants = city_search_variants(query)
+    if not variants:
+        from apps.shipping.models import NovaPoshtaCity
 
-    q = (query or "").strip()
-    if len(q) < 2:
         return NovaPoshtaCity.objects.none()
 
-    ranked = Case(
-        When(name__iexact=q, then=Value(0)),
-        When(name__istartswith=q, then=Value(1)),
-        default=Value(2),
-        output_field=IntegerField(),
-    )
+    seen_refs: set[str] = set()
+    merged: list = []
 
-    primary = NovaPoshtaCity.objects.filter(Q(name__iexact=q) | Q(name__istartswith=q))
-    if primary.exists():
-        return list(primary.annotate(rank=ranked).order_by("rank", "name")[:limit])
+    for term in variants:
+        for hit in _search_np_cities_term(term, limit):
+            ref = getattr(hit, "ref", "")
+            if ref in seen_refs:
+                continue
+            seen_refs.add(ref)
+            merged.append(hit)
+            if len(merged) >= limit:
+                return merged
 
-    db_results = list(
-        NovaPoshtaCity.objects.filter(name__icontains=q)
-        .annotate(rank=ranked)
-        .order_by("rank", "name")[:limit]
-    )
-    if db_results:
-        return db_results
+    for term in variants:
+        for hit in _search_np_cities_via_api(term, limit):
+            ref = getattr(hit, "ref", "")
+            if ref in seen_refs:
+                continue
+            seen_refs.add(ref)
+            merged.append(hit)
+            if len(merged) >= limit:
+                return merged
 
-    return _search_np_cities_via_api(q, limit)
+    return merged
 
 
 def search_np_warehouses(city_ref: str, query: str = "", limit: int = 20) -> list[dict[str, str]]:
@@ -194,6 +229,7 @@ def search_np_warehouses(city_ref: str, query: str = "", limit: int = 20) -> lis
 
     from apps.integrations.novaposhta.client import NovaPoshtaClient
     from apps.shipping.models import NovaPoshtaWarehouse
+    from apps.shipping.np_query import warehouse_search_variants
 
     city_ref = (city_ref or "").strip()
     if not city_ref:
@@ -204,18 +240,30 @@ def search_np_warehouses(city_ref: str, query: str = "", limit: int = 20) -> lis
 
     if settings.NOVA_POSHTA_API_KEY:
         try:
-            items = NovaPoshtaClient().search_warehouses(city_ref, q, limit=effective_limit)
-            warehouses = [
-                {"name": item.get("Description", ""), "ref": item["Ref"]}
-                for item in items
-                if item.get("Ref")
-            ]
-            if warehouses:
-                return warehouses
+            client = NovaPoshtaClient()
+            seen: set[str] = set()
+            merged: list[dict[str, str]] = []
+            for term in warehouse_search_variants(q):
+                items = client.search_warehouses(city_ref, term, limit=effective_limit)
+                for item in items:
+                    ref = item.get("Ref")
+                    if not ref or ref in seen:
+                        continue
+                    seen.add(ref)
+                    merged.append({"name": item.get("Description", ""), "ref": ref})
+                    if len(merged) >= effective_limit:
+                        return merged
+            if merged:
+                return merged
         except Exception as exc:
             logger.warning("Nova Poshta warehouse API fallback to DB: %s", exc)
 
     qs = NovaPoshtaWarehouse.objects.filter(city__ref=city_ref)
     if q:
-        qs = qs.filter(name__icontains=q)
+        from django.db.models import Q
+
+        q_filter = Q(name__icontains=q)
+        for term in warehouse_search_variants(q)[1:]:
+            q_filter |= Q(name__icontains=term)
+        qs = qs.filter(q_filter)
     return [{"name": wh.name, "ref": wh.ref} for wh in qs.order_by("number", "name")[:effective_limit]]
