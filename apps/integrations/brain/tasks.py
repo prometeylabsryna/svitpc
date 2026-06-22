@@ -26,7 +26,7 @@ from .services import (
 logger = logging.getLogger(__name__)
 
 # Batch sizes for backfill tasks (avoid long-running workers)
-_BACKFILL_CHUNK = 600
+_BACKFILL_CHUNK = 1000
 _STALE_STOCK_CHUNK = 600
 
 
@@ -388,50 +388,35 @@ def backfill_metadata() -> None:
 
 @shared_task
 def backfill_descriptions() -> None:
-    """Fill description_uk for Brain products that don't have one yet.
-
-    Runs automatically every 6 hours; processes up to _BACKFILL_CHUNK products
-    per run so it's safe to schedule alongside other Brain tasks.
-    After a full sync_products run creates ~87K new products, this task
-    will gradually fill their descriptions without extra manual steps.
-    """
+    """Fill description_uk via POST /products/content (OWN_MODE batch API)."""
     from apps.catalog.models import Product
+    from apps.integrations.brain.content_sync import backfill_descriptions_from_content
 
     client = _brain_client()
-    vendor_map = client.get_all_vendors()
-    cat_map = build_category_map_from_db(client)
 
-    qs = (
+    products = list(
         Product.objects.filter(
             source=Product.SOURCE_BRAIN,
             external_id__gt="",
+            description_uk="",
         )
-        .filter(description_uk="")
-        .only("pk", "external_id", "name", "brand_id", "description_uk")
+        .only("pk", "external_id", "name", "description_uk")
         .order_by("pk")[:_BACKFILL_CHUNK]
     )
+    if not products:
+        logger.info("Brain backfill_descriptions: nothing to update")
+        return
 
-    updated = 0
-    for product in qs:
+    product_map: dict[int, Product] = {}
+    for product in products:
         try:
             brain_id = int(product.external_id)
         except (TypeError, ValueError):
             continue
-        detail = client.get_product(brain_id, lang="ua")
-        if not detail:
-            continue
-        if apply_detail_to_product(
-            product,
-            detail,
-            vendor_map=vendor_map,
-            cat_map=cat_map,
-            update_price=False,
-            update_stock=False,
-            update_brand=False,
-            update_category=False,
-            update_image=False,
-        ):
-            updated += 1
+        if brain_id > 0:
+            product_map[brain_id] = product
+
+    updated, no_desc, api_miss = backfill_descriptions_from_content(client, product_map)
 
     remaining = Product.objects.filter(
         source=Product.SOURCE_BRAIN,
@@ -439,9 +424,48 @@ def backfill_descriptions() -> None:
         description_uk="",
     ).count()
     logger.info(
-        "Brain backfill_descriptions: %d updated, %d without description remain",
+        "Brain backfill_descriptions: %d updated, %d empty from API, %d API miss, "
+        "%d without description remain",
         updated,
+        no_desc,
+        api_miss,
         remaining,
+    )
+
+
+@shared_task
+def sync_description_updates() -> None:
+    """Apply Brain description changes from modified_products/descriptions."""
+    from apps.catalog.models import Product
+    from apps.integrations.brain.content_sync import backfill_descriptions_from_content
+
+    client = _brain_client()
+    modified_ids = client.get_modified_since(_utc_since(24), limit=10000, mod_type="descriptions")
+    if not modified_ids:
+        logger.info("Brain sync_description_updates: nothing changed")
+        return
+
+    products = Product.objects.filter(
+        source=Product.SOURCE_BRAIN,
+        external_id__in=[str(i) for i in modified_ids],
+    ).only("pk", "external_id", "name", "description_uk")
+
+    product_map: dict[int, Product] = {}
+    for product in products:
+        try:
+            brain_id = int(product.external_id)
+        except (TypeError, ValueError):
+            continue
+        if brain_id > 0:
+            product_map[brain_id] = product
+
+    updated, no_desc, api_miss = backfill_descriptions_from_content(client, product_map)
+    logger.info(
+        "Brain sync_description_updates: %d updated, %d empty, %d miss / %d modified",
+        updated,
+        no_desc,
+        api_miss,
+        len(modified_ids),
     )
 
 
@@ -585,4 +609,5 @@ def sync_all_incremental() -> None:
     sync_images()
     sync_new_products()
     backfill_metadata()
+    sync_description_updates()
     reconcile_stale_stock()

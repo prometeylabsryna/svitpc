@@ -1,13 +1,10 @@
 """Backfill descriptions and characteristics for Brain products.
 
-Fetches /product/{pid} and /product_options/{pid} from Brain API
-for products that are missing description or attributes.
-
-Brain API rate limit: ~3 req/sec → 1346 products ≈ 8 min.
+Uses POST /products/content/{SID} (OWN_MODE) — full descriptions in batches.
 
 Usage:
     python manage.py backfill_brain_descriptions --dry-run
-    python manage.py backfill_brain_descriptions           # all missing desc
+    python manage.py backfill_brain_descriptions           # products without description_uk
     python manage.py backfill_brain_descriptions --all     # all Brain products
     python manage.py backfill_brain_descriptions --limit 100
 """
@@ -22,9 +19,11 @@ from django.core.management.base import BaseCommand, CommandParser
 
 logger = logging.getLogger(__name__)
 
+_PROCESS_CHUNK = 500
+
 
 class Command(BaseCommand):
-    help = "Завантажити описи та характеристики для Brain-товарів з API"
+    help = "Завантажити описи та характеристики для Brain-товарів (products/content API)"
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
@@ -52,11 +51,7 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any) -> None:
         from apps.catalog.models import Product
         from apps.integrations.brain.client import BrainAPIClient
-        from apps.integrations.brain.services import (
-            apply_detail_to_product,
-            build_category_map_from_db,
-            sync_product_options,
-        )
+        from apps.integrations.brain.content_sync import backfill_descriptions_from_content
 
         dry_run: bool = options["dry_run"]
         update_all: bool = options["all"]
@@ -69,19 +64,21 @@ class Command(BaseCommand):
         ).order_by("pk")
 
         if not update_all:
-            qs = qs.filter(description="")
+            qs = qs.filter(description_uk="")
 
         if limit:
             qs = qs[:limit]
 
-        total = qs.count() if not limit else min(qs.count(), limit)
+        total = qs.count()
         self.stdout.write(
             f"[backfill_brain_descriptions] total={total} "
             f"dry_run={dry_run} all={update_all} skip_options={skip_options}"
         )
 
         if dry_run:
-            self.stdout.write(self.style.WARNING(f"[DRY RUN] Буде оброблено {total} товарів. Запусти без --dry-run."))
+            self.stdout.write(
+                self.style.WARNING(f"[DRY RUN] Буде оброблено {total} товарів. Запусти без --dry-run.")
+            )
             return
 
         if total == 0:
@@ -89,71 +86,58 @@ class Command(BaseCommand):
             return
 
         client = BrainAPIClient()
-        vendor_map = client.get_all_vendors()
-        cat_map = build_category_map_from_db(client)
-
         updated = 0
-        failed = 0
+        no_desc = 0
+        api_miss = 0
+        failed_ids = 0
         t0 = time.time()
+        processed = 0
 
-        products = list(qs.only("pk", "external_id", "name", "description"))
+        products = list(qs.only("pk", "external_id", "name", "description_uk"))
 
-        for i, product in enumerate(products, 1):
-            try:
-                brain_id = int(product.external_id)
-            except (ValueError, TypeError):
-                failed += 1
-                continue
-
-            try:
-                detail = client.get_product(brain_id, lang="ua")
-            except Exception as exc:
-                logger.warning("Brain get_product(%d) failed: %s", brain_id, exc)
-                failed += 1
-                continue
-
-            if not detail:
-                failed += 1
-                continue
-
-            changed = apply_detail_to_product(
-                product,
-                detail,
-                vendor_map=vendor_map,
-                cat_map=cat_map,
-                update_price=False,
-                update_stock=False,
-                update_brand=False,
-                update_category=False,
-                update_image=False,
-            )
-
-            if not skip_options:
+        for offset in range(0, len(products), _PROCESS_CHUNK):
+            chunk = products[offset : offset + _PROCESS_CHUNK]
+            product_map: dict[int, Product] = {}
+            for product in chunk:
                 try:
-                    sync_product_options(client, product, brain_id)
-                except Exception as exc:
-                    logger.warning("sync_product_options(%d) failed: %s", brain_id, exc)
+                    brain_id = int(product.external_id)
+                except (ValueError, TypeError):
+                    failed_ids += 1
+                    continue
+                if brain_id > 0:
+                    product_map[brain_id] = product
 
-            if changed or not skip_options:
-                updated += 1
+            u, nd, miss = backfill_descriptions_from_content(
+                client,
+                product_map,
+                skip_options=skip_options,
+            )
+            updated += u
+            no_desc += nd
+            api_miss += miss
+            processed += len(chunk)
 
-            if i % 50 == 0:
-                elapsed = time.time() - t0
-                rate = i / elapsed
-                eta = (total - i) / rate if rate > 0 else 0
-                self.stdout.write(
-                    f"  {i}/{total} | оновлено={updated} | помилок={failed} | "
-                    f"ETA={eta:.0f}с"
-                )
+            elapsed = time.time() - t0
+            rate = processed / elapsed if elapsed > 0 else 0
+            eta = (total - processed) / rate if rate > 0 else 0
+            self.stdout.write(
+                f"  {processed}/{total} | оновлено={updated} | без опису в API={no_desc} | "
+                f"пропущено API={api_miss} | ETA={eta:.0f}с"
+            )
 
         elapsed = time.time() - t0
         self.stdout.write(
             self.style.SUCCESS(
                 f"\nГотово за {elapsed:.0f}с. "
-                f"Оновлено: {updated} | Помилок: {failed}"
+                f"Оновлено: {updated} | Без опису в Brain: {no_desc} | "
+                f"Немає в відповіді API: {api_miss} | Невалідні ID: {failed_ids}"
             )
         )
         logger.info(
-            "backfill_brain_descriptions: updated=%d failed=%d elapsed=%.0fs",
-            updated, failed, elapsed,
+            "backfill_brain_descriptions: updated=%d no_desc=%d api_miss=%d failed_ids=%d elapsed=%.0fs",
+            updated,
+            no_desc,
+            api_miss,
+            failed_ids,
+            elapsed,
         )

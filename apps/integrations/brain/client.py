@@ -28,7 +28,8 @@ _SID_TTL = 23 * 3600          # sessions last ~24 h
 _TTL_CATALOG = 60 * 60        # 1 h  — categories, vendors
 _TTL_PRODUCTS = 60 * 15       # 15 min — product lists
 _TTL_PRODUCT = 60 * 5         # 5 min  — single product, price, stock
-_TTL_CONTENT = 60 * 30        # 30 min — options, images
+_TTL_CONTENT = 60 * 30        # 30 min — options, images, products/content
+_CONTENT_BATCH_DEFAULT = 50   # productIDs per POST /products/content
 
 # Brain API error codes that mean "session expired / invalid"
 _SESSION_ERRORS = {2, 3, 4, 14}
@@ -151,6 +152,98 @@ class BrainAPIClient:
         if last_exc is not None:
             logger.error("Brain API request failed after retries [%s]: %s", path_tpl, last_exc)
         return None
+
+    def _post_form(
+        self,
+        path_tpl: str,
+        form: dict[str, str],
+        *,
+        _retry: bool = True,
+        **path_kwargs: object,
+    ) -> dict | list | None:
+        """POST application/x-www-form-urlencoded (products/content, etc.)."""
+        sid = self._sid()
+        path = path_tpl.format(sid=sid, **path_kwargs)
+
+        last_exc: Exception | None = None
+        for attempt in range(6):
+            _throttle_brain_request()
+            try:
+                resp = self._http.post(path, data=form)
+                if resp.status_code == 429:
+                    delay = 1.0 * (attempt + 1)
+                    logger.warning("Brain API rate limit %s, retry in %.1fs", path, delay)
+                    time.sleep(delay)
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+
+                if isinstance(data, dict) and data.get("status") == 0:
+                    if _retry and data.get("error_code") in _SESSION_ERRORS:
+                        cache.delete(_SID_CACHE_KEY)
+                        return self._post_form(path_tpl, form, _retry=False, **path_kwargs)
+                    logger.warning("Brain API POST %s → %s", path, data.get("error_message"))
+                    return None
+
+                return data.get("result") if isinstance(data, dict) and "result" in data else data
+            except httpx.HTTPStatusError as exc:
+                last_exc = exc
+                if exc.response.status_code == 429 and attempt < 5:
+                    time.sleep(1.0 * (attempt + 1))
+                    continue
+                logger.error("Brain API POST failed [%s]: %s", path_tpl, exc)
+                return None
+            except Exception as exc:
+                last_exc = exc
+                logger.error("Brain API POST failed [%s]: %s", path_tpl, exc)
+                return None
+
+        if last_exc is not None:
+            logger.error("Brain API POST failed after retries [%s]: %s", path_tpl, last_exc)
+        return None
+
+    def content_batch_size(self) -> int:
+        from django.conf import settings
+
+        raw = int(getattr(settings, "BRAIN_CONTENT_BATCH_SIZE", _CONTENT_BATCH_DEFAULT))
+        return max(1, min(raw, 100))
+
+    def get_products_content(
+        self,
+        product_ids: list[int],
+        *,
+        lang: str = "ua",
+        batch_size: int | None = None,
+    ) -> list[dict]:
+        """POST /products/content/{SID} — full descriptions, options, images (OWN_MODE).
+
+        Docs: https://api.brain.com.ua/help/contents
+        """
+        if not product_ids:
+            return []
+
+        chunk_size = batch_size or self.content_batch_size()
+        merged: list[dict] = []
+        for offset in range(0, len(product_ids), chunk_size):
+            chunk = product_ids[offset : offset + chunk_size]
+            batch = self._fetch_products_content_batch(chunk, lang=lang)
+            merged.extend(batch)
+        return merged
+
+    def _fetch_products_content_batch(self, product_ids: list[int], *, lang: str) -> list[dict]:
+        if not product_ids:
+            return []
+        result = self._post_form(
+            "/products/content/{sid}",
+            {
+                "productIDs": ",".join(str(pid) for pid in product_ids),
+                "lang": lang,
+            },
+        )
+        if isinstance(result, dict):
+            items = result.get("list")
+            return items if isinstance(items, list) else []
+        return []
 
     # ── Categories ───────────────────────────────────────────────────────────────
 

@@ -252,7 +252,11 @@ CELERY_BEAT_SCHEDULE = {
     },
     "brain-backfill-descriptions": {
         "task": "apps.integrations.brain.tasks.backfill_descriptions",
-        "schedule": 6 * 3600,  # every 6 hours — description_uk for new Brain products
+        "schedule": 6 * 3600,  # every 6 hours — description_uk via products/content
+    },
+    "brain-sync-description-updates": {
+        "task": "apps.integrations.brain.tasks.sync_description_updates",
+        "schedule": 6 * 3600,  # incremental description changes from Brain
     },
     "brain-backfill-images": {
         "task": "apps.integrations.brain.tasks.backfill_images",
@@ -623,6 +627,8 @@ BRAIN_API_URL = env("BRAIN_API_URL", default="https://api.brain.com.ua")
 BRAIN_HIDE_OUT_OF_STOCK = env.bool("BRAIN_HIDE_OUT_OF_STOCK", default=True)
 # Brain /products limit: 100 without OWN_MODE, up to 1000 with OWN_MODE (API docs)
 BRAIN_PRODUCTS_PAGE_LIMIT = env.int("BRAIN_PRODUCTS_PAGE_LIMIT", default=100)
+# POST /products/content — productIDs per request (max ~100)
+BRAIN_CONTENT_BATCH_SIZE = env.int("BRAIN_CONTENT_BATCH_SIZE", default=50)
 # Default markup % applied on top of Brain retail price when no MarkupRule matches.
 # Brain retail = max(retail_price_uah, recommendable_price, retail_price).
 # 5 means: shelf_price = brain_retail * 1.05

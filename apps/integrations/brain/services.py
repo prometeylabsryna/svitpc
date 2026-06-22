@@ -102,26 +102,12 @@ def brain_sale_old_price(
 
 
 def sync_product_options(client: "BrainAPIClient", product: "Product", brain_id: int) -> None:  # type: ignore[name-defined]
-    from apps.catalog.models import Attribute, AttributeGroup, ProductAttribute
-    from apps.catalog.ru_localization import localize_ru_to_uk
+    from apps.integrations.brain.content_sync import sync_options_from_detail
 
     options = client.get_product_options(brain_id, lang="ua")
     if not options:
         return
-
-    group_name = localize_ru_to_uk("Характеристики")
-    ag, _ = AttributeGroup.objects.get_or_create(name=group_name)
-    for opt in options:
-        attr_name = localize_ru_to_uk((opt.get("OptionName") or "").strip())
-        attr_val = localize_ru_to_uk((opt.get("ValueName") or "").strip())
-        if not attr_name or not attr_val:
-            continue
-        attr, _ = Attribute.objects.get_or_create(group=ag, name=attr_name)
-        ProductAttribute.objects.update_or_create(
-            product=product,
-            attribute=attr,
-            defaults={"value": attr_val},
-        )
+    sync_options_from_detail(product, {"options": options})
 
 
 def sync_product_pictures(

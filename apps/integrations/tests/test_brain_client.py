@@ -106,3 +106,36 @@ class TestBrainAPIClient:
                 ids = client.get_modified_since("2026-05-19 07:00:00")
 
         assert ids == [10, 20, 30]
+
+    # ── Products content (OWN_MODE) ───────────────────────────────────────────
+
+    def test_get_products_content_batches_post(self):
+        from apps.integrations.brain.client import BrainAPIClient
+
+        items = [
+            {"productID": 100, "description": "Повний опис ноутбука"},
+            {"productID": 101, "description": "Опис монітора"},
+        ]
+        mock_http = MagicMock()
+        mock_http.post.return_value.json.return_value = {
+            "status": 1,
+            "result": {"list": items, "count": 2},
+        }
+        mock_http.post.return_value.raise_for_status = MagicMock()
+
+        with patch("apps.integrations.brain.client.cache") as mock_cache:
+            mock_cache.get.side_effect = lambda k: "cached-sid" if "sid" in k else None
+            with patch("django.conf.settings") as mock_settings:
+                mock_settings.BRAIN_LOGIN = "u"
+                mock_settings.BRAIN_PASSWORD = "p"
+                mock_settings.BRAIN_CONTENT_BATCH_SIZE = 50
+                client = BrainAPIClient()
+                client._http = mock_http
+                result = client.get_products_content([100, 101], lang="ua")
+
+        assert len(result) == 2
+        assert result[0]["description"] == "Повний опис ноутбука"
+        mock_http.post.assert_called_once()
+        call_kwargs = mock_http.post.call_args
+        assert call_kwargs[1]["data"]["productIDs"] == "100,101"
+        assert call_kwargs[1]["data"]["lang"] == "ua"
