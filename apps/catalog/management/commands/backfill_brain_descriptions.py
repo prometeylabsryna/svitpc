@@ -16,6 +16,7 @@ import time
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandParser
+from django.db.models import Q
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,8 @@ class Command(BaseCommand):
         ).order_by("pk")
 
         if not update_all:
-            qs = qs.filter(description_uk="")
+            # modeltranslation: filter(description_uk="") ignores NULL/empty column — use Q
+            qs = qs.filter(Q(description_uk__isnull=True) | Q(description_uk__exact=""))
 
         if limit:
             qs = qs[:limit]
