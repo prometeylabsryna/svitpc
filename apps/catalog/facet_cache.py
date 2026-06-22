@@ -11,7 +11,7 @@ from django.core.cache import cache
 from django.utils import translation
 
 FACET_CACHE_TTL = 600
-COUNT_CACHE_TTL = 300
+COUNT_CACHE_TTL = 600
 BRAND_LIST_CACHE_TTL = 600
 
 

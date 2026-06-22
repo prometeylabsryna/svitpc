@@ -14,7 +14,7 @@ from .services import (
     visible_catalog_products,
 )
 
-HOME_PRODUCTS_CACHE_TTL = 300
+HOME_PRODUCTS_CACHE_TTL = 600
 
 
 def _home_cache_key(block: str) -> str:
