@@ -1,7 +1,7 @@
 import pytest
 
 from apps.catalog.search_index import refresh_product_search_vectors
-from apps.search.views import _normalize_search_query, _search_qs, _search_variants
+from apps.search.views import _fts_stem_root, _normalize_search_query, _search_qs, _search_variants
 
 _VALID_IMAGE_URL = "https://cdn.example.com/product-photo.jpg"
 
@@ -59,6 +59,10 @@ class TestNormalizeSearchQuery:
         variants = _search_variants("комп'ютер")
         assert "Комп'ютер" in variants
         assert "Комп&#039;ютер" in variants
+
+    def test_fts_stem_root_strips_plural_suffix(self):
+        assert _fts_stem_root("термоси") == "термос"
+        assert _fts_stem_root("монітор") is None or _fts_stem_root("моніторів") == "монітор"
 
 
 @pytest.mark.django_db

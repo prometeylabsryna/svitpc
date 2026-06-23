@@ -15,20 +15,22 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils import translation
 
+from apps.catalog.gallery import _valid_image_url_q, filter_products_with_display_image
 from apps.catalog.models import Product
-from apps.catalog.services import order_stock_first, visible_catalog_products
+from apps.catalog.services import order_stock_first
 from apps.promotions.services import with_active_promotions
 
 _SEARCH_LIMIT = 48
 _LIVE_LIMIT = 6
 _RANK_THRESHOLD = 0.01
-_LIVE_CACHE_TTL = 60
-_RESULTS_CACHE_TTL = 120
+_LIVE_CACHE_TTL = 180
+_RESULTS_CACHE_TTL = 300
 
 _APOSTROPHE_CHARS = "'\u2018\u2019\u201a\u201b\u2032`´\u02bc\u02bb"
 _HTML_APOS_ENTITY = "&#039;"
 _COMPUTER_WORD = re.compile(r"(?i)компютер")
 _LETTER_VARIANTS = (("и", "і"), ("і", "и"), ("е", "є"), ("є", "е"))
+_FTS_SUFFIXES = ("ами", "ями", "ів", "ій", "ії", "ии", "і", "и", "ы", "а", "я", "у", "ю")
 
 _TABLE_COLUMNS: dict[str, frozenset[str]] = {}
 
@@ -43,14 +45,52 @@ def _table_columns(table: str) -> frozenset[str]:
     return _TABLE_COLUMNS[table]
 
 
-def _search_base_qs():
-    return with_active_promotions(
-        visible_catalog_products().select_related("brand").prefetch_related("images")
+def _search_visible_qs():
+    """Visible in-stock rules without gallery EXISTS (fast scan on 200k+ rows)."""
+    return Product.objects.filter(is_visible=True).filter(
+        Q(stock__gt=0) | Q(hide_if_out_of_stock=False),
     )
+
+
+def _search_pick_qs():
+    """Search candidate set: visible + valid main image URL (no gallery subquery)."""
+    return _search_visible_qs().filter(_valid_image_url_q())
 
 
 def _search_query(q: str) -> SearchQuery:
     return SearchQuery(q, config=settings.POSTGRES_FTS_CONFIG)
+
+
+def _fts_stem_root(term: str) -> str | None:
+    """Rough UA/RU plural stem for prefix FTS (термоси → термос)."""
+    if len(term) < 4:
+        return None
+    for suffix in _FTS_SUFFIXES:
+        if len(term) > len(suffix) + 2 and term.casefold().endswith(suffix):
+            return term[: -len(suffix)]
+    return None
+
+
+def _fts_queries_for_term(term: str) -> list[SearchQuery]:
+    """Plain + prefix FTS queries so plurals match indexed product names."""
+    config = settings.POSTGRES_FTS_CONFIG
+    seen: set[str] = set()
+    queries: list[SearchQuery] = []
+
+    def add(key: str, query: SearchQuery) -> None:
+        if key in seen:
+            return
+        seen.add(key)
+        queries.append(query)
+
+    add(f"plain:{term}", SearchQuery(term, config=config))
+    if len(term) >= 3:
+        add(f"prefix:{term}", SearchQuery(f"{term}:*", search_type="raw", config=config))
+    root = _fts_stem_root(term)
+    if root and root.casefold() != term.casefold():
+        add(f"plain:{root}", SearchQuery(root, config=config))
+        add(f"prefix:{root}", SearchQuery(f"{root}:*", search_type="raw", config=config))
+    return queries
 
 
 def _search_cache_key(prefix: str, q: str, limit: int) -> str:
@@ -61,21 +101,28 @@ def _search_cache_key(prefix: str, q: str, limit: int) -> str:
 def _load_search_products(pks: list[int]) -> list[Product]:
     if not pks:
         return []
-    pk_map = {
-        p.pk: p
-        for p in with_active_promotions(
+    qs = filter_products_with_display_image(
+        with_active_promotions(
             Product.objects.filter(pk__in=pks).select_related("brand").prefetch_related("images")
         )
-    }
+    )
+    pk_map = {p.pk: p for p in qs}
     return [pk_map[pk] for pk in pks if pk in pk_map]
 
 
-def _search_products_cached(q: str, *, limit: int, ttl: int, prefix: str) -> list[Product]:
+def _search_products_cached(
+    q: str,
+    *,
+    limit: int,
+    ttl: int,
+    prefix: str,
+    fast: bool = False,
+) -> list[Product]:
     cache_key = _search_cache_key(prefix, q, limit)
     cached_pks: list[int] | None = cache.get(cache_key)
     if cached_pks is not None:
         return _load_search_products(cached_pks)
-    products = _search_qs(q, limit=limit)
+    products = _search_qs(q, limit=limit, fast=fast)
     cache.set(cache_key, [p.pk for p in products], ttl)
     return products
 
@@ -148,7 +195,7 @@ def _trigram_fallback_q(q: str) -> Q:
 def _trigram_fallback(q: str, *, limit: int) -> list[Product]:
     return list(
         order_stock_first(
-            _search_base_qs().filter(_trigram_fallback_q(q)).distinct(),
+            _search_pick_qs().filter(_trigram_fallback_q(q)).distinct(),
             "name",
         )[:limit]
     )
@@ -171,9 +218,22 @@ def _fts_results_multi(variants: list[str], *, limit: int) -> list[Product]:
     """Single FTS query for all spelling variants (one DB round-trip)."""
     if not variants:
         return []
-    combined_query = reduce(or_, (_search_query(t) for t in variants))
+
+    fts_queries: list[SearchQuery] = []
+    seen: set[str] = set()
+    for term in variants:
+        for query in _fts_queries_for_term(term):
+            key = str(query)
+            if key in seen:
+                continue
+            seen.add(key)
+            fts_queries.append(query)
+    if not fts_queries:
+        return []
+
+    combined_query = reduce(or_, fts_queries)
     fts_qs = (
-        _search_base_qs()
+        _search_pick_qs()
         .filter(search_vector=combined_query)
         .annotate(rank=SearchRank(F("search_vector"), combined_query))
         .filter(rank__gte=_RANK_THRESHOLD)
@@ -182,20 +242,20 @@ def _fts_results_multi(variants: list[str], *, limit: int) -> list[Product]:
 
 
 def _icontains_results_multi(variants: list[str], *, limit: int) -> list[Product]:
-    """Single icontains query for all variants (one DB round-trip)."""
+    """Single icontains query — slow on large catalogs; skipped in fast/live mode."""
     if not variants:
         return []
     combined_q = reduce(or_, (_icontains_fallback_q(t) for t in variants))
     return list(
         order_stock_first(
-            _search_base_qs().filter(combined_q).distinct(),
+            _search_pick_qs().filter(combined_q).distinct(),
             "name",
         )[:limit]
     )
 
 
-def _search_qs(q: str, *, limit: int = _SEARCH_LIMIT) -> list[Product]:
-    """FTS (1 query) → icontains (1 query) → trigram fallback (1 query)."""
+def _search_qs(q: str, *, limit: int = _SEARCH_LIMIT, fast: bool = False) -> list[Product]:
+    """FTS (1 query) → icontains (full page only) → trigram fallback."""
     variants = _search_variants(q)
     if not variants:
         return []
@@ -204,9 +264,10 @@ def _search_qs(q: str, *, limit: int = _SEARCH_LIMIT) -> list[Product]:
     if results:
         return results
 
-    results = _icontains_results_multi(variants, limit=limit)
-    if results:
-        return results
+    if not fast:
+        results = _icontains_results_multi(variants, limit=limit)
+        if results:
+            return results
 
     return _trigram_fallback(variants[0], limit=limit)
 
@@ -221,6 +282,7 @@ def results_view(request: HttpRequest) -> HttpResponse:
         limit=_SEARCH_LIMIT,
         ttl=_RESULTS_CACHE_TTL,
         prefix="search_results",
+        fast=False,
     )
     return render(
         request,
@@ -234,7 +296,7 @@ def results_view(request: HttpRequest) -> HttpResponse:
 
 
 def live_search_view(request: HttpRequest) -> HttpResponse:
-    """HTMX partial — live dropdown results (max 6 items, Redis-cached)."""
+    """HTMX partial — live dropdown (FTS + trigram only, Redis-cached)."""
     q = request.GET.get("q", "").strip()
     if len(q) < 2:
         return HttpResponse("")
@@ -244,5 +306,6 @@ def live_search_view(request: HttpRequest) -> HttpResponse:
         limit=_LIVE_LIMIT,
         ttl=_LIVE_CACHE_TTL,
         prefix="live_search",
+        fast=True,
     )
     return render(request, "search/live_results.html", {"q": q, "products": products})
