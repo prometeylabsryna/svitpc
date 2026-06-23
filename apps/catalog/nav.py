@@ -9,7 +9,7 @@ from django.db.models import Prefetch
 from .models import Category
 
 NAV_ORDER_CACHE_KEY = "catalog:nav_order_v1"
-NAV_CACHE_TIMEOUT = 600
+NAV_CACHE_TIMEOUT = 1800
 
 
 def invalidate_nav_cache() -> None:

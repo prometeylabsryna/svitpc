@@ -29,35 +29,12 @@ from .services import (
     visible_catalog_products,
 )
 from .facet_cache import catalog_filter_params, count_cache_key, facet_cache_key
-from .home_cache import get_home_hit_products, get_home_new_products, get_home_sale_products
 
 
 def home_view(request: HttpRequest) -> HttpResponse:
-    from apps.promotions.home_ads import (
-        active_home_banners,
-        get_home_ad_settings,
-        recommended_banner_size,
-    )
+    from .home_cache import get_home_view_context
 
-    home_ad_settings = get_home_ad_settings()
-    home_ads = list(active_home_banners())
-    home_ad_columns = home_ad_settings.visible_columns
-    slot_w, slot_h = recommended_banner_size(home_ad_columns)
-    home_ads_carousel = len(home_ads) > home_ad_columns
-
-    from apps.services.querysets import home_featured_services
-
-    return render(request, "catalog/home.html", {
-        "new_products": get_home_new_products(),
-        "hit_products": get_home_hit_products(),
-        "sale_products": get_home_sale_products(),
-        "home_services": list(home_featured_services()),
-        "home_ads": home_ads,
-        "home_ad_columns": home_ad_columns,
-        "home_ad_slot_width": slot_w,
-        "home_ad_slot_height": slot_h,
-        "home_ads_carousel": home_ads_carousel,
-    })
+    return render(request, "catalog/home.html", get_home_view_context())
 
 
 def category_view(request: HttpRequest, slug: str) -> HttpResponse:

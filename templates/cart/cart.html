@@ -3,6 +3,10 @@
 
 {% block title %}{% trans "Кошик" %}{% endblock %}
 
+{% block extra_css %}
+<link rel="prefetch" href="{% url 'catalog:home' %}">
+{% endblock %}
+
 {% block content %}
 <div class="container page-section">
   <h1 class="page-title">{% trans "Кошик" %}</h1>
