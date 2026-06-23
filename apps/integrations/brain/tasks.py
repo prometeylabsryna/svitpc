@@ -399,8 +399,8 @@ def backfill_descriptions() -> None:
         Product.objects.filter(
             source=Product.SOURCE_BRAIN,
             external_id__gt="",
-            description_uk="",
         )
+        .filter(Q(description_uk__isnull=True) | Q(description_uk__exact=""))
         .only("pk", "external_id", "name", "description_uk")
         .order_by("pk")[:_BACKFILL_CHUNK]
     )
@@ -419,11 +419,14 @@ def backfill_descriptions() -> None:
 
     updated, no_desc, api_miss = backfill_descriptions_from_content(client, product_map)
 
-    remaining = Product.objects.filter(
-        source=Product.SOURCE_BRAIN,
-        external_id__gt="",
-        description_uk="",
-    ).count()
+    remaining = (
+        Product.objects.filter(
+            source=Product.SOURCE_BRAIN,
+            external_id__gt="",
+        )
+        .filter(Q(description_uk__isnull=True) | Q(description_uk__exact=""))
+        .count()
+    )
     logger.info(
         "Brain backfill_descriptions: %d updated, %d empty from API, %d API miss, "
         "%d without description remain",
