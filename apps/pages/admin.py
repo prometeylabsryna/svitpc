@@ -2,11 +2,13 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 
+from apps.core.admin_mixins import OptimizedAdminMixin
+
 from .models import InfoPage, ReturnRequest
 
 
 @admin.register(ReturnRequest)
-class ReturnRequestAdmin(ModelAdmin):
+class ReturnRequestAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = (
         "full_name",
         "order_number",
@@ -38,7 +40,7 @@ class ReturnRequestAdmin(ModelAdmin):
 
 
 @admin.register(InfoPage)
-class InfoPageAdmin(ModelAdmin):
+class InfoPageAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("title", "slug", "is_active", "sort_order", "updated_at")
     list_editable = ("is_active", "sort_order")
     prepopulated_fields = {"slug": ("title",)}

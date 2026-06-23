@@ -5,6 +5,8 @@ from django.shortcuts import render
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, TabularInline
 
+from apps.core.admin_mixins import OptimizedAdminMixin
+
 from .models import Address, Customer
 
 
@@ -23,7 +25,7 @@ class TelegramBroadcastForm(forms.Form):
 
 
 @admin.register(Customer)
-class CustomerAdmin(UserAdmin, ModelAdmin):
+class CustomerAdmin(OptimizedAdminMixin, UserAdmin, ModelAdmin):
     list_display = ("email", "first_name", "last_name", "phone", "bonus_balance", "is_active", "date_joined")
     list_filter = ("is_active", "is_staff", "consent_email", "consent_sms")
     search_fields = ("email", "first_name", "last_name", "phone")
@@ -98,7 +100,10 @@ class CustomerAdmin(UserAdmin, ModelAdmin):
 
 
 @admin.register(Address)
-class AddressAdmin(ModelAdmin):
+class AddressAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("customer", "city", "delivery_type", "warehouse", "is_default")
     search_fields = ("customer__email", "city", "warehouse")
     list_filter = ("delivery_type", "is_default")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("customer")

@@ -2,6 +2,8 @@ from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, TabularInline
 
+from apps.core.admin_mixins import OptimizedAdminMixin
+
 from .forms import OrderAdminForm
 from .models import Order, OrderItem, OrderStatus
 from .statuses import admin_status_queryset
@@ -13,9 +15,12 @@ class OrderItemInline(TabularInline):
     fields = ("product", "name", "sku", "price", "qty")
     readonly_fields = ("product",)
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("product")
+
 
 @admin.register(OrderStatus)
-class OrderStatusAdmin(ModelAdmin):
+class OrderStatusAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("name", "name_en", "color", "sort_order", "is_completed")
     search_fields = ("name", "name_en")
     fieldsets = (
@@ -24,7 +29,7 @@ class OrderStatusAdmin(ModelAdmin):
 
 
 @admin.register(Order)
-class OrderAdmin(ModelAdmin):
+class OrderAdmin(OptimizedAdminMixin, ModelAdmin):
     form = OrderAdminForm
     list_display = ("pk", "first_name", "last_name", "phone", "status", "total", "is_paid", "delivery_type", "ttn", "created_at")
     list_filter = ("status", "is_paid", "delivery_type", "payment_method")
@@ -58,6 +63,9 @@ class OrderAdmin(ModelAdmin):
     class Media:
         css = {"all": ("css/admin_extra.css",)}
         js = ("admin/js/order_np_delivery.js",)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("status", "customer", "coupon")
 
     def save_model(self, request, obj, form, change):
         if not obj.status_id:

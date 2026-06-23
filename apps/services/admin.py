@@ -5,6 +5,8 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, TabularInline
 
+from apps.core.admin_mixins import OptimizedAdminMixin, admin_is_changelist
+
 from .models import PriceItem, ProductSerial, Service, ServiceCategory, ServiceRequest, WarrantyClaim
 
 
@@ -16,12 +18,15 @@ class PriceInline(TabularInline):
 
 
 @admin.register(PriceItem)
-class PriceItemAdmin(ModelAdmin):
+class PriceItemAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("name", "service", "price_from", "price_to", "unit", "excludes_materials", "price_text", "display_price_col", "sort_order")
     list_filter = ("service__category", "service")
     search_fields = ("name", "name_en", "service__name")
     autocomplete_fields = ("service",)
     ordering = ("service__category__sort_order", "service__sort_order", "sort_order")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("service", "service__category")
     fieldsets = (
         (None, {
             "fields": ("service", "name", "name_en", "sort_order"),
@@ -38,7 +43,7 @@ class PriceItemAdmin(ModelAdmin):
 
 
 @admin.register(ServiceCategory)
-class ServiceCategoryAdmin(ModelAdmin):
+class ServiceCategoryAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("name", "slug", "sort_order")
     prepopulated_fields = {"slug": ("name",)}
     ordering = ("sort_order",)
@@ -48,7 +53,7 @@ class ServiceCategoryAdmin(ModelAdmin):
 
 
 @admin.register(Service)
-class ServiceAdmin(ModelAdmin):
+class ServiceAdmin(OptimizedAdminMixin, ModelAdmin):
     class Media:
         css = {"all": ("css/admin_extra.css",)}
 
@@ -75,6 +80,14 @@ class ServiceAdmin(ModelAdmin):
         }),
     )
 
+    def get_queryset(self, request):
+        from django.db.models import Count
+
+        qs = super().get_queryset(request).select_related("category")
+        if admin_is_changelist(request):
+            return qs.annotate(_prices_count=Count("prices"))
+        return qs
+
     @admin.display(description=_("Фото"))
     def thumb_preview(self, obj: Service) -> str:
         if obj.image:
@@ -83,17 +96,16 @@ class ServiceAdmin(ModelAdmin):
 
     @admin.display(description=_("Позицій"))
     def prices_count(self, obj: Service) -> int:
-        return obj.prices.count()
+        return getattr(obj, "_prices_count", obj.prices.count())
 
 
 @admin.register(ServiceRequest)
-class ServiceRequestAdmin(ModelAdmin):
+class ServiceRequestAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("id", "customer_name", "customer_phone", "device", "service", "status", "created_at")
     list_filter = ("status", "service")
     search_fields = ("customer_name", "customer_phone", "device")
     list_editable = ("status",)
     readonly_fields = ("created_at", "updated_at")
-    date_hierarchy = "created_at"
     actions = ["mark_in_progress", "mark_ready", "mark_done"]
     fieldsets = (
         (_("Клієнт"), {
@@ -111,6 +123,9 @@ class ServiceRequestAdmin(ModelAdmin):
         }),
     )
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("service", "customer")
+
     @admin.action(description=_("Позначити «В роботі»"))
     def mark_in_progress(self, request, queryset):
         queryset.update(status=ServiceRequest.STATUS_IN_PROGRESS)
@@ -125,7 +140,7 @@ class ServiceRequestAdmin(ModelAdmin):
 
 
 @admin.register(ProductSerial)
-class ProductSerialAdmin(ModelAdmin):
+class ProductSerialAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = (
         "serial_number",
         "product_name",
@@ -141,6 +156,10 @@ class ProductSerialAdmin(ModelAdmin):
     search_fields = ("serial_number", "product_name", "product_code", "articul", "sale_document")
     autocomplete_fields = ("product",)
     readonly_fields = ("created_at", "updated_at")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("product")
+
     fieldsets = (
         (None, {"fields": ("serial_number", "product", "source")}),
         (_("Товар і продаж"), {
@@ -160,7 +179,7 @@ class ProductSerialAdmin(ModelAdmin):
 
 
 @admin.register(WarrantyClaim)
-class WarrantyClaimAdmin(ModelAdmin):
+class WarrantyClaimAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = (
         "rma_number",
         "serial_number",
@@ -174,7 +193,12 @@ class WarrantyClaimAdmin(ModelAdmin):
     search_fields = ("rma_number", "serial_number", "product_name", "client_name", "client_phone")
     autocomplete_fields = ("product", "created_by", "product_serial")
     readonly_fields = ("created_at", "updated_at", "submitted_at")
-    date_hierarchy = "created_at"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "product", "created_by", "product_serial"
+        )
+
     fieldsets = (
         (_("RMA"), {"fields": ("rma_number", "status", "submitted_at")}),
         (_("Серійний номер"), {

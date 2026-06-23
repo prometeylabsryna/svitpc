@@ -8,6 +8,8 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 
+from apps.core.admin_mixins import OptimizedAdminMixin
+
 from .home_ads import (
     all_aspect_labels,
     all_recommended_sizes,
@@ -18,7 +20,7 @@ from .models import Banner, HomeAdSettings, Promotion
 
 
 @admin.register(Promotion)
-class PromotionAdmin(ModelAdmin):
+class PromotionAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = (
         "title_uk",
         "product",
@@ -60,6 +62,9 @@ class PromotionAdmin(ModelAdmin):
             {"fields": ("title_en", "description_en")},
         ),
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("product")
 
     @admin.display(description=_("Поточні ціни товару"))
     def product_current_prices(self, obj: Promotion) -> str:
@@ -180,7 +185,7 @@ class HomeAdSettingsAdmin(ModelAdmin):
 
 
 @admin.register(Banner)
-class BannerAdmin(ModelAdmin):
+class BannerAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("title", "position", "is_active", "sort_order", "date_start", "date_end")
     list_filter = ("is_active", "position")
     search_fields = ("title",)

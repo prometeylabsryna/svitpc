@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib import admin, messages
 from django.db.models import Count
+from django.http import HttpRequest
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -10,6 +11,8 @@ from django_ckeditor_5.widgets import CKEditor5Widget
 from modeltranslation.admin import TranslationTabularInline
 from mptt.admin import DraggableMPTTAdmin
 from unfold.admin import ModelAdmin, TabularInline
+
+from apps.core.admin_mixins import OptimizedAdminMixin, admin_is_changelist
 
 from .models import (
     Attribute,
@@ -62,6 +65,10 @@ class ProductAttributeInline(TranslationTabularInline, TabularInline):
     extra = 0
     fields = ("attribute", "value")
     autocomplete_fields = ["attribute"]
+    show_change_link = True
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("attribute", "attribute__group")
 
 
 class ProductFilterInline(TabularInline):
@@ -69,6 +76,10 @@ class ProductFilterInline(TabularInline):
     extra = 0
     fields = ("filter",)
     autocomplete_fields = ("filter",)
+    show_change_link = True
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("filter", "filter__group")
 
 
 class ProductAdminForm(forms.ModelForm):
@@ -98,7 +109,7 @@ class BrandAdminForm(forms.ModelForm):
 
 
 @admin.register(Brand)
-class BrandAdmin(ModelAdmin):
+class BrandAdmin(OptimizedAdminMixin, ModelAdmin):
     form = BrandAdminForm
     list_display = ("name", "slug", "oc_id")
     search_fields = ("name", "name_en", "slug")
@@ -117,7 +128,7 @@ class CategoryAdminForm(forms.ModelForm):
 
 
 @admin.register(Category)
-class CategoryAdmin(DraggableMPTTAdmin, ModelAdmin):
+class CategoryAdmin(OptimizedAdminMixin, DraggableMPTTAdmin, ModelAdmin):
     form = CategoryAdminForm
     list_display = ("tree_actions", "indented_title", "slug", "is_active", "is_top", "product_count_display")
     list_filter = ("is_active", "is_top", "level")
@@ -142,8 +153,14 @@ class CategoryAdmin(DraggableMPTTAdmin, ModelAdmin):
     )
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.annotate(_product_count=Count("products", distinct=True))
+        qs = super().get_queryset(request).select_related("parent")
+        if admin_is_changelist(request):
+            return qs.defer(
+                "description",
+                "description_uk",
+                "description_en",
+            ).annotate(_product_count=Count("products", distinct=True))
+        return qs
 
     @admin.display(description=_("Товарів"))
     def product_count_display(self, obj: Category) -> int:
@@ -182,7 +199,7 @@ class CategoryAdmin(DraggableMPTTAdmin, ModelAdmin):
 
 
 @admin.register(Product)
-class ProductAdmin(ModelAdmin):
+class ProductAdmin(OptimizedAdminMixin, ModelAdmin):
     form = ProductAdminForm
     class Media:
         css = {"all": ("css/admin_extra.css",)}
@@ -191,8 +208,6 @@ class ProductAdmin(ModelAdmin):
     list_filter = ("source", "is_visible", "is_new", "is_hit", "brand")
     search_fields = ("name", "name_uk", "name_en", "sku", "external_id", "slug")
     list_editable = ("is_visible", "is_new", "is_hit", "price")
-    list_per_page = 50
-    show_full_result_count = False
     prepopulated_fields = {"slug": ("name",)}
     autocomplete_fields = ("brand",)
     inlines = [ProductImageInline, ProductAttributeInline, ProductFilterInline]
@@ -225,13 +240,6 @@ class ProductAdmin(ModelAdmin):
             "classes": ("collapse",),
         }),
     )
-    def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .select_related("brand")
-            .prefetch_related("images")
-        )
 
     actions = [
         "generate_seo_action",
@@ -247,9 +255,29 @@ class ProductAdmin(ModelAdmin):
         "brain_enable_hide_out_of_stock",
     ]
 
+    def get_queryset(self, request: HttpRequest):
+        qs = super().get_queryset(request).select_related("brand")
+        if admin_is_changelist(request):
+            return qs.defer(
+                "description",
+                "description_uk",
+                "description_en",
+                "short_description",
+                "short_description_uk",
+                "short_description_en",
+                "search_vector",
+            )
+        return qs.prefetch_related("images", "categories")
+
     @admin.display(description=_("Фото"))
     def thumb_preview(self, obj: Product) -> str:
-        url = obj.main_image_url
+        from apps.catalog.gallery import is_valid_product_image_url
+
+        url = ""
+        if obj.image:
+            url = obj.image.url
+        elif obj.image_url and is_valid_product_image_url(obj.image_url):
+            url = obj.image_url
         if url:
             return format_html('<img src="{}" alt="" class="admin-list-thumb">', url)
         return "—"
@@ -421,22 +449,25 @@ class ProductAdmin(ModelAdmin):
 
 
 @admin.register(AttributeGroup)
-class AttributeGroupAdmin(ModelAdmin):
+class AttributeGroupAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("name", "sort_order")
     search_fields = ("name", "name_en")
     fields = ("name", "name_en", "sort_order", "oc_id")
 
 
 @admin.register(Attribute)
-class AttributeAdmin(ModelAdmin):
+class AttributeAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("name", "group", "sort_order")
     list_filter = ("group",)
     search_fields = ("name", "name_en")
     fields = ("group", "name", "name_en", "sort_order", "oc_id")
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("group")
+
 
 @admin.register(FilterGroup)
-class FilterGroupAdmin(ModelAdmin):
+class FilterGroupAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("name", "sort_order", "filter_count_display", "product_link_count_display", "is_brand")
     list_filter = ("is_brand",)
     search_fields = ("name", "name_en")
@@ -444,6 +475,8 @@ class FilterGroupAdmin(ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        if not admin_is_changelist(request):
+            return qs
         return qs.annotate(
             _filter_count=Count("filters", distinct=True),
             _product_link_count=Count("filters__productfilter", distinct=True),
@@ -459,14 +492,16 @@ class FilterGroupAdmin(ModelAdmin):
 
 
 @admin.register(Filter)
-class FilterAdmin(ModelAdmin):
+class FilterAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("name", "group", "sort_order", "product_link_count_display")
     list_filter = ("group",)
     search_fields = ("name", "name_en", "group__name")
     fields = ("group", "name", "name_en", "sort_order", "oc_id")
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
+        qs = super().get_queryset(request).select_related("group")
+        if not admin_is_changelist(request):
+            return qs
         return qs.annotate(_product_link_count=Count("productfilter", distinct=True))
 
     @admin.display(description=_("Товарів"))
@@ -475,15 +510,18 @@ class FilterAdmin(ModelAdmin):
 
 
 @admin.register(MarkupRule)
-class MarkupRuleAdmin(ModelAdmin):
+class MarkupRuleAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("name", "brand", "category", "markup_percent", "priority", "is_active")
     list_filter = ("is_active",)
     search_fields = ("name",)
     autocomplete_fields = ("brand", "category")
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("brand", "category")
+
 
 @admin.register(Redirect)
-class RedirectAdmin(ModelAdmin):
+class RedirectAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("old_path", "new_path", "status_code", "is_active")
     list_filter = ("status_code", "is_active")
     search_fields = ("old_path", "new_path")
@@ -491,7 +529,7 @@ class RedirectAdmin(ModelAdmin):
 
 
 @admin.register(SeoUrl)
-class SeoUrlAdmin(ModelAdmin):
+class SeoUrlAdmin(OptimizedAdminMixin, ModelAdmin):
     list_display = ("query", "keyword", "language_code")
     search_fields = ("query", "keyword")
     list_filter = ("language_code",)
