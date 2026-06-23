@@ -142,12 +142,14 @@ def get_home_sale_products(limit: int = 6) -> list[Product]:
     return _cache_product_block("sale", pks)
 
 
-def _cached_home_banners() -> list[Any]:
+def _cached_home_banners(cached_pks: list[int] | None = None) -> list[Any]:
     from apps.promotions.home_ads import active_home_banners
     from apps.promotions.models import Banner
 
     key = _home_cache_key("banners")
-    pks: list[int] | None = cache.get(key)
+    pks = cached_pks
+    if pks is None:
+        pks = cache.get(key)
     if pks is None:
         pks = list(active_home_banners().values_list("pk", flat=True))
         cache.set(key, pks, HOME_PRODUCTS_CACHE_TTL)
@@ -157,11 +159,13 @@ def _cached_home_banners() -> list[Any]:
     return [by_pk[pk] for pk in pks if pk in by_pk]
 
 
-def _cached_home_services(limit: int = 3) -> list[Any]:
+def _cached_home_services(cached_pks: list[int] | None = None, limit: int = 3) -> list[Any]:
     from apps.services.models import Service
 
     key = _home_cache_key("services")
-    pks: list[int] | None = cache.get(key)
+    pks = cached_pks
+    if pks is None:
+        pks = cache.get(key)
     if pks is None:
         pks = list(
             Service.objects.filter(is_active=True, show_on_home=True)
@@ -176,32 +180,48 @@ def _cached_home_services(limit: int = 3) -> list[Any]:
     return [by_pk[pk] for pk in pks if pk in by_pk]
 
 
+def _home_products_block(
+    block: str,
+    cached_pks: list[int] | None,
+    loader,
+) -> list[Product]:
+    if cached_pks is not None:
+        return _load_products_by_pks(cached_pks)
+    return loader()
+
+
 def get_home_view_context() -> dict[str, Any]:
-    """Full home page context with one Redis round-trip when warm."""
+    """Full home page context with batched Redis reads when warm."""
     from apps.promotions.home_ads import recommended_banner_size
 
+    prefetch_keys = [
+        _home_cache_key("new"),
+        _home_cache_key("hit"),
+        _home_cache_key("sale"),
+        _home_cache_key("banners"),
+        _home_cache_key("services"),
+        _home_cache_key("bundle_v1"),
+    ]
+    prefetched = cache.get_many(prefetch_keys)
+
     bundle_key = _home_cache_key("bundle_v1")
-    cached_bundle: dict[str, Any] | None = cache.get(bundle_key)
+    cached_bundle: dict[str, Any] | None = prefetched.get(bundle_key)
     if cached_bundle is not None:
         home_ad_columns = cached_bundle["home_ad_columns"]
-        home_ads = _cached_home_banners()
+        home_ads = _cached_home_banners(prefetched.get(_home_cache_key("banners")))
     else:
         from apps.promotions.models import HomeAdSettings
 
         home_ad_columns = HomeAdSettings.load().visible_columns
-        home_ads = _cached_home_banners()
-        cache.set(
-            bundle_key,
-            {"home_ad_columns": home_ad_columns},
-            HOME_PRODUCTS_CACHE_TTL,
-        )
+        home_ads = _cached_home_banners(prefetched.get(_home_cache_key("banners")))
+        cache.set(bundle_key, {"home_ad_columns": home_ad_columns}, HOME_PRODUCTS_CACHE_TTL)
 
     slot_w, slot_h = recommended_banner_size(home_ad_columns)
     return {
-        "new_products": get_home_new_products(),
-        "hit_products": get_home_hit_products(),
-        "sale_products": get_home_sale_products(),
-        "home_services": _cached_home_services(),
+        "new_products": _home_products_block("new", prefetched.get(_home_cache_key("new")), get_home_new_products),
+        "hit_products": _home_products_block("hit", prefetched.get(_home_cache_key("hit")), get_home_hit_products),
+        "sale_products": _home_products_block("sale", prefetched.get(_home_cache_key("sale")), get_home_sale_products),
+        "home_services": _cached_home_services(prefetched.get(_home_cache_key("services"))),
         "home_ads": home_ads,
         "home_ad_columns": home_ad_columns,
         "home_ad_slot_width": slot_w,

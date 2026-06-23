@@ -43,10 +43,13 @@ def get_filtered_products(
     *,
     with_reviews_ann: bool = True,
     for_count: bool = False,
+    skip_image_filter: bool = False,
 ) -> QuerySet[Product]:
     """Apply catalog filters and sorting to a product queryset."""
 
-    qs = filter_products_with_display_image(queryset.filter(is_visible=True))
+    qs = queryset.filter(is_visible=True)
+    if not skip_image_filter:
+        qs = filter_products_with_display_image(qs)
 
     if brands:
         qs = qs.filter(brand_id__in=brands)
@@ -213,23 +216,22 @@ def get_sale_products_queryset() -> QuerySet[Product]:
     """Products on sale: discounted (old_price > price) or in a running promotion."""
     from apps.promotions.services import running_promotions_qs
 
-    discounted_pks = Product.objects.filter(
-        is_visible=True,
+    discounted_q = Q(
         old_price__isnull=False,
         old_price__gt=F("price"),
-    ).values_list("pk", flat=True)
-    promo_pks = running_promotions_qs().values_list("product_id", flat=True).distinct()
-    sale_pks = set(discounted_pks) | set(promo_pks)
-    if not sale_pks:
-        return Product.objects.none()
+    )
+    promo_q = Q(pk__in=running_promotions_qs().values("product_id"))
+    approved_reviews = Q(reviews__is_approved=True)
 
     qs = filter_products_with_display_image(
-        Product.objects.filter(pk__in=sale_pks, is_visible=True).exclude(
-            purchase_price__gt=0,
-            price__lt=F("purchase_price"),
-        )
+        Product.objects.filter(is_visible=True)
+        .filter(discounted_q | promo_q)
+        .exclude(purchase_price__gt=0, price__lt=F("purchase_price"))
     )
-    return qs.select_related("brand").prefetch_related("images")
+    return qs.annotate(
+        avg_rating_ann=Avg("reviews__rating", filter=approved_reviews),
+        review_count_ann=Count("reviews", filter=approved_reviews),
+    ).select_related("brand").prefetch_related("images")
 
 
 def apply_markup(base_price: Decimal, brand_id: int | None, category_ids: list[int]) -> Decimal:

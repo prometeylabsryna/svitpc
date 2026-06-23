@@ -9,19 +9,17 @@
 {% block og_image %}{% if category.image %}{{ request.scheme }}://{{ request.get_host }}{{ category.image.url }}{% endif %}{% endblock %}
 
 {% block jsonld %}
-{% with ancestors=category.get_ancestors %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    {"@type": "ListItem", "position": 1, "name": "{% trans "Головна" %}", "item": "{{ SITE_URL }}/"}{% for anc in ancestors %},
+    {"@type": "ListItem", "position": 1, "name": "{% trans "Головна" %}", "item": "{{ SITE_URL }}/"}{% for anc in category_ancestors %},
     {"@type": "ListItem", "position": {{ forloop.counter|add:"1" }}, "name": "{{ anc.name|escapejs }}", "item": "{{ request.scheme }}://{{ request.get_host }}{{ anc.get_absolute_url }}"}{% endfor %},
-    {"@type": "ListItem", "position": {{ ancestors|length|add:"2" }}, "name": "{{ category.name|escapejs }}", "item": "{{ request.scheme }}://{{ request.get_host }}{{ category.get_absolute_url }}"}
+    {"@type": "ListItem", "position": {{ category_ancestors|length|add:"2" }}, "name": "{{ category.name|escapejs }}", "item": "{{ request.scheme }}://{{ request.get_host }}{{ category.get_absolute_url }}"}
   ]
 }
 </script>
-{% endwith %}
 {% endblock %}
 
 {% block content %}
@@ -30,7 +28,7 @@
   {# Breadcrumbs #}
   <nav class="breadcrumbs" aria-label="{% trans 'Навігація' %}">
     <span class="breadcrumbs__item"><a href="{% url 'catalog:home' %}">{% trans "Головна" %}</a></span>
-    {% for ancestor in category.get_ancestors %}
+    {% for ancestor in category_ancestors %}
     <span class="breadcrumbs__sep" aria-hidden="true">›</span>
     <span class="breadcrumbs__item"><a href="{{ ancestor.get_absolute_url }}">{{ ancestor|localized:"name" }}</a></span>
     {% endfor %}

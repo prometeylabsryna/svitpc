@@ -4,8 +4,7 @@
 
 @layer reset, tokens, base, layout, components, pages, utilities;
 
-/* ── Google Fonts ─────────────────────────────────────────────────────────── */
-@import url("https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap");
+/* PT Sans — non-blocking load via static/js/modules/fonts.js */
 
 /* ── Layers ──────────────────────────────────────────────────────────────── */
 @import "base/_reset.css"        layer(reset);

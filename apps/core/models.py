@@ -92,22 +92,26 @@ class SiteSettings(models.Model):
         super().save(*args, **kwargs)
         cache.delete(SITE_SETTINGS_CACHE_KEY)
         from apps.catalog.nav import invalidate_nav_cache
+        from apps.core.used_category import invalidate_hidden_used_category_cache
 
         invalidate_nav_cache()
+        invalidate_hidden_used_category_cache()
 
     def delete(self, *args, **kwargs) -> None:
         return
 
     @classmethod
     def load(cls) -> SiteSettings:
-        cached_pk = cache.get(SITE_SETTINGS_CACHE_KEY)
-        if cached_pk is not None:
+        cached = cache.get(SITE_SETTINGS_CACHE_KEY)
+        if isinstance(cached, cls):
+            return cached
+        if cached is not None:
             try:
-                return cls.objects.select_related("used_category").get(pk=cached_pk)
+                return cls.objects.select_related("used_category").get(pk=cached)
             except cls.DoesNotExist:
                 cache.delete(SITE_SETTINGS_CACHE_KEY)
         obj, _ = cls.objects.select_related("used_category").get_or_create(pk=1)
-        cache.set(SITE_SETTINGS_CACHE_KEY, obj.pk, timeout=None)
+        cache.set(SITE_SETTINGS_CACHE_KEY, obj, timeout=None)
         return obj
 
     def has_legal_info(self) -> bool:

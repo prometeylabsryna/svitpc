@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from apps.catalog.models import Product
 from apps.promotions.services import with_active_promotions
 
+from .cache import invalidate_wishlist_ids_cache
 from .models import WishlistItem
 
 _SESSION_KEY = "wishlist"
@@ -65,6 +66,7 @@ def toggle_view(request: HttpRequest, product_id: int) -> HttpResponse:
         item, created = WishlistItem.objects.get_or_create(customer=request.user, product=product)
         if not created:
             item.delete()
+        invalidate_wishlist_ids_cache(request.user.pk)
         count = request.user.wishlist.count()
     else:
         created, count = _guest_toggle(request, product.pk)

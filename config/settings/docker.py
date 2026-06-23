@@ -8,7 +8,18 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = False
 
 # nginx віддає static/media — WhiteNoise не потрібен
-MIDDLEWARE = [m for m in MIDDLEWARE if m != "whitenoise.middleware.WhiteNoiseMiddleware"]  # noqa: F405
+MIDDLEWARE = [
+    m
+    for m in MIDDLEWARE  # noqa: F405
+    if m
+    not in (
+        "whitenoise.middleware.WhiteNoiseMiddleware",
+        "django.middleware.gzip.GZipMiddleware",
+        "apps.core.middleware_debug_i18n.DebugI18nMiddleware",
+    )
+]
+
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=600)  # noqa: F405
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

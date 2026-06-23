@@ -13,7 +13,6 @@ from django.views.decorators.cache import cache_page
 
 from apps.analytics.ecommerce import product_list_payload, product_view_payload
 from apps.core.svitik import product_purchase_tip
-from apps.promotions.models import Promotion
 from apps.promotions.services import with_active_promotions
 
 from .gallery import filter_products_with_display_image, product_gallery_urls
@@ -77,6 +76,7 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
             in_stock,
             sort,
             for_count=True,
+            skip_image_filter=True,
         )
     )
     total = cached_product_count(qs_lite, cache_key=count_key)
@@ -90,6 +90,7 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
             price_max,
             in_stock,
             sort,
+            skip_image_filter=True,
         )
     )
     products = qs[(page - 1) * per_page: page * per_page]
@@ -113,9 +114,11 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
         _gdata["has_active"] = any(opt["id"] in filter_ids for opt in _gdata["options"])
     brands = get_brands_for_category(cats, category_id=category.pk)
     subcategories = category.get_children().filter(is_active=True).order_by("sort_order", "name")
+    category_ancestors = list(category.get_ancestors())
 
     ctx = {
         "category": category,
+        "category_ancestors": category_ancestors,
         "subcategories": subcategories,
         "products": products,
         "ecommerce_list": product_list_payload(
@@ -151,21 +154,31 @@ def product_detail_view(request: HttpRequest, slug: str) -> HttpResponse:
                 review_count_ann=Count("reviews", filter=_approved),
             )
             .select_related("brand")
-            .prefetch_related("images", "attributes__attribute__group")
+            .prefetch_related("images", "attributes__attribute__group", "categories")
         ),
         slug=slug,
     )
-    # Increment viewed
     Product.objects.filter(pk=product.pk).update(viewed=product.viewed + 1)
 
+    category_pks = [category.pk for category in product.categories.all()]
     related = order_stock_first(
         with_active_promotions(
-            visible_catalog_products().filter(
-                categories__in=product.categories.all(),
-            ).exclude(pk=product.pk).select_related("brand").distinct()
+            visible_catalog_products()
+            .filter(categories__in=category_pks)
+            .exclude(pk=product.pk)
+            .annotate(
+                avg_rating_ann=Avg("reviews__rating", filter=_approved),
+                review_count_ann=Count("reviews", filter=_approved),
+            )
+            .select_related("brand")
+            .prefetch_related("images")
+            .distinct()
         ),
         "sort_order",
     )[:6]
+
+    primary_category = product.categories.all()[0] if category_pks else None
+    category_ancestors = list(primary_category.get_ancestors()) if primary_category else []
 
     attrs_by_group: dict = {}
     for pa in product.attributes.select_related("attribute__group").order_by("attribute__group__sort_order", "attribute__sort_order"):
@@ -174,15 +187,10 @@ def product_detail_view(request: HttpRequest, slug: str) -> HttpResponse:
             attrs_by_group[g.pk] = {"group": g, "items": []}
         attrs_by_group[g.pk]["items"].append(pa)
 
-    from django.utils import timezone
-
-    now = timezone.now()
-    promotion = Promotion.objects.filter(
-        product=product,
-        is_active=True,
-        start_date__lte=now,
-        end_date__gte=now,
-    ).first()
+    promotion = None
+    active_promotions = getattr(product, "active_promotions", None)
+    if active_promotions:
+        promotion = active_promotions[0]
     timer_end = None
     if promotion:
         timer_end = promotion.end_date
@@ -191,6 +199,8 @@ def product_detail_view(request: HttpRequest, slug: str) -> HttpResponse:
 
     return render(request, "catalog/product_detail.html", {
         "product": product,
+        "primary_category": primary_category,
+        "category_ancestors": category_ancestors,
         "gallery_urls": product_gallery_urls(product),
         "attrs_by_group": attrs_by_group.values(),
         "related": related,
@@ -233,6 +243,7 @@ def brand_view(request: HttpRequest, slug: str) -> HttpResponse:
             in_stock_only=in_stock,
             sort=sort,
             for_count=True,
+            skip_image_filter=True,
         )
     )
     total = cached_product_count(qs_lite, cache_key=count_key)
@@ -245,6 +256,7 @@ def brand_view(request: HttpRequest, slug: str) -> HttpResponse:
             price_max=price_max,
             in_stock_only=in_stock,
             sort=sort,
+            skip_image_filter=True,
         )
     )
     products = qs[(page - 1) * per_page: page * per_page]
@@ -288,6 +300,7 @@ def brand_view(request: HttpRequest, slug: str) -> HttpResponse:
     return render(request, "catalog/brand.html", ctx)
 
 
+@cache_page(600)
 def brands_list_view(request: HttpRequest) -> HttpResponse:
     brands = Brand.objects.all().order_by("name")
     return render(request, "catalog/brands.html", {"brands": brands})
@@ -323,6 +336,8 @@ def hit_products_view(request: HttpRequest) -> HttpResponse:
 
 @cache_page(300)
 def sale_products_view(request: HttpRequest) -> HttpResponse:
+    from django.core.cache import cache
+
     per_page = 24
     try:
         page = max(1, int(request.GET.get("page", 1) or 1))
@@ -334,7 +349,11 @@ def sale_products_view(request: HttpRequest) -> HttpResponse:
         "sort_order",
         "name",
     )
-    total = qs.count()
+    count_key = "catalog:sale:total_count"
+    total = cache.get(count_key)
+    if total is None:
+        total = qs.count()
+        cache.set(count_key, total, 300)
     total_pages = max(1, (total + per_page - 1) // per_page)
     if page > total_pages:
         page = total_pages

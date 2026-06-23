@@ -406,3 +406,15 @@ class Redirect(models.Model):
 
     def __str__(self) -> str:
         return f"{self.old_path} → {self.new_path} [{self.status_code}]"
+
+    def save(self, *args, **kwargs) -> None:
+        super().save(*args, **kwargs)
+        from apps.core.redirect_cache import invalidate_redirect_cache
+
+        invalidate_redirect_cache()
+
+    def delete(self, *args, **kwargs) -> None:
+        super().delete(*args, **kwargs)
+        from apps.core.redirect_cache import invalidate_redirect_cache
+
+        invalidate_redirect_cache()
