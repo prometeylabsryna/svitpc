@@ -154,6 +154,8 @@
     background: var(--grad-primary);
     color: #fff;
     border: none;
+    -webkit-text-fill-color: #fff;
+    background-clip: border-box;
 
     &:hover {
       opacity: 0.88;
@@ -166,6 +168,8 @@
     background: transparent;
     border-color: var(--clr-primary-500);
     color: var(--clr-primary-600);
+    -webkit-text-fill-color: currentColor;
+    background-clip: border-box;
 
     &:hover {
       background: var(--clr-primary-50);
