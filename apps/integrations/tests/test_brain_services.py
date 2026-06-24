@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from apps.integrations.brain.services import (
+    brain_catalog_visible,
     brain_customer_old_price,
     brain_customer_price,
     brain_shelf_prices,
@@ -71,6 +72,44 @@ class TestBrainServices:
         assert shelf == Decimal("100.00")
         assert old == Decimal("140.00")
         assert wholesale == Decimal("100.00")
+
+    @patch("apps.integrations.brain.services.brain_hide_out_of_stock_enabled", return_value=True)
+    def test_brain_catalog_visible_hides_zero_price(self, _mock):
+        assert brain_catalog_visible(stock=1, shelf=Decimal("0"), hide_if_out_of_stock=True) is False
+        assert brain_catalog_visible(stock=1, shelf=Decimal("99"), hide_if_out_of_stock=True) is True
+        assert brain_catalog_visible(stock=0, shelf=Decimal("99"), hide_if_out_of_stock=True) is False
+
+    @pytest.mark.django_db
+    def test_apply_detail_hides_zero_brain_price(self):
+        from apps.catalog.models import Product
+        from apps.integrations.brain.services import apply_detail_to_product
+
+        product = Product.objects.create(
+            source=Product.SOURCE_BRAIN,
+            external_id="999004",
+            name="Zero price",
+            slug="zero-price-999004",
+            price=Decimal("0"),
+            stock=1,
+            is_visible=True,
+        )
+        detail = {
+            "name": "Zero price",
+            "price_uah": "0",
+            "retail_price_uah": "0",
+            "is_archive": False,
+        }
+        apply_detail_to_product(
+            product,
+            detail,
+            vendor_map={},
+            cat_map={},
+            update_price=True,
+            force_hide_flag=True,
+        )
+        product.refresh_from_db()
+        assert product.is_visible is False
+        assert product.stock == 1
 
     @pytest.mark.django_db
     def test_apply_detail_updates_price(self):

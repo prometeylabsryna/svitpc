@@ -178,6 +178,18 @@ def brain_visibility(stock: int, hide_if_out_of_stock: bool) -> bool:
     return True
 
 
+def brain_catalog_visible(
+    *,
+    stock: int,
+    shelf: Decimal,
+    hide_if_out_of_stock: bool,
+) -> bool:
+    """Hide Brain products without a retail price or when out of stock."""
+    if shelf <= 0:
+        return False
+    return brain_visibility(stock, hide_if_out_of_stock)
+
+
 def upsert_brand(name: str) -> "Brand":  # type: ignore[name-defined]
     from apps.catalog.models import Brand
     from apps.catalog.ru_localization import localize_ru_to_uk
@@ -368,8 +380,12 @@ def apply_detail_to_product(
     if force_hide_flag or (hide and not product.hide_if_out_of_stock):
         upd["hide_if_out_of_stock"] = True
         hide = True
-    if hide and brain_hide_out_of_stock_enabled():
-        upd["is_visible"] = stock > 0
+    effective_stock = stock if update_stock else product.stock
+    upd["is_visible"] = brain_catalog_visible(
+        stock=effective_stock,
+        shelf=shelf,
+        hide_if_out_of_stock=hide,
+    )
     if update_image and main_img:
         upd["image_url"] = main_img
     if update_price and shelf > 0:
@@ -428,7 +444,7 @@ def upsert_product_from_detail(
     slug_base = slugify(name, allow_unicode=True) or f"brain-p-{brain_id}"
     slug = unique_product_slug(slug_base, brain_id)
     hide = brain_hide_out_of_stock_enabled()
-    visible = brain_visibility(stock, hide)
+    visible = brain_catalog_visible(stock=stock, shelf=shelf, hide_if_out_of_stock=hide)
 
     defaults = {
         "name": name[:500],

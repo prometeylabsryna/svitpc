@@ -9,9 +9,10 @@ from django.db.models import Q
 
 from .client import products_page_limit
 from .services import (
+    brain_catalog_visible,
     brain_hide_out_of_stock_enabled,
+    brain_shelf_prices,
     brain_stock_from_detail,
-    brain_visibility,
 )
 
 if TYPE_CHECKING:
@@ -32,8 +33,15 @@ def _brain_product_map() -> dict[str, Product]:
     }
 
 
-def _apply_availability(product: Product, stock: int, hide: bool, *, dry_run: bool) -> bool:
-    visible = brain_visibility(stock, hide)
+def _apply_availability(
+    product: Product,
+    stock: int,
+    hide: bool,
+    shelf,
+    *,
+    dry_run: bool,
+) -> bool:
+    visible = brain_catalog_visible(stock=stock, shelf=shelf, hide_if_out_of_stock=hide)
     unchanged = (
         product.stock == stock
         and product.is_visible == visible
@@ -103,10 +111,21 @@ def sync_all_availability_from_brain(
                     continue
 
                 stock = brain_stock_from_detail(item)
-                if _apply_availability(product, stock, hide_default, dry_run=dry_run):
+                shelf, _, _ = brain_shelf_prices(item)
+                if _apply_availability(
+                    product,
+                    stock,
+                    hide_default,
+                    shelf,
+                    dry_run=dry_run,
+                ):
                     stats["updated"] += 1
                     product.stock = stock
-                    product.is_visible = brain_visibility(stock, hide_default)
+                    product.is_visible = brain_catalog_visible(
+                        stock=stock,
+                        shelf=shelf,
+                        hide_if_out_of_stock=hide_default,
+                    )
                     product.hide_if_out_of_stock = hide_default
 
             offset += len(items)

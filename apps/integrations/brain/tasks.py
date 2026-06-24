@@ -10,10 +10,10 @@ from django.db.models import Q
 
 from .services import (
     apply_detail_to_product,
+    brain_catalog_visible,
     brain_hide_out_of_stock_enabled,
     brain_shelf_prices,
     brain_stock_from_detail,
-    brain_visibility,
     build_category_map_from_db,
     resolve_brand,
     resolve_local_category,
@@ -117,7 +117,11 @@ def sync_products() -> None:
                 main_img = normalize_brain_image_url(
                     item.get("medium_image") or item.get("large_image") or "",
                 )
-                visible = brain_visibility(stock, hide_default)
+                visible = brain_catalog_visible(
+                    stock=stock,
+                    shelf=shelf,
+                    hide_if_out_of_stock=hide_default,
+                )
 
                 with transaction.atomic():
                     product, created = Product.objects.update_or_create(
@@ -191,7 +195,18 @@ def sync_prices() -> None:
         ):
             updated += 1
 
-    logger.info("Brain sync_prices done: %d updated / %d modified", updated, len(modified_ids))
+    hidden_zero = Product.objects.filter(
+        source=Product.SOURCE_BRAIN,
+        price__lte=0,
+        is_visible=True,
+    ).update(is_visible=False)
+
+    logger.info(
+        "Brain sync_prices done: %d updated / %d modified, hid_zero_price=%d",
+        updated,
+        len(modified_ids),
+        hidden_zero,
+    )
 
 
 # ── sync_stock ────────────────────────────────────────────────────────────────
@@ -575,8 +590,13 @@ def apply_hide_out_of_stock_policy() -> None:
     Product.objects.filter(
         source=Product.SOURCE_BRAIN,
         stock__gt=0,
+        price__gt=0,
         hide_if_out_of_stock=True,
     ).update(is_visible=True)
+    Product.objects.filter(
+        source=Product.SOURCE_BRAIN,
+        price__lte=0,
+    ).update(is_visible=False)
 
     hidden = Product.objects.filter(
         source=Product.SOURCE_BRAIN,
