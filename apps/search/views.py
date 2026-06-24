@@ -10,6 +10,7 @@ from operator import or_
 from django.conf import settings
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.core.cache import cache
+from django.db import DatabaseError
 from django.db.models import F, Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -31,6 +32,8 @@ _HTML_APOS_ENTITY = "&#039;"
 _COMPUTER_WORD = re.compile(r"(?i)компютер")
 _LETTER_VARIANTS = (("и", "і"), ("і", "и"), ("е", "є"), ("є", "е"))
 _FTS_SUFFIXES = ("ами", "ями", "ів", "ій", "ії", "ии", "і", "и", "ы", "а", "я", "у", "ю")
+# Chars unsafe in PostgreSQL tsquery raw mode (- is NOT, | & ! ( ) : * need care).
+_TSQUERY_RAW_UNSAFE = re.compile(r"[\s!&|():*\\\-]")
 
 _TABLE_COLUMNS: dict[str, frozenset[str]] = {}
 
@@ -71,6 +74,15 @@ def _fts_stem_root(term: str) -> str | None:
     return None
 
 
+def _fts_tokens(term: str) -> list[str]:
+    return [part for part in re.split(r"\s+", term.strip()) if part]
+
+
+def _safe_raw_prefix_token(token: str) -> bool:
+    """Single token without tsquery metacharacters — safe for ``token:*`` raw prefix."""
+    return len(token) >= 3 and _TSQUERY_RAW_UNSAFE.search(token) is None
+
+
 def _fts_queries_for_term(term: str) -> list[SearchQuery]:
     """Plain + prefix FTS queries so plurals match indexed product names."""
     config = settings.POSTGRES_FTS_CONFIG
@@ -84,12 +96,22 @@ def _fts_queries_for_term(term: str) -> list[SearchQuery]:
         queries.append(query)
 
     add(f"plain:{term}", SearchQuery(term, config=config))
-    if len(term) >= 3:
-        add(f"prefix:{term}", SearchQuery(f"{term}:*", search_type="raw", config=config))
-    root = _fts_stem_root(term)
-    if root and root.casefold() != term.casefold():
-        add(f"plain:{root}", SearchQuery(root, config=config))
-        add(f"prefix:{root}", SearchQuery(f"{root}:*", search_type="raw", config=config))
+
+    tokens = _fts_tokens(term) or [term]
+    for token in tokens:
+        if token == term:
+            continue
+        add(f"plain:{token}", SearchQuery(token, config=config))
+
+    for token in tokens:
+        if not _safe_raw_prefix_token(token):
+            continue
+        add(f"prefix:{token}", SearchQuery(f"{token}:*", search_type="raw", config=config))
+        root = _fts_stem_root(token)
+        if root and root.casefold() != token.casefold() and _safe_raw_prefix_token(root):
+            add(f"plain:{root}", SearchQuery(root, config=config))
+            add(f"prefix:{root}", SearchQuery(f"{root}:*", search_type="raw", config=config))
+
     return queries
 
 
@@ -232,13 +254,16 @@ def _fts_results_multi(variants: list[str], *, limit: int) -> list[Product]:
         return []
 
     combined_query = reduce(or_, fts_queries)
-    fts_qs = (
-        _search_pick_qs()
-        .filter(search_vector=combined_query)
-        .annotate(rank=SearchRank(F("search_vector"), combined_query))
-        .filter(rank__gte=_RANK_THRESHOLD)
-    )
-    return list(order_stock_first(fts_qs, "-rank")[:limit])
+    try:
+        fts_qs = (
+            _search_pick_qs()
+            .filter(search_vector=combined_query)
+            .annotate(rank=SearchRank(F("search_vector"), combined_query))
+            .filter(rank__gte=_RANK_THRESHOLD)
+        )
+        return list(order_stock_first(fts_qs, "-rank")[:limit])
+    except DatabaseError:
+        return []
 
 
 def _icontains_results_multi(variants: list[str], *, limit: int) -> list[Product]:

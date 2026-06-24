@@ -1,7 +1,14 @@
 import pytest
 
 from apps.catalog.search_index import refresh_product_search_vectors
-from apps.search.views import _fts_stem_root, _normalize_search_query, _search_qs, _search_variants
+from apps.search.views import (
+    _fts_queries_for_term,
+    _fts_stem_root,
+    _normalize_search_query,
+    _safe_raw_prefix_token,
+    _search_qs,
+    _search_variants,
+)
 
 _VALID_IMAGE_URL = "https://cdn.example.com/product-photo.jpg"
 
@@ -36,6 +43,19 @@ class TestSearchByBrand:
         results = _search_qs("SKU-UNIQUE-42")
         assert any(p.pk == target.pk for p in results)
 
+    def test_multiword_hyphenated_query_does_not_raise(self, product_factory):
+        target = product_factory(
+            name="MPM MPR-25 Mixer",
+            sku="MPR-25",
+            slug="mpm-mpr-25",
+            image_url=_VALID_IMAGE_URL,
+        )
+        product_factory(name="Other", slug="other-mpm", image_url=_VALID_IMAGE_URL)
+        refresh_product_search_vectors()
+
+        results = _search_qs("MPM MPR-25")
+        assert any(p.pk == target.pk for p in results)
+
 
 class TestNormalizeSearchQuery:
     def test_strips_trailing_stray_quote(self):
@@ -63,6 +83,18 @@ class TestNormalizeSearchQuery:
     def test_fts_stem_root_strips_plural_suffix(self):
         assert _fts_stem_root("термоси") == "термос"
         assert _fts_stem_root("монітор") is None or _fts_stem_root("моніторів") == "монітор"
+
+    def test_hyphenated_token_skips_raw_prefix(self):
+        assert not _safe_raw_prefix_token("MPR-25")
+        assert _safe_raw_prefix_token("термоси")
+
+    def test_fts_queries_for_hyphenated_sku_use_plain_only(self):
+        raw_prefixes = [
+            str(query)
+            for query in _fts_queries_for_term("MPR-25")
+            if ":*" in str(query)
+        ]
+        assert raw_prefixes == []
 
 
 @pytest.mark.django_db
