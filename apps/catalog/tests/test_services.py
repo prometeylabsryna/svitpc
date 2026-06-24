@@ -118,3 +118,30 @@ class TestGetFilteredProducts:
         assert "p-700-red" in slugs
         assert "p-700-blue" in slugs
         assert "p-700-only" not in slugs
+
+
+@pytest.mark.django_db
+class TestCategoryListingProducts:
+    def test_includes_products_on_ancestor_category(self, category_factory, product_factory):
+        from apps.catalog.services import category_listing_products
+
+        parent = category_factory(name="Parent", slug="parent-cat")
+        child = category_factory(name="Child", slug="child-cat", parent=parent)
+        sibling = category_factory(name="Sibling", slug="sibling-cat", parent=parent)
+
+        on_parent = product_factory(
+            slug="on-parent",
+            image_url="https://cdn.example.com/p.jpg",
+        )
+        on_parent.categories.set([parent])
+
+        on_sibling = product_factory(
+            slug="on-sibling",
+            image_url="https://cdn.example.com/s.jpg",
+        )
+        on_sibling.categories.set([sibling])
+
+        slugs = set(category_listing_products(child).values_list("slug", flat=True))
+        assert "on-parent" in slugs
+        assert "on-sibling" not in slugs
+

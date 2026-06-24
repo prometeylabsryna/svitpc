@@ -52,7 +52,7 @@ def count_cache_key(*, scope: str, scope_id: int | str, params: dict[str, Any]) 
 
 def brands_cache_key(*, category_id: int) -> str:
     lang = translation.get_language() or "uk"
-    return f"catalog:brands:{category_id}:{lang}"
+    return f"catalog:brands:v2:{category_id}:{lang}"
 
 
 def get_cached_facets(key: str) -> dict | None:

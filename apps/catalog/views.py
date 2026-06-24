@@ -19,6 +19,8 @@ from .gallery import filter_products_with_display_image, product_gallery_urls
 from .models import Brand, Category, Product
 from .services import (
     cached_product_count,
+    category_listing_category_scope,
+    category_listing_products,
     get_brands_for_category,
     get_category_facets,
     get_filtered_products,
@@ -42,9 +44,9 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
 
     if is_used_category_branch(category):
         raise Http404
-    # Descendants included
-    cats = category.get_descendants(include_self=True)
-    base_qs = visible_catalog_products().filter(categories__in=cats).distinct()
+
+    base_qs = category_listing_products(category)
+    cat_scope = category_listing_category_scope(category)
 
     # Parse filters from GET
     brand_ids = [int(x) for x in request.GET.getlist("brand") if x.isdigit()]
@@ -64,7 +66,7 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
         in_stock=in_stock,
         sort=sort,
     )
-    count_key = count_cache_key(scope="category", scope_id=category.pk, params=filter_params)
+    count_key = count_cache_key(scope="category-v2", scope_id=category.pk, params=filter_params)
 
     qs_lite = with_active_promotions(
         get_filtered_products(
@@ -112,7 +114,7 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
     facets = get_category_facets(category, qs_lite, filter_params=filter_params)
     for _gdata in facets.values():
         _gdata["has_active"] = any(opt["id"] in filter_ids for opt in _gdata["options"])
-    brands = get_brands_for_category(cats, category_id=category.pk)
+    brands = get_brands_for_category(cat_scope, category_id=category.pk)
     subcategories = category.get_children().filter(is_active=True).order_by("sort_order", "name")
     category_ancestors = list(category.get_ancestors())
 

@@ -6,15 +6,6 @@
       {% include "catalog/partials/category_icon.html" with category=cat %}
       <span class="site-nav__label">{{ cat|localized:"name" }}</span>
     </a>
-    {% with children=cat.children.all %}
-    {% if children %}
-    <ul class="mobile-menu__subnav">
-      {% for sub in children %}
-      <li><a href="{{ sub.get_absolute_url }}" class="mobile-menu__subnav-link">{{ sub|localized:"name" }}</a></li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
   </li>
   {% endfor %}
   <li class="mobile-menu__nav-item">

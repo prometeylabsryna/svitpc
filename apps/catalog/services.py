@@ -21,6 +21,27 @@ def visible_catalog_products() -> QuerySet[Product]:
     return filter_products_with_display_image(qs)
 
 
+def category_listing_products(category: Category) -> QuerySet[Product]:
+    """Products for a category page — subtree plus items assigned to ancestor categories only."""
+    return (
+        visible_catalog_products()
+        .filter(categories__tree_id=category.tree_id)
+        .filter(
+            Q(categories__lft__gte=category.lft, categories__rght__lte=category.rght)
+            | Q(categories__lft__lt=category.lft, categories__rght__gt=category.rght)
+        )
+        .distinct()
+    )
+
+
+def category_listing_category_scope(category: Category) -> QuerySet[Category]:
+    """Category nodes used for brand facets on a category listing page."""
+    return Category.objects.filter(tree_id=category.tree_id).filter(
+        Q(lft__gte=category.lft, rght__lte=category.rght)
+        | Q(lft__lt=category.lft, rght__gt=category.rght)
+    )
+
+
 def order_stock_first(qs: QuerySet[Product], *order_fields: str) -> QuerySet[Product]:
     """Annotate and order queryset so in-stock products appear before out-of-stock ones."""
     return qs.annotate(
@@ -166,7 +187,7 @@ def get_category_facets(
 
     cache_key = None
     if filter_params is not None:
-        cache_key = facet_cache_key(scope="category", scope_id=category.pk, params=filter_params)
+        cache_key = facet_cache_key(scope="category-v2", scope_id=category.pk, params=filter_params)
     return get_product_facets(current_qs, cache_key=cache_key)
 
 
