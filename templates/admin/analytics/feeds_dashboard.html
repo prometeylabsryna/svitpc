@@ -1,0 +1,129 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin/css/analytics_feeds.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="feeds-dashboard">
+  <header class="feeds-dashboard__header">
+    <h1 class="feeds-dashboard__title">{% trans "Фіди Google Merchant / Ads" %}</h1>
+    <p class="feeds-dashboard__lead">
+      {% trans "Публічні XML-фіди для Google Merchant Center та динамічного ремаркетингу. Підключіть URL у кабінеті Google — оновлення відбувається при кожному запиті Google." %}
+    </p>
+  </header>
+
+  <section class="feeds-dashboard__summary" aria-label="{% trans 'Зведення' %}">
+    <article class="feeds-card feeds-card--stat">
+      <span class="feeds-card__label">{% trans "Сайт" %}</span>
+      <strong class="feeds-card__value feeds-card__value--url">{{ stats.site_url }}</strong>
+    </article>
+    <article class="feeds-card feeds-card--stat">
+      <span class="feeds-card__label">{% trans "Видимі товари" %}</span>
+      <strong class="feeds-card__value">{{ stats.visible_products }}</strong>
+    </article>
+    <article class="feeds-card feeds-card--stat">
+      <span class="feeds-card__label">{% trans "У Merchant (в наявності)" %}</span>
+      <strong class="feeds-card__value">{{ stats.merchant_in_feed }}</strong>
+    </article>
+    <article class="feeds-card feeds-card--stat">
+      <span class="feeds-card__label">{% trans "Ліміт у фіді" %}</span>
+      <strong class="feeds-card__value">{{ stats.max_products }}</strong>
+    </article>
+  </section>
+
+  <div class="feeds-dashboard__grid">
+    {% for feed in feeds %}
+    <section class="feeds-card feeds-card--feed">
+      <div class="feeds-card__head">
+        <h2 class="feeds-card__title">{{ feed.definition.title }}</h2>
+        <span class="feeds-card__badge">{{ feed.product_count }} {% trans "товарів" %}</span>
+      </div>
+      <p class="feeds-card__text">{{ feed.definition.description }}</p>
+
+      <label class="feeds-field__label" for="feed-url-{{ forloop.counter }}">{% trans "URL фіду" %}</label>
+      <div class="feeds-field">
+        <input
+          id="feed-url-{{ forloop.counter }}"
+          class="feeds-field__input"
+          type="url"
+          readonly
+          value="{{ feed.url }}"
+        >
+        <div class="feeds-field__actions">
+          <button type="button" class="feeds-btn feeds-btn--ghost" data-copy-target="feed-url-{{ forloop.counter }}">
+            {% trans "Копіювати" %}
+          </button>
+          <a class="feeds-btn feeds-btn--primary" href="{{ feed.url }}" target="_blank" rel="noopener noreferrer">
+            {% trans "Відкрити" %}
+          </a>
+        </div>
+      </div>
+
+      {% if feed.issues %}
+      <details class="feeds-issues">
+        <summary>{% trans "Якість даних у фіді" %}</summary>
+        <ul class="feeds-issues__list">
+          {% for issue in feed.issues %}
+          {% if issue.count %}
+          <li class="feeds-issues__item">
+            <span class="feeds-issues__count">{{ issue.count }}</span>
+            <div>
+              <strong>{{ issue.label }}</strong>
+              <p>{{ issue.hint }}</p>
+            </div>
+          </li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </section>
+    {% endfor %}
+
+    <section class="feeds-card feeds-card--guide">
+      <h2 class="feeds-card__title">{% trans "Запуск у Google Merchant Center" %}</h2>
+      <ol class="feeds-guide__steps">
+        <li>{% trans "Створіть акаунт Merchant Center і підтвердіть домен svitpc.com.ua (HTML-тег або DNS)." %}</li>
+        <li>{% trans "Продукти → Фіди → Додати фід → «Країна продажу: Україна», мова uk, тип «Основний фід»." %}</li>
+        <li>{% trans "Спосіб введення: «Заплановане завантаження» → URL фіду Merchant (вище)." %}</li>
+        <li>{% trans "Валюта UAH, наявність in stock / out of stock — уже в XML (g:availability, g:price)." %}</li>
+        <li>{% trans "У Google Ads підключіть Merchant Center і використайте Performance Max або Shopping." %}</li>
+        <li>{% trans "Для ремаркетингу — окремий фід Google Ads (URL вище) у бібліотеці даних бізнесу." %}</li>
+      </ol>
+      <p class="feeds-guide__note">
+        {% trans "Після першого завантаження перевірте діагностику в Merchant Center. Виправляйте товари з попередженнями в розділі «Товари» адмінки." %}
+      </p>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  document.querySelectorAll("[data-copy-target]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-copy-target");
+      var input = document.getElementById(id);
+      if (!input) return;
+      var text = input.value;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          btn.textContent = "{% trans 'Скопійовано' %}";
+          setTimeout(function () { btn.textContent = "{% trans 'Копіювати' %}"; }, 2000);
+        });
+        return;
+      }
+      input.select();
+      input.setSelectionRange(0, text.length);
+      try {
+        document.execCommand("copy");
+        btn.textContent = "{% trans 'Скопійовано' %}";
+        setTimeout(function () { btn.textContent = "{% trans 'Копіювати' %}"; }, 2000);
+      } catch (e) {}
+    });
+  });
+})();
+</script>
+{% endblock %}
