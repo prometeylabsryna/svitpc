@@ -78,14 +78,25 @@ def client(settings):
 
 
 class TestFetchXml:
-    def test_returns_bytes_on_success(self, client):
+    def _mock_stream_response(self, content: bytes):
         mock_resp = MagicMock()
-        mock_resp.content = SAMPLE_XML
+        mock_resp.status_code = 200
         mock_resp.raise_for_status = MagicMock()
-        with patch("apps.integrations.kancmaster.client.httpx.get", return_value=mock_resp) as mock_get:
+        mock_resp.iter_bytes = MagicMock(return_value=iter([content]))
+        mock_ctx = MagicMock()
+        mock_ctx.__enter__ = MagicMock(return_value=mock_resp)
+        mock_ctx.__exit__ = MagicMock(return_value=False)
+        return mock_ctx
+
+    def test_returns_bytes_on_success(self, client):
+        with patch(
+            "apps.integrations.kancmaster.client.httpx.stream",
+            return_value=self._mock_stream_response(SAMPLE_XML),
+        ) as mock_stream:
             result = client.fetch_xml()
         assert result == SAMPLE_XML
-        mock_get.assert_called_once_with(
+        mock_stream.assert_called_once_with(
+            "GET",
             "https://kancmaster.com.ua/xml_export_request",
             params={"login": "testlogin", "password": "testpass"},
             timeout=300,
@@ -97,12 +108,13 @@ class TestFetchXml:
         settings.KANCMASTER_LOGIN = ""
         settings.KANCMASTER_PASSWORD = ""
         client_no_creds = KancmasterXMLClient()
-        mock_resp = MagicMock()
-        mock_resp.content = SAMPLE_XML
-        mock_resp.raise_for_status = MagicMock()
-        with patch("apps.integrations.kancmaster.client.httpx.get", return_value=mock_resp) as mock_get:
+        with patch(
+            "apps.integrations.kancmaster.client.httpx.stream",
+            return_value=self._mock_stream_response(SAMPLE_XML),
+        ) as mock_stream:
             client_no_creds.fetch_xml()
-        mock_get.assert_called_once_with(
+        mock_stream.assert_called_once_with(
+            "GET",
             "https://kancmaster.com.ua/unique-token-url/",
             params=None,
             timeout=300,
@@ -110,7 +122,7 @@ class TestFetchXml:
         )
 
     def test_returns_none_on_http_error(self, client):
-        with patch("apps.integrations.kancmaster.client.httpx.get", side_effect=Exception("timeout")):
+        with patch("apps.integrations.kancmaster.client.httpx.stream", side_effect=Exception("timeout")):
             result = client.fetch_xml()
         assert result is None
 

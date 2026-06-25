@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -43,9 +44,11 @@ FEED_ITEMS = [
 @pytest.mark.django_db
 class TestSyncAll:
     def _patch_client(self, items=None):
+        feed = items if items is not None else FEED_ITEMS
         mock_client = MagicMock()
-        mock_client.fetch_xml.return_value = b"<xml/>"
-        mock_client.parse_products.return_value = items if items is not None else FEED_ITEMS
+        mock_path = MagicMock(spec=Path)
+        mock_client.fetch_xml_path.return_value = mock_path
+        mock_client.iter_products.return_value = iter(feed)
         return patch(
             "apps.integrations.kancmaster.tasks.KancmasterXMLClient",
             return_value=mock_client,
@@ -181,7 +184,7 @@ class TestSyncAll:
         from apps.integrations.kancmaster.tasks import sync_all
 
         mock_client = MagicMock()
-        mock_client.fetch_xml.return_value = None
+        mock_client.fetch_xml_path.return_value = None
         with patch("apps.integrations.kancmaster.tasks.KancmasterXMLClient", return_value=mock_client):
             sync_all()
 

@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 from celery import shared_task
 from django.db.models import Q
 
+from apps.integrations.heavy_sync import heavy_catalog_sync_lock
+
 from .services import (
     apply_detail_to_product,
     brain_catalog_visible,
@@ -28,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Batch sizes for backfill tasks (avoid long-running workers)
 _BACKFILL_CHUNK = 1000
+_NIGHTLY_IMAGE_CHUNK = 5000
 _STALE_STOCK_CHUNK = 600
 
 
@@ -68,6 +71,13 @@ def sync_categories() -> None:
 @shared_task
 def sync_products() -> None:
     """Full nightly sync: categories → vendors → products → options → images."""
+    with heavy_catalog_sync_lock("brain_products") as acquired:
+        if not acquired:
+            return
+        _sync_products_impl()
+
+
+def _sync_products_impl() -> None:
     from django.db import transaction
     from django.utils.text import slugify as _slug
 
@@ -154,10 +164,6 @@ def sync_products() -> None:
 
     logger.info("Brain sync_products completed: %d top categories processed", len(top_cats))
 
-    from apps.catalog.tasks import translate_to_english
-
-    translate_to_english.delay(what="products", with_descriptions=True)
-
 
 # ── sync_prices ───────────────────────────────────────────────────────────────
 
@@ -218,7 +224,7 @@ def sync_stock() -> None:
     vendor_map = client.get_all_vendors()
     cat_map = build_category_map_from_db(client)
 
-    modified_ids = client.get_modified_since(_utc_since(24), limit=10000)
+    modified_ids = client.get_modified_since(_utc_since(5), limit=10000)
     if not modified_ids:
         logger.info("Brain sync_stock: no modified products")
         return
@@ -272,8 +278,12 @@ def sync_options() -> None:
 
 @shared_task
 def sync_images() -> None:
+    _sync_images_impl(since_hours=8)
+
+
+def _sync_images_impl(*, since_hours: int) -> None:
     client = _brain_client()
-    modified_ids = client.get_modified_since(_utc_since(8), limit=10000, mod_type="images")
+    modified_ids = client.get_modified_since(_utc_since(since_hours), limit=10000, mod_type="images")
     if not modified_ids:
         logger.info("Brain sync_images: nothing changed")
         return
@@ -300,6 +310,16 @@ def sync_images() -> None:
         updated += 1
 
     logger.info("Brain sync_images done: %d products", updated)
+
+
+@shared_task
+def sync_brain_images_nightly() -> None:
+    """Once per night: pull missing photos and apply image changes from Brain."""
+    with heavy_catalog_sync_lock("brain_images") as acquired:
+        if not acquired:
+            return
+        _backfill_images_impl(chunk=_NIGHTLY_IMAGE_CHUNK)
+        _sync_images_impl(since_hours=24)
 
 
 # ── sync_new_products ─────────────────────────────────────────────────────────
@@ -491,6 +511,13 @@ def sync_description_updates() -> None:
 @shared_task
 def backfill_images() -> None:
     """Pull Brain photos for products missing a displayable image."""
+    with heavy_catalog_sync_lock("brain_backfill_images") as acquired:
+        if not acquired:
+            return
+        _backfill_images_impl()
+
+
+def _backfill_images_impl(*, chunk: int = _BACKFILL_CHUNK) -> None:
     from apps.catalog.gallery import filter_products_missing_display_image, resolve_product_image_url
     from apps.catalog.models import Product
 
@@ -500,7 +527,7 @@ def backfill_images() -> None:
         filter_products_missing_display_image(base)
         .only("pk", "external_id", "name", "image_url", "image")
         .prefetch_related("images")
-        .order_by("pk")[:_BACKFILL_CHUNK]
+        .order_by("pk")[:chunk]
     )
 
     updated = 0
@@ -609,8 +636,15 @@ def apply_hide_out_of_stock_policy() -> None:
 
 
 @shared_task
-def sync_all_availability(hide_missing: bool = True) -> dict[str, int]:
+def sync_all_availability(hide_missing: bool = True) -> dict[str, int] | None:
     """Daily full availability pass — is_archive for entire Brain catalog."""
+    with heavy_catalog_sync_lock("brain_availability") as acquired:
+        if not acquired:
+            return None
+        return _sync_all_availability_impl(hide_missing=hide_missing)
+
+
+def _sync_all_availability_impl(*, hide_missing: bool) -> dict[str, int]:
     from .availability import sync_all_availability_from_brain
 
     client = _brain_client()

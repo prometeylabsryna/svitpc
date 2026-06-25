@@ -7,7 +7,7 @@ services:
       sh -c "python manage.py check --deploy
       && python manage.py migrate --noinput
       && python manage.py collectstatic --noinput
-      && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-3} --timeout 120"
+      && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-2} --timeout 120"
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.docker
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -44,7 +44,7 @@ services:
     build:
       context: .
       dockerfile: ./deploy/backend/Dockerfile
-    command: celery -A config worker --loglevel=info --concurrency=2 -Q celery
+    command: celery -A config worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-1} --max-memory-per-child=400000 -Q celery
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.docker
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}

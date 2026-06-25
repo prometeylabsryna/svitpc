@@ -9,6 +9,7 @@ from celery import shared_task
 from django.db.models import Q
 from django.utils.text import slugify
 
+from apps.integrations.heavy_sync import heavy_catalog_sync_lock
 from .attributes import sync_product_attributes
 from .client import KancmasterXMLClient
 
@@ -40,13 +41,10 @@ class _SyncContext:
         }
         self._existing_slugs: set[str] = set(
             Category.objects.values_list("slug", flat=True)
-        ) | set(Product.objects.values_list("slug", flat=True))
-        self._products: dict[str, Product] = {
-            p.external_id: p
-            for p in Product.objects.filter(source=Product.SOURCE_KANCMASTER).prefetch_related(
-                "images"
-            )
-        }
+        ) | set(
+            Product.objects.filter(source=Product.SOURCE_KANCMASTER).values_list("slug", flat=True)
+        )
+        self._product_cache: dict[str, "Product | None"] = {}  # type: ignore[name-defined]
 
     def _ensure_parent_category(self) -> "Category":
         """Get or create the root 'Канцелярські товари' category."""
@@ -145,10 +143,17 @@ class _SyncContext:
             counter += 1
 
     def get_product(self, ext_id: str) -> "Product | None":  # type: ignore[name-defined]
-        return self._products.get(ext_id)
+        if ext_id not in self._product_cache:
+            from apps.catalog.models import Product
+
+            self._product_cache[ext_id] = Product.objects.filter(
+                source=Product.SOURCE_KANCMASTER,
+                external_id=ext_id,
+            ).first()
+        return self._product_cache[ext_id]
 
     def remember_product(self, prod: "Product") -> None:  # type: ignore[name-defined]
-        self._products[prod.external_id] = prod
+        self._product_cache[prod.external_id] = prod
 
 
 def _external_gallery_qs(prod: "Product"):  # type: ignore[name-defined]
@@ -334,48 +339,60 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
 @shared_task
 def sync_all() -> None:
     """Full Kancmaster XML sync: upsert all products, update descriptions/categories."""
+    with heavy_catalog_sync_lock("kancmaster") as acquired:
+        if not acquired:
+            return
+        _run_kancmaster_sync()
+
+
+def _run_kancmaster_sync() -> None:
     from apps.catalog.models import Product
 
     client = KancmasterXMLClient()
-    xml = client.fetch_xml()
-    if not xml:
+    xml_path = client.fetch_xml_path()
+    if not xml_path:
         logger.warning("Kancmaster: empty XML response")
         return
-
-    items = client.parse_products(xml)
-    total = len(items)
-    logger.info("Kancmaster: %d products in feed", total)
 
     ctx = _SyncContext()
     created_count = 0
     updated_count = 0
     error_count = 0
     skipped_count = 0
+    seen_ids: set[str] = set()
+    total = 0
 
-    for index, item in enumerate(items, start=1):
-        ext_id = (item.get("id") or "").strip()
-        name = (item.get("name") or "").strip()
-        try:
-            result = _apply_item(ctx, item)
-            if result == "created":
-                created_count += 1
-            elif result == "updated":
-                updated_count += 1
-            else:
-                skipped_count += 1
-        except Exception as exc:  # noqa: BLE001
-            logger.error(
-                "Kancmaster: failed to sync item id=%s name=%r: %s",
-                ext_id,
-                name,
-                exc,
-                exc_info=True,
-            )
-            error_count += 1
+    try:
+        for index, item in enumerate(client.iter_products(xml_path), start=1):
+            total = index
+            ext_id = (item.get("id") or "").strip()
+            name = (item.get("name") or "").strip()
+            if ext_id:
+                seen_ids.add(ext_id)
+            try:
+                result = _apply_item(ctx, item)
+                if result == "created":
+                    created_count += 1
+                elif result == "updated":
+                    updated_count += 1
+                else:
+                    skipped_count += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.error(
+                    "Kancmaster: failed to sync item id=%s name=%r: %s",
+                    ext_id,
+                    name,
+                    exc,
+                    exc_info=True,
+                )
+                error_count += 1
 
-        if index % _PROGRESS_EVERY == 0:
-            logger.info("Kancmaster: progress %d/%d", index, total)
+            if index % _PROGRESS_EVERY == 0:
+                logger.info("Kancmaster: progress %d", index)
+    finally:
+        xml_path.unlink(missing_ok=True)
 
+    logger.info("Kancmaster: %d products in feed", total)
     logger.info(
         "Kancmaster sync done: %d created, %d updated, %d skipped, %d errors",
         created_count,
@@ -384,7 +401,6 @@ def sync_all() -> None:
         error_count,
     )
 
-    seen_ids = {(item.get("id") or "").strip() for item in items if (item.get("id") or "").strip()}
     deactivated = (
         Product.objects.filter(source=Product.SOURCE_KANCMASTER, is_visible=True)
         .exclude(external_id__in=seen_ids)
@@ -392,7 +408,3 @@ def sync_all() -> None:
     )
     if deactivated:
         logger.info("Kancmaster: deactivated %d products removed from feed", deactivated)
-
-    from apps.catalog.tasks import translate_to_english
-
-    translate_to_english.delay(what="products", with_descriptions=True)

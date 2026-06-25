@@ -102,17 +102,11 @@ make worker   # celery -A config worker -l info
 make beat     # celery -A config beat -l info --scheduler django
 ```
 
-Заплановані задачі (beat):
-- `brain.sync_categories` — кожні 6 год
-- `brain.sync_prices` — кожні 4 год
-- `brain.sync_stock` — кожні 2 год
-- `brain.sync_options` / `brain.sync_images` — кожні 6 год
-- `brain.sync_new_products` — кожні 6 год
-- `brain.backfill_metadata` — кожні 2 год (бренди/категорії після OC-імпорту)
-- `brain.reconcile_stale_stock` — кожні 4 год
-- `kancmaster.sync_all` — кожні 6 год
-- `loyalty.send_birthday_greetings` — щодня о 9:00
-- `shipping.update_delivery_statuses` — кожні 2 год
+Заплановані задачі (beat, Europe/Kyiv) — див. `config/celery_beat_schedule.py`:
+
+**Вночі (03:00–06:00):** Kancmaster, Brain повний імпорт, фото (1 раз), описи, EN-переклад.  
+**Вдень:** ціни/залишки/метадані Brain (без завантаження фото).  
+Важкі задачі серіалізовані через Redis-lock (`apps/integrations/heavy_sync.py`).
 
 ## Налаштування інтеграцій
 
