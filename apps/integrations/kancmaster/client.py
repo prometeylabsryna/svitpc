@@ -30,6 +30,45 @@ def _element_text(el: ET.Element | None) -> str:
     return "".join(el.itertext()).strip()
 
 
+_DESC_PARAM_NAMES = frozenset(
+    {
+        "опис",
+        "описание",
+        "description",
+        "аннотація",
+        "аннотация",
+        "annotation",
+    }
+)
+
+
+def _parse_params(el: ET.Element) -> list[dict[str, str]]:
+    params: list[dict[str, str]] = []
+    for param_el in el.findall("param"):
+        name = (param_el.get("name") or "").strip()
+        value = _element_text(param_el)
+        if not name or not value:
+            continue
+        unit = (param_el.get("unit") or "").strip()
+        if unit:
+            value = f"{value} {unit}"
+        params.append({"name": name, "value": value})
+    return params
+
+
+def _description_from_params(params: list[dict[str, str]]) -> tuple[str, list[dict[str, str]]]:
+    """Use a param as description when the <description> tag is empty."""
+    for index, row in enumerate(params):
+        if row["name"].strip().lower() in _DESC_PARAM_NAMES:
+            remaining = params[:index] + params[index + 1 :]
+            return row["value"], remaining
+    return "", params
+
+
+def _parse_description(el: ET.Element) -> str:
+    return _element_text(el.find("description"))
+
+
 def _picture_urls(el: ET.Element) -> list[str]:
     urls: list[str] = []
     for pic in el.findall("picture"):
@@ -53,7 +92,7 @@ def _parse_item_element(
     *,
     is_offer: bool,
     category_map: dict[str, str],
-) -> dict[str, str | list[str]]:
+) -> dict[str, str | list[str] | list[dict[str, str]]]:
     ext_id = (el.get("id") if is_offer else None) or el.findtext("id", "")
     ext_id = (ext_id or "").strip()
 
@@ -64,7 +103,10 @@ def _parse_item_element(
             cat_name = category_map.get(cat_id, "")
 
     image_urls = _picture_urls(el)
-    description_el = el.find("description")
+    raw_params = _parse_params(el)
+    description = _parse_description(el)
+    if not description:
+        description, raw_params = _description_from_params(raw_params)
 
     # Kancmaster YML fields:
     #   <price>      — wholesale/purchase price (закупівельна)
@@ -82,7 +124,8 @@ def _parse_item_element(
         "category": cat_name,
         "brand": (el.findtext("vendor") or "").strip(),
         "sku": ((el.findtext("article") or el.findtext("barcode") or "")).strip(),
-        "description": _element_text(description_el),
+        "description": description,
+        "params": raw_params,
         "image_url": image_urls[0] if image_urls else "",
         "image_urls": image_urls,
     }

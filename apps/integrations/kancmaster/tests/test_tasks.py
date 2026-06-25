@@ -17,6 +17,10 @@ FEED_ITEMS = [
         "brand": "Pilot",
         "sku": "P-001",
         "description": "Опис",
+        "params": [
+            {"name": "Колір", "value": "синій"},
+            {"name": "Товщина", "value": "0.7 мм"},
+        ],
         "image_url": "https://cdn.example.com/pen.jpg",
         "image_urls": ["https://cdn.example.com/pen.jpg", "https://cdn.example.com/pen2.jpg"],
     },
@@ -29,6 +33,7 @@ FEED_ITEMS = [
         "brand": "",
         "sku": "",
         "description": "",
+        "params": [],
         "image_url": "",
         "image_urls": [],
     },
@@ -121,6 +126,22 @@ class TestSyncAll:
         pen = Product.objects.get(source=Product.SOURCE_KANCMASTER, external_id="1")
         gallery_urls = list(pen.images.values_list("image_url", flat=True))
         assert "https://cdn.example.com/pen2.jpg" in gallery_urls
+
+    def test_product_attributes_synced(self):
+        from apps.catalog.models import Product, ProductAttribute
+        from apps.integrations.kancmaster.tasks import sync_all
+
+        with self._patch_client():
+            sync_all()
+
+        pen = Product.objects.get(source=Product.SOURCE_KANCMASTER, external_id="1")
+        attrs = dict(
+            ProductAttribute.objects.filter(product=pen).values_list(
+                "attribute__name", "value"
+            )
+        )
+        assert attrs["Колір"] == "синій"
+        assert attrs["Товщина"] == "0.7 мм"
 
     def test_updates_existing_product(self):
         from apps.catalog.models import Product

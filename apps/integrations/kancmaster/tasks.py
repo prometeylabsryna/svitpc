@@ -9,6 +9,7 @@ from celery import shared_task
 from django.db.models import Q
 from django.utils.text import slugify
 
+from .attributes import sync_product_attributes
 from .client import KancmasterXMLClient
 
 logger = logging.getLogger(__name__)
@@ -254,6 +255,7 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
     # localize_ru_to_uk works well for short product names but corrupts long
     # paragraph descriptions (partial glossary match leaves a mix of languages).
     description = (item.get("description") or "").strip()
+    params: list[dict[str, str]] = item.get("params") or []
     image_url = (item.get("image_url") or "").strip()
     image_urls: list[str] = item.get("image_urls") or ([image_url] if image_url else [])
     sku = (item.get("sku") or "").strip()
@@ -302,6 +304,7 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
         if category:
             prod.categories.set([category])
         _sync_gallery(prod, image_urls)
+        sync_product_attributes(prod, params)
         return "updated"
 
     slug = ctx.unique_slug(name, ext_id)
@@ -323,6 +326,7 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
         if category:
             prod.categories.set([category])
         _sync_gallery(prod, image_urls)
+        sync_product_attributes(prod, params)
     ctx.remember_product(prod)
     return "created"
 

@@ -53,6 +53,8 @@ SAMPLE_YML = """<?xml version="1.0" encoding="UTF-8"?>
         <vendor>Pilot</vendor>
         <barcode>BC-201</barcode>
         <description><![CDATA[<p>Опис YML</p>]]></description>
+        <param name="Колір">синій</param>
+        <param name="Формат">A4</param>
         <picture>https://cdn.example.com/yml1.jpg</picture>
         <picture>https://cdn.example.com/yml2.jpg</picture>
       </offer>
@@ -174,6 +176,28 @@ class TestParseProducts:
     def test_yml_description_from_cdata(self, client):
         p = client.parse_products(SAMPLE_YML)[0]
         assert "Опис YML" in p["description"]
+
+    def test_yml_params_parsed(self, client):
+        p = client.parse_products(SAMPLE_YML)[0]
+        assert p["params"] == [
+            {"name": "Колір", "value": "синій"},
+            {"name": "Формат", "value": "A4"},
+        ]
+
+    def test_param_used_as_description_when_tag_empty(self, client):
+        xml = """<?xml version="1.0"?>
+<yml_catalog><shop><offers>
+<offer id="1" available="true">
+<name>Test</name>
+<price>1</price>
+<description></description>
+<param name="\u041e\u043f\u0438\u0441">\u0422\u0435\u043a\u0441\u0442 \u0437 param</param>
+<param name="\u0412\u0430\u0433\u0430">10 \u0433</param>
+</offer>
+</offers></shop></yml_catalog>""".encode()
+        p = client.parse_products(xml)[0]
+        assert p["description"] == "Текст з param"
+        assert p["params"] == [{"name": "Вага", "value": "10 г"}]
 
     def test_legacy_item_format_still_supported(self, client):
         """item and offer must not be mixed when items are present."""
