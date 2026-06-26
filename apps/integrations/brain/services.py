@@ -223,6 +223,41 @@ def unique_product_slug(base: str, brain_id: int | str) -> str:
     return slug
 
 
+def upsert_brain_product(external_id: int | str, defaults: dict) -> tuple["Product", bool]:
+    """Create or update a Brain product; merges accidental duplicates first."""
+    from django.db import transaction
+
+    from apps.catalog.models import Product
+    from apps.catalog.product_dedup import dedupe_source_external_id
+
+    ext = str(external_id)
+    with transaction.atomic():
+        rows = list(
+            Product.objects.select_for_update()
+            .filter(source=Product.SOURCE_BRAIN, external_id=ext)
+            .order_by("pk")
+        )
+        if len(rows) > 1:
+            dedupe_source_external_id(Product.SOURCE_BRAIN, ext)
+            rows = list(
+                Product.objects.filter(source=Product.SOURCE_BRAIN, external_id=ext).order_by("pk")
+            )
+
+        if rows:
+            product = rows[0]
+            for key, value in defaults.items():
+                setattr(product, key, value)
+            product.save()
+            return product, False
+
+        product = Product.objects.create(
+            source=Product.SOURCE_BRAIN,
+            external_id=ext,
+            **defaults,
+        )
+        return product, True
+
+
 def build_category_map_from_db(client: "BrainAPIClient", *, lang: str = "ua") -> dict[int, "Category"]:
     """Map Brain categoryID → existing local Category by slug (no MPTT writes)."""
     from apps.catalog.models import Category
@@ -464,11 +499,7 @@ def upsert_product_from_detail(
         defaults["description_uk"] = raw_desc
 
     with transaction.atomic():
-        product, created = Product.objects.update_or_create(
-            source=Product.SOURCE_BRAIN,
-            external_id=str(brain_id),
-            defaults=defaults,
-        )
+        product, created = upsert_brain_product(brain_id, defaults)
         if not created:
             apply_detail_to_product(
                 product,

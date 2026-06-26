@@ -8,9 +8,18 @@ from celery.schedules import crontab
 _DAYTIME_HOURS = "8,12,16,20"
 _STOCK_HOURS = "8,14,20"
 _METADATA_HOURS = "9,15"
+_TRANSLATE_MAX_ROWS = 1500
 
 CELERY_BEAT_SCHEDULE = {
-    # ── Night batch (03:00–09:00) — spaced so lock-holders can finish ─────────
+    # ── Night batch (01:00–10:00 Kyiv) — NP first, then catalog imports ────────
+    "novaposhta-sync-cities": {
+        "task": "apps.integrations.novaposhta.tasks.sync_np_cities",
+        "schedule": crontab(hour=1, minute=0),
+    },
+    "novaposhta-sync-warehouses": {
+        "task": "apps.integrations.novaposhta.tasks.sync_np_warehouses",
+        "schedule": crontab(hour=1, minute=10),
+    },
     "kancmaster-sync": {
         "task": "apps.integrations.kancmaster.tasks.sync_all",
         "schedule": crontab(hour=3, minute=0),
@@ -37,8 +46,13 @@ CELERY_BEAT_SCHEDULE = {
     },
     "catalog-translate-en": {
         "task": "catalog.translate_to_english",
-        "schedule": crontab(hour=8, minute=0),
-        "kwargs": {"what": "catalog", "with_descriptions": True, "with_attribute_values": False},
+        "schedule": crontab(hour=10, minute=0),
+        "kwargs": {
+            "what": "catalog",
+            "with_descriptions": True,
+            "with_attribute_values": False,
+            "max_rows": _TRANSLATE_MAX_ROWS,
+        },
     },
     "brain-sync-options": {
         "task": "apps.integrations.brain.tasks.sync_options",
@@ -86,13 +100,5 @@ CELERY_BEAT_SCHEDULE = {
     "ukrposhta-update-statuses": {
         "task": "apps.integrations.ukrposhta.tasks.update_up_delivery_statuses",
         "schedule": crontab(minute=17, hour="*/1"),
-    },
-    "novaposhta-sync-cities": {
-        "task": "apps.integrations.novaposhta.tasks.sync_np_cities",
-        "schedule": crontab(hour=2, minute=0),
-    },
-    "novaposhta-sync-warehouses": {
-        "task": "apps.integrations.novaposhta.tasks.sync_np_warehouses",
-        "schedule": crontab(hour=2, minute=15),
     },
 }

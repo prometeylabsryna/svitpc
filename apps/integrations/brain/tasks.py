@@ -23,6 +23,7 @@ from .services import (
     sync_product_options,
     sync_product_pictures,
     unique_product_slug,
+    upsert_brain_product,
     upsert_product_from_detail,
 )
 
@@ -134,10 +135,9 @@ def _sync_products_impl() -> None:
                 )
 
                 with transaction.atomic():
-                    product, created = Product.objects.update_or_create(
-                        source=Product.SOURCE_BRAIN,
-                        external_id=str(brain_id),
-                        defaults={
+                    product, created = upsert_brain_product(
+                        brain_id,
+                        {
                             "name": name,
                             "slug": slug,
                             "brand": brand,

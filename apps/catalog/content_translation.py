@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 _GT_URL = "https://translate.googleapis.com/translate_a/single"
 _GT_SEPARATOR = "\n\n||||\n\n"
+_GT_MAX_CHARS = 4500
 
 _LLM_SYSTEM = (
     "You are a professional translator for an e-commerce computer and electronics store. "
@@ -43,8 +44,19 @@ def clear_en_if_uk_changed(obj: Model, field: str, new_uk: str) -> None:
         setattr(obj, en_field, None)
 
 
+def _prepare_text_for_translation(text: str) -> str:
+    """Strip HTML and cap length so Google Translate GET requests do not 400."""
+    from django.utils.html import strip_tags
+
+    cleaned = strip_tags(text or "")
+    cleaned = " ".join(cleaned.split())
+    if len(cleaned) > _GT_MAX_CHARS:
+        return cleaned[:_GT_MAX_CHARS]
+    return cleaned
+
+
 def _google_translate_batch(texts: list[str], src: str = "uk", tgt: str = "en") -> list[str]:  # noqa: D401
-    joined = _GT_SEPARATOR.join(t.strip() for t in texts)
+    joined = _GT_SEPARATOR.join(_prepare_text_for_translation(t) for t in texts)
     params = {
         "client": "gtx",
         "sl": src,
@@ -68,7 +80,10 @@ def _google_translate_batch(texts: list[str], src: str = "uk", tgt: str = "en") 
 
 
 def _google_translate_single(text: str, src: str = "uk", tgt: str = "en") -> str:  # noqa: D401
-    params = {"client": "gtx", "sl": src, "tl": tgt, "dt": "t", "q": text.strip()}
+    prepared = _prepare_text_for_translation(text)
+    if not prepared:
+        return ""
+    params = {"client": "gtx", "sl": src, "tl": tgt, "dt": "t", "q": prepared}
     resp = httpx.get(_GT_URL, params=params, timeout=30)
     resp.raise_for_status()
     data = resp.json()
@@ -147,17 +162,21 @@ def process_translation_job(
     *,
     backend: str = "google",
     limit: int = 0,
+    max_rows: int = 0,
+    rows_so_far: int = 0,
     on_progress: Callable[[str, int, int], None] | None = None,
-) -> int:
-    """Translate one job definition; returns number of rows updated."""
+) -> tuple[int, int]:
+    """Translate one job definition; returns (rows updated, rows processed in job)."""
     items = list(_job_queryset(job)[:limit] if limit else _job_queryset(job))
     if not items:
         logger.info("%s: up to date", job.label)
-        return 0
+        return 0, rows_so_far
 
     saved = 0
     batch_size = job.batch_size
     for start in range(0, len(items), batch_size):
+        if max_rows and rows_so_far + saved >= max_rows:
+            break
         chunk = items[start : start + batch_size]
         texts = [getattr(obj, job.src_field) or "" for obj in chunk]
         non_empty = [(i, t) for i, t in enumerate(texts) if t.strip()]
@@ -182,7 +201,7 @@ def process_translation_job(
         time.sleep(0.2)
 
     logger.info("%s: translated %d rows", job.label, saved)
-    return saved
+    return saved, rows_so_far + saved
 
 
 def catalog_translation_jobs(
@@ -338,6 +357,7 @@ def run_catalog_translation(
     with_descriptions: bool = True,
     with_attribute_values: bool = False,
     limit: int = 0,
+    max_rows: int = 0,
     on_progress: Callable[[str, int, int], None] | None = None,
 ) -> int:
     """Run translation jobs. *what*: all | catalog | site | categories | products | …"""
@@ -363,10 +383,42 @@ def run_catalog_translation(
             jobs = [j for j in jobs if any(j.label.startswith(p) for p in prefixes)]
 
         for job in jobs:
-            total += process_translation_job(job, backend=backend, limit=limit, on_progress=on_progress)
+            if max_rows and total >= max_rows:
+                break
+            saved, total = process_translation_job(
+                job,
+                backend=backend,
+                limit=limit,
+                max_rows=max_rows,
+                rows_so_far=total,
+                on_progress=on_progress,
+            )
 
     if what in ("all", "site"):
         for job in site_content_translation_jobs():
-            total += process_translation_job(job, backend=backend, limit=limit, on_progress=on_progress)
+            if max_rows and total >= max_rows:
+                break
+            saved, total = process_translation_job(
+                job,
+                backend=backend,
+                limit=limit,
+                max_rows=max_rows,
+                rows_so_far=total,
+                on_progress=on_progress,
+            )
 
     return total
+
+
+def has_pending_catalog_translation(
+    *,
+    with_descriptions: bool = True,
+    with_attribute_values: bool = False,
+) -> bool:
+    for job in catalog_translation_jobs(
+        with_descriptions=with_descriptions,
+        with_attribute_values=with_attribute_values,
+    ):
+        if _job_queryset(job).exists():
+            return True
+    return False
