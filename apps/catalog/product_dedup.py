@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 
 from django.db import transaction
-from django.db.models import Count
 
 logger = logging.getLogger(__name__)
 
@@ -111,15 +110,21 @@ def dedupe_source_external_id(source: str, external_id: str) -> int:
 
 def dedupe_all_integration_products() -> int:
     """Merge every duplicate (source, external_id) group. Returns rows deleted."""
-    from apps.catalog.models import Product
+    from django.db import connection
 
     deleted = 0
-    groups = (
-        Product.objects.exclude(external_id="")
-        .values("source", "external_id")
-        .annotate(c=Count("id"))
-        .filter(c__gt=1)
-    )
-    for group in groups:
-        deleted += dedupe_source_external_id(group["source"], group["external_id"])
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT source, external_id
+            FROM catalog_product
+            WHERE external_id <> ''
+            GROUP BY source, external_id
+            HAVING COUNT(*) > 1
+            """
+        )
+        groups = cursor.fetchall()
+
+    for source, external_id in groups:
+        deleted += dedupe_source_external_id(source, external_id)
     return deleted
