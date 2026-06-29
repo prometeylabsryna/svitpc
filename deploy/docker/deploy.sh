@@ -67,3 +67,13 @@ if ! "${COMPOSE[@]}" ps celery_worker_priority 2>/dev/null | grep -qE "Up|runnin
   echo "WARN: celery_worker_priority is not running — TTN/Укрпошта tasks will stay in the priority queue."
   echo "      Check: ${COMPOSE[*]} logs celery_worker_priority"
 fi
+
+if ! "${COMPOSE[@]}" ps celery_worker_light 2>/dev/null | grep -qE "Up|running"; then
+  echo "WARN: celery_worker_light is not running — NP/status/price tasks will block the heavy queue."
+  echo "      Check: ${COMPOSE[*]} logs celery_worker_light"
+fi
+
+if [[ -f docker-compose.override.yml ]]; then
+  echo "WARN: docker-compose.override.yml is for local dev only."
+  echo "      On production rename it (e.g. docker-compose.override.yml.bak) before deploy."
+fi
