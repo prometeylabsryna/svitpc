@@ -167,4 +167,45 @@ def backfill_descriptions_from_content(
             updated += 1
 
     api_miss = len(brain_ids) - len(returned_ids)
+
+    if api_miss > 0:
+        updated += _fallback_descriptions_via_product_endpoint(
+            client,
+            products_by_brain_id,
+            returned_ids,
+            skip_options=skip_options,
+        )
+
     return updated, no_desc, api_miss
+
+
+def _fallback_descriptions_via_product_endpoint(
+    client: "BrainAPIClient",
+    products_by_brain_id: dict[int, "Product"],
+    returned_ids: set[int],
+    *,
+    skip_options: bool,
+    max_calls: int = 25,
+) -> int:
+    """Single-product /product/{id} fallback when batch content API omits rows."""
+    extra = 0
+    misses = [bid for bid in products_by_brain_id if bid not in returned_ids]
+    for brain_id in misses[:max_calls]:
+        product = products_by_brain_id.get(brain_id)
+        if product is None:
+            continue
+        try:
+            detail = client.get_product(brain_id)
+        except Exception:
+            logger.exception("Brain get_product fallback failed for %s", brain_id)
+            continue
+        if not detail:
+            continue
+        if apply_brain_content_item(
+            product,
+            detail,
+            sync_options=not skip_options,
+            sync_images=False,
+        ):
+            extra += 1
+    return extra

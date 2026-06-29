@@ -102,6 +102,8 @@ def _sync_products_impl() -> None:
             if not items:
                 break
 
+            page_needs_desc: list[Product] = []
+
             for item in items:
                 brain_id = item.get("productID")
                 from apps.catalog.ru_localization import localize_ru_to_uk
@@ -155,14 +157,33 @@ def _sync_products_impl() -> None:
                         product.categories.set([local_cat])
                     if created:
                         sync_product_options(client, product, brain_id)
+                        page_needs_desc.append(product)
                     if created or not main_img:
                         sync_product_pictures(client, product, brain_id, name)
+
+            if page_needs_desc:
+                from apps.integrations.brain.description_sync import sync_descriptions_for_products
+
+                u, nd, miss = sync_descriptions_for_products(client, page_needs_desc)
+                if u:
+                    logger.info(
+                        "Brain sync_products: descriptions page cat=%s offset=%s updated=%d",
+                        cat_id,
+                        offset,
+                        u,
+                    )
 
             offset += len(items)
             if offset >= total or len(items) < limit:
                 break
 
     logger.info("Brain sync_products completed: %d top categories processed", len(top_cats))
+
+    from apps.integrations.brain.description_sync import count_brain_products_missing_description
+
+    if count_brain_products_missing_description() > 0:
+        backfill_descriptions.apply_async(countdown=90, kwargs={"reset_cursor": True})
+        logger.info("Brain sync_products: queued description backfill (reset cursor)")
 
 
 # ── sync_prices ───────────────────────────────────────────────────────────────
@@ -422,54 +443,43 @@ def backfill_metadata() -> None:
     )
 
 
-@shared_task
-def backfill_descriptions() -> None:
+@shared_task(soft_time_limit=1800, time_limit=2100)
+def backfill_descriptions(reset_cursor: bool = False) -> None:
     """Fill description_uk via POST /products/content (OWN_MODE batch API)."""
-    from apps.catalog.models import Product
-    from apps.integrations.brain.content_sync import backfill_descriptions_from_content
-
-    client = _brain_client()
-
-    products = list(
-        Product.objects.filter(
-            source=Product.SOURCE_BRAIN,
-            external_id__gt="",
-        )
-        .filter(Q(description_uk__isnull=True) | Q(description_uk__exact=""))
-        .only("pk", "external_id", "name", "description_uk")
-        .order_by("pk")[:_BACKFILL_CHUNK]
+    from apps.integrations.brain.description_sync import (
+        BACKFILL_REQUEUE_SECONDS,
+        run_backfill_descriptions_chunk,
+        schedule_backfill_descriptions_continue,
+        should_requeue_backfill,
     )
-    if not products:
+
+    stats = run_backfill_descriptions_chunk(reset_cursor=reset_cursor)
+    if stats["processed"] == 0 and stats["before_remaining"] == 0:
         logger.info("Brain backfill_descriptions: nothing to update")
         return
 
-    product_map: dict[int, Product] = {}
-    for product in products:
-        try:
-            brain_id = int(product.external_id)
-        except (TypeError, ValueError):
-            continue
-        if brain_id > 0:
-            product_map[brain_id] = product
-
-    updated, no_desc, api_miss = backfill_descriptions_from_content(client, product_map)
-
-    remaining = (
-        Product.objects.filter(
-            source=Product.SOURCE_BRAIN,
-            external_id__gt="",
-        )
-        .filter(Q(description_uk__isnull=True) | Q(description_uk__exact=""))
-        .count()
-    )
     logger.info(
         "Brain backfill_descriptions: %d updated, %d empty from API, %d API miss, "
-        "%d without description remain",
-        updated,
-        no_desc,
-        api_miss,
-        remaining,
+        "%d processed, %d without description remain (reset_cursor=%s)",
+        stats["updated"],
+        stats["no_desc"],
+        stats["api_miss"],
+        stats["processed"],
+        stats["after_remaining"],
+        reset_cursor,
     )
+
+    if should_requeue_backfill(
+        before_remaining=stats["before_remaining"],
+        after_remaining=stats["after_remaining"],
+        last_pk=stats["last_pk"],
+    ):
+        schedule_backfill_descriptions_continue()
+        logger.info(
+            "Brain backfill_descriptions: re-queued in %ss (%d remain)",
+            BACKFILL_REQUEUE_SECONDS,
+            stats["after_remaining"],
+        )
 
 
 @shared_task
@@ -667,5 +677,6 @@ def sync_all_incremental() -> None:
     sync_images()
     sync_new_products()
     backfill_metadata()
+    backfill_descriptions.apply_async(kwargs={"reset_cursor": True})
     sync_description_updates()
     reconcile_stale_stock()

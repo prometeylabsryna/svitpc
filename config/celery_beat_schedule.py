@@ -40,6 +40,7 @@ CELERY_BEAT_SCHEDULE = {
     "brain-backfill-descriptions": {
         "task": "apps.integrations.brain.tasks.backfill_descriptions",
         "schedule": crontab(hour=7, minute=30),
+        "kwargs": {"reset_cursor": True},
     },
     "brain-sync-description-updates": {
         "task": "apps.integrations.brain.tasks.sync_description_updates",
