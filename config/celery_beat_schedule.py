@@ -16,9 +16,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.integrations.novaposhta.tasks.sync_np_cities",
         "schedule": crontab(hour=1, minute=0),
     },
+    # Full warehouse import (~150 chunks) — weekly only; chunks run on light worker.
     "novaposhta-sync-warehouses": {
         "task": "apps.integrations.novaposhta.tasks.sync_np_warehouses",
-        "schedule": crontab(hour=1, minute=10),
+        "schedule": crontab(hour=1, minute=10, day_of_week=0),
     },
     "kancmaster-sync": {
         "task": "apps.integrations.kancmaster.tasks.sync_all",

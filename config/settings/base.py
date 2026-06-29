@@ -201,12 +201,24 @@ CELERY_TIMEZONE = "Europe/Kyiv"
 # High-priority queue for shipping (TTN) — consumed by dedicated worker (see docker-compose).
 CELERY_TASK_DEFAULT_QUEUE = "celery"
 CELERY_TASK_ROUTES = {
+    # Priority — orders, TTN, emails (dedicated worker).
     "apps.shipping.tasks.create_ttn_for_order": {"queue": "priority"},
     "apps.integrations.ukrposhta.tasks.create_up_shipment_for_order": {"queue": "priority"},
-    # Order emails/SMS — must not wait behind Brain/catalog sync on the default queue.
     "apps.notifications.tasks.notify_new_order_owner": {"queue": "priority"},
     "apps.notifications.tasks.notify_new_order_customer": {"queue": "priority"},
     "apps.notifications.tasks.notify_order_status": {"queue": "priority"},
+    # Light — frequent / chunked jobs that must not block catalog imports.
+    "apps.shipping.tasks.update_delivery_statuses": {"queue": "light"},
+    "apps.integrations.ukrposhta.tasks.update_up_delivery_statuses": {"queue": "light"},
+    "apps.integrations.novaposhta.tasks.sync_np_cities": {"queue": "light"},
+    "apps.integrations.novaposhta.tasks.sync_np_warehouses": {"queue": "light"},
+    "apps.integrations.novaposhta.tasks.sync_np_warehouses_chunk": {"queue": "light"},
+    "apps.integrations.brain.tasks.sync_prices": {"queue": "light"},
+    "apps.integrations.brain.tasks.sync_stock": {"queue": "light"},
+    "apps.integrations.brain.tasks.reconcile_stale_stock": {"queue": "light"},
+    "apps.integrations.brain.tasks.backfill_metadata": {"queue": "light"},
+    "apps.loyalty.tasks.expire_old_coins": {"queue": "light"},
+    "apps.loyalty.tasks.send_birthday_greetings": {"queue": "light"},
 }
 from config.celery_beat_schedule import CELERY_BEAT_SCHEDULE  # noqa: E402
 
