@@ -1,4 +1,4 @@
-"""Brain product descriptions — chunked backfill with cursor and re-queue."""
+"""Brain product content backfill — descriptions, characteristics (warranty), cursor, re-queue."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from django.core.cache import cache
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 
 if TYPE_CHECKING:
     from apps.catalog.models import Product
@@ -20,17 +20,39 @@ CURSOR_CACHE_KEY = "brain:backfill_descriptions:pk_cursor"
 CURSOR_TTL = 6 * 3600
 
 
-def brain_products_missing_description_qs():
+def _warranty_attr_exists_subquery():
+    from apps.catalog.models import ProductAttribute
+
+    return ProductAttribute.objects.filter(
+        product_id=OuterRef("pk"),
+        attribute__name__icontains="Гарант",
+    )
+
+
+def brain_products_needing_content_qs():
+    """Brain products missing description and/or warranty characteristic from Brain."""
     from apps.catalog.models import Product
 
     return Product.objects.filter(
         source=Product.SOURCE_BRAIN,
         external_id__gt="",
-    ).filter(Q(description_uk__isnull=True) | Q(description_uk__exact=""))
+    ).filter(
+        Q(description_uk__isnull=True) | Q(description_uk__exact="")
+        | ~Exists(_warranty_attr_exists_subquery()),
+    )
+
+
+def brain_products_missing_description_qs():
+    """Alias for nightly backfill queue (descriptions + warranty/options)."""
+    return brain_products_needing_content_qs()
 
 
 def count_brain_products_missing_description() -> int:
-    return brain_products_missing_description_qs().count()
+    return brain_products_needing_content_qs().count()
+
+
+def count_brain_products_needing_content() -> int:
+    return count_brain_products_missing_description()
 
 
 def _product_map_from_list(products: list[Product]) -> dict[int, Product]:
@@ -46,7 +68,7 @@ def _product_map_from_list(products: list[Product]) -> dict[int, Product]:
 
 
 def fetch_backfill_chunk(*, reset_cursor: bool = False) -> list[Product]:
-    """Next batch of Brain products without description_uk (cursor skips empty API rows)."""
+    """Next batch of Brain products needing content (description and/or warranty)."""
     if reset_cursor:
         cache.delete(CURSOR_CACHE_KEY)
 

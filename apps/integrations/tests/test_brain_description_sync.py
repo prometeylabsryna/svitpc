@@ -9,6 +9,7 @@ from apps.catalog.models import Product
 from apps.integrations.brain.description_sync import (
     CURSOR_CACHE_KEY,
     advance_backfill_cursor,
+    brain_products_needing_content_qs,
     fetch_backfill_chunk,
     should_requeue_backfill,
 )
@@ -79,3 +80,23 @@ def test_should_not_requeue_when_done() -> None:
         after_remaining=0,
         last_pk=0,
     )
+
+
+@pytest.mark.django_db
+def test_needing_content_includes_product_with_desc_but_no_warranty() -> None:
+    from apps.catalog.models import Attribute, AttributeGroup, ProductAttribute
+
+    p = Product.objects.create(
+        name="Laptop",
+        slug="laptop-warranty",
+        price=100,
+        source=Product.SOURCE_BRAIN,
+        external_id="501",
+        description_uk="Повний опис ноутбука",
+    )
+    assert brain_products_needing_content_qs().filter(pk=p.pk).exists()
+
+    ag, _ = AttributeGroup.objects.get_or_create(name="Характеристики")
+    attr, _ = Attribute.objects.get_or_create(group=ag, name="Гарантія, міс")
+    ProductAttribute.objects.create(product=p, attribute=attr, value="36")
+    assert not brain_products_needing_content_qs().filter(pk=p.pk).exists()

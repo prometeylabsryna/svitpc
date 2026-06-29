@@ -281,20 +281,24 @@ def sync_stock() -> None:
 def sync_options() -> None:
     client = _brain_client()
     modified_ids = client.get_modified_since(_utc_since(8), limit=10000, mod_type="options")
-    if not modified_ids:
-        logger.info("Brain sync_options: nothing changed")
-        return
-
-    products = _products_by_external_ids(modified_ids)
     updated = 0
-    for brain_id in modified_ids:
-        product = products.get(str(brain_id))
-        if not product:
-            continue
-        sync_product_options(client, product, brain_id)
-        updated += 1
+    if modified_ids:
+        products = _products_by_external_ids(modified_ids)
+        for brain_id in modified_ids:
+            product = products.get(str(brain_id))
+            if not product:
+                continue
+            sync_product_options(client, product, brain_id)
+            updated += 1
+        logger.info("Brain sync_options done: %d products", updated)
+    else:
+        logger.info("Brain sync_options: nothing changed in Brain")
 
-    logger.info("Brain sync_options done: %d products", updated)
+    from apps.integrations.brain.description_sync import count_brain_products_needing_content
+
+    if count_brain_products_needing_content() > 0:
+        backfill_descriptions.apply_async(countdown=60, kwargs={"reset_cursor": False})
+        logger.info("Brain sync_options: queued content backfill (warranty/descriptions)")
 
 
 @shared_task

@@ -176,7 +176,37 @@ def backfill_descriptions_from_content(
             skip_options=skip_options,
         )
 
+    if not skip_options:
+        updated += _fallback_options_via_product_endpoint(client, products_by_brain_id)
+
     return updated, no_desc, api_miss
+
+
+def _fallback_options_via_product_endpoint(
+    client: "BrainAPIClient",
+    products_by_brain_id: dict[int, "Product"],
+    *,
+    max_calls: int = 50,
+) -> int:
+    """Pull /product_options when batch content had no warranty row (idempotent update_or_create)."""
+    from apps.integrations.brain.services import sync_product_options
+
+    extra = 0
+    pending: list[tuple[int, Product]] = []
+    for brain_id, product in products_by_brain_id.items():
+        if product.attributes.filter(attribute__name__icontains="Гарант").exists():
+            continue
+        pending.append((brain_id, product))
+
+    for brain_id, product in pending[:max_calls]:
+        try:
+            sync_product_options(client, product, brain_id)
+        except Exception:
+            logger.exception("Brain sync_product_options fallback failed for %s", brain_id)
+            continue
+        if product.attributes.filter(attribute__name__icontains="Гарант").exists():
+            extra += 1
+    return extra
 
 
 def _fallback_descriptions_via_product_endpoint(
@@ -208,4 +238,15 @@ def _fallback_descriptions_via_product_endpoint(
             sync_images=False,
         ):
             extra += 1
+            continue
+        if not skip_options and not product.attributes.filter(attribute__name__icontains="Гарант").exists():
+            from apps.integrations.brain.services import sync_product_options
+
+            try:
+                sync_product_options(client, product, brain_id)
+            except Exception:
+                logger.exception("Brain get_product options fallback failed for %s", brain_id)
+                continue
+            if product.attributes.filter(attribute__name__icontains="Гарант").exists():
+                extra += 1
     return extra

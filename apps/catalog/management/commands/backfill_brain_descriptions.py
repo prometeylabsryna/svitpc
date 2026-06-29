@@ -16,7 +16,6 @@ import time
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandParser
-from django.db.models import Q
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +52,7 @@ class Command(BaseCommand):
         from apps.catalog.models import Product
         from apps.integrations.brain.client import BrainAPIClient
         from apps.integrations.brain.content_sync import backfill_descriptions_from_content
+        from apps.integrations.brain.description_sync import brain_products_needing_content_qs
 
         dry_run: bool = options["dry_run"]
         update_all: bool = options["all"]
@@ -65,8 +65,7 @@ class Command(BaseCommand):
         ).order_by("pk")
 
         if not update_all:
-            # modeltranslation: filter(description_uk="") ignores NULL/empty column — use Q
-            qs = qs.filter(Q(description_uk__isnull=True) | Q(description_uk__exact=""))
+            qs = brain_products_needing_content_qs().order_by("pk")
 
         if limit:
             qs = qs[:limit]
@@ -84,7 +83,7 @@ class Command(BaseCommand):
             return
 
         if total == 0:
-            self.stdout.write(self.style.SUCCESS("Всі Brain-товари вже мають описи."))
+            self.stdout.write(self.style.SUCCESS("Всі Brain-товари вже мають описи та гарантію."))
             return
 
         client = BrainAPIClient()
