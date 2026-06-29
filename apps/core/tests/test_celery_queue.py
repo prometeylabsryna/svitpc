@@ -18,10 +18,14 @@ def test_filter_drops_np_chunks_and_duplicates():
     ]
     kept, stats = filter_celery_messages(messages, drop_light_routed=False)
     assert stats.before == 4
-    assert stats.after == 1
+    assert stats.after == 2
     assert stats.dropped_np_chunks == 1
     assert stats.dropped_duplicates == 1
-    assert json.loads(kept[0].decode())["headers"]["task"] == "apps.integrations.kancmaster.tasks.sync_all"
+    names = {json.loads(k.decode())["headers"]["task"] for k in kept}
+    assert names == {
+        "apps.integrations.brain.tasks.sync_prices",
+        "apps.integrations.kancmaster.tasks.sync_all",
+    }
 
 
 def test_filter_drops_light_routed_tasks():
