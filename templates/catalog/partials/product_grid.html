@@ -5,7 +5,11 @@
   {% with count=products|length %}
   <div class="card-grid {{ count|grid_cols_class:4 }}">
     {% for product in products %}
-      {% include "components/product_card.html" with product=product image_priority=forloop.counter <= 4 %}
+      {% if forloop.counter <= 4 %}
+        {% include "components/product_card.html" with product=product image_priority=True %}
+      {% else %}
+        {% include "components/product_card.html" with product=product %}
+      {% endif %}
     {% endfor %}
   </div>
   {% endwith %}
