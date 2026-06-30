@@ -160,6 +160,24 @@
     background: var(--clr-bg) !important;
   }
 
+  .mobile-bottom-nav__icon {
+    stroke-width: 2 !important;
+    shape-rendering: geometricPrecision;
+  }
+
+  .mobile-bottom-nav__icon--cart {
+    stroke: none !important;
+    fill: currentColor !important;
+  }
+
+  .mobile-bottom-nav__icon-wrap {
+    transform: none !important;
+  }
+
+  .mobile-bottom-nav__item.is-active .mobile-bottom-nav__icon-wrap {
+    transform: none !important;
+  }
+
   .tab-panel[data-tab-panel="desc"],
   .tab-panel[data-tab-panel="attrs"] {
     line-height: var(--leading-normal);
