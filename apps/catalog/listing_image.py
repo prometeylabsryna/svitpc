@@ -26,8 +26,20 @@ ALLOWED_IMAGE_HOSTS = frozenset(
         "opt.brain.com.ua",
         "brain.com.ua",
         "www.brain.com.ua",
+        "kancmaster.com.ua",
+        "www.kancmaster.com.ua",
     }
 )
+
+
+def _allowed_image_hosts() -> frozenset[str]:
+    """Brain + Kancmaster (+ host from KANCMASTER_XML_URL if configured)."""
+    hosts = set(ALLOWED_IMAGE_HOSTS)
+    kanc_url = getattr(settings, "KANCMASTER_XML_URL", "") or ""
+    host = (urlparse(kanc_url).hostname or "").lower()
+    if host:
+        hosts.add(host)
+    return frozenset(hosts)
 
 
 def _cache_dir() -> Path:
@@ -52,7 +64,7 @@ def listing_cache_path(product_pk: int, source_key: str) -> Path:
 
 def is_allowed_remote_url(url: str) -> bool:
     host = (urlparse(url).hostname or "").lower()
-    return host in ALLOWED_IMAGE_HOSTS
+    return host in _allowed_image_hosts()
 
 
 def _resize_to_webp(data: bytes, size: int = LISTING_SIZE) -> bytes:
@@ -103,15 +115,19 @@ def ensure_listing_webp(product) -> Path | None:
     if path.is_file():
         return path
 
-    if product.image:
-        with product.image.open("rb") as handle:
-            data = _resize_to_webp(handle.read())
-    else:
-        source_url = resolve_product_image_url(product)
-        if not source_url:
-            return None
-        data = fetch_listing_webp(source_url)
+    try:
+        if product.image:
+            with product.image.open("rb") as handle:
+                data = _resize_to_webp(handle.read())
+        else:
+            source_url = resolve_product_image_url(product)
+            if not source_url:
+                return None
+            data = fetch_listing_webp(source_url)
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    return path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        return path
+    except Exception:
+        logger.exception("listing webp failed for product pk=%s", product.pk)
+        return None

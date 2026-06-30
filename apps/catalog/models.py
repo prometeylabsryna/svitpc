@@ -299,9 +299,14 @@ class Product(models.Model):
 
         if self.image:
             return self.image_thumb.url
-        if resolve_product_image_url(self):
+        source = resolve_product_image_url(self)
+        if not source:
+            return ""
+        from apps.catalog.listing_image import is_allowed_remote_url
+
+        if is_allowed_remote_url(source):
             return reverse("product_listing_image", kwargs={"pk": self.pk})
-        return ""
+        return source
 
     @property
     def avg_rating(self) -> float | None:

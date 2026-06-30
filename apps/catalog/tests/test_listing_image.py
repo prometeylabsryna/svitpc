@@ -13,6 +13,10 @@ class TestAllowedRemoteUrl:
         "url,ok",
         [
             ("https://opt.brain.com.ua/static/images/prod_img/1/3/U1.jpg", True),
+            (
+                "https://kancmaster.com.ua/image/cache/catalog/import_files/x.jpg",
+                True,
+            ),
             ("https://evil.example/photo.jpg", False),
             ("", False),
         ],
@@ -43,6 +47,16 @@ class TestListingSourceKey:
     def test_listing_image_url_uses_proxy_for_brain(self, product_factory):
         product = product_factory(image_url="https://opt.brain.com.ua/static/images/prod_img/1/1/U1.jpg")
         assert product.listing_image_url == reverse("product_listing_image", kwargs={"pk": product.pk})
+
+    def test_listing_image_url_uses_proxy_for_kancmaster(self, product_factory):
+        product = product_factory(
+            image_url="https://kancmaster.com.ua/image/cache/catalog/x.jpg",
+        )
+        assert product.listing_image_url == reverse("product_listing_image", kwargs={"pk": product.pk})
+
+    def test_listing_image_url_direct_for_unknown_host(self, product_factory):
+        product = product_factory(image_url="https://cdn.example.com/photo.jpg")
+        assert product.listing_image_url == "https://cdn.example.com/photo.jpg"
 
 
 @pytest.mark.django_db
