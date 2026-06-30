@@ -136,8 +136,6 @@ def get_filtered_products(
 
 def _compute_product_facets(product_ids: QuerySet[Product]) -> dict:
     """Build facet groups for products matching ``product_ids`` (subquery-safe)."""
-    from .spec_filters import is_spec_filter_group_name
-
     filter_groups = (
         Filter.objects.filter(
             productfilter__product_id__in=product_ids.values("pk"),
@@ -152,24 +150,17 @@ def _compute_product_facets(product_ids: QuerySet[Product]) -> dict:
     for f in filter_groups:
         gname = localized_field(f.group, "name")
         if gname not in by_name:
-            by_name[gname] = {
-                "name": gname,
-                "gid": f.group_id,
-                "sort_order": f.group.sort_order,
-                "is_priority": is_spec_filter_group_name(f.group.name),
-                "options": {},
-            }
+            by_name[gname] = {"name": gname, "gid": f.group_id, "options": {}}
         opts = by_name[gname]["options"]
         opt_name = localized_field(f, "name")
         if opt_name not in opts or f.count > opts[opt_name]["count"]:
             opts[opt_name] = {"id": f.id, "name": opt_name, "count": f.count}
 
     facets: dict[int, dict] = {}
-    for gdata in sorted(by_name.values(), key=lambda g: (g["sort_order"], g["name"])):
+    for gdata in by_name.values():
         gid = gdata["gid"]
         facets[gid] = {
             "name": gdata["name"],
-            "is_priority": gdata["is_priority"],
             "options": sorted(gdata["options"].values(), key=lambda o: o["name"]),
         }
 
@@ -208,7 +199,7 @@ def get_category_facets(
 
     cache_key = None
     if filter_params is not None:
-        cache_key = facet_cache_key(scope="category-v3", scope_id=category.pk, params=filter_params)
+        cache_key = facet_cache_key(scope="category-v2", scope_id=category.pk, params=filter_params)
     return get_product_facets(current_qs, cache_key=cache_key)
 
 
