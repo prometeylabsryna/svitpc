@@ -62,6 +62,16 @@ class TestSpecFilterSync:
         )
         assert linked == {"16 ГБ", "Сірий"}
 
+    def test_duplicate_filter_groups_same_name(self, product_factory):
+        FilterGroup.objects.create(name="Колір", sort_order=99)
+        FilterGroup.objects.create(name="Колір", sort_order=99)
+        product = product_factory(image_url="https://cdn.example.com/p.jpg")
+        sync_spec_filters_from_options(
+            product,
+            [{"OptionName": "Колір", "ValueName": "Чорний"}],
+        )
+        assert ProductFilter.objects.filter(product=product).count() == 1
+
     def test_resync_replaces_old_spec_values(self, product_factory):
         product = product_factory(image_url="https://cdn.example.com/p.jpg")
         sync_spec_filters_from_options(

@@ -64,22 +64,49 @@ def _option_pairs(options: list[dict]) -> list[tuple[str, str]]:
     return pairs
 
 
-def _get_or_create_spec_filter(group_name: str, value_name: str):
-    from apps.catalog.models import Filter, FilterGroup
+def _resolve_spec_filter_group(group_name: str):
+    """Pick one FilterGroup when OpenCart left dozens of rows with the same name."""
+    from django.db.models import Count
 
-    group, _ = FilterGroup.objects.get_or_create(
+    from apps.catalog.models import FilterGroup
+
+    group = (
+        FilterGroup.objects.filter(name=group_name)
+        .annotate(_link_count=Count("filters__productfilter", distinct=True))
+        .order_by("-_link_count", "pk")
+        .first()
+    )
+    desired_sort = _GROUP_SORT.get(group_name, 100)
+    if group:
+        if group.sort_order != desired_sort:
+            FilterGroup.objects.filter(pk=group.pk).update(sort_order=desired_sort)
+        return group
+    return FilterGroup.objects.create(
         name=group_name,
-        defaults={"sort_order": _GROUP_SORT.get(group_name, 100), "is_brand": False},
+        sort_order=desired_sort,
+        is_brand=False,
     )
-    if group.sort_order != _GROUP_SORT.get(group_name, group.sort_order):
-        FilterGroup.objects.filter(pk=group.pk).update(sort_order=_GROUP_SORT[group_name])
 
-    filt, _ = Filter.objects.get_or_create(
-        group=group,
-        name=value_name,
-        defaults={"sort_order": 0},
+
+def _resolve_spec_filter(group, value_name: str):
+    from django.db.models import Count
+
+    from apps.catalog.models import Filter
+
+    filt = (
+        Filter.objects.filter(group=group, name=value_name)
+        .annotate(_link_count=Count("productfilter", distinct=True))
+        .order_by("-_link_count", "pk")
+        .first()
     )
-    return filt
+    if filt:
+        return filt
+    return Filter.objects.create(group=group, name=value_name, sort_order=0)
+
+
+def _get_or_create_spec_filter(group_name: str, value_name: str):
+    group = _resolve_spec_filter_group(group_name)
+    return _resolve_spec_filter(group, value_name)
 
 
 def _spec_filter_group_ids() -> list[int]:
