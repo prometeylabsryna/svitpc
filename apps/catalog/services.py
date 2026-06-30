@@ -23,6 +23,12 @@ def visible_catalog_products() -> QuerySet[Product]:
 
 def category_listing_products(category: Category) -> QuerySet[Product]:
     """Products for a category page — subtree plus items assigned to ancestor categories only."""
+    from .cross_sell import primary_listing_category_pks
+
+    primary_pks = primary_listing_category_pks(category)
+    if primary_pks is not None:
+        return visible_catalog_products().filter(categories__in=primary_pks).distinct()
+
     return (
         visible_catalog_products()
         .filter(categories__tree_id=category.tree_id)
@@ -36,6 +42,12 @@ def category_listing_products(category: Category) -> QuerySet[Product]:
 
 def category_listing_category_scope(category: Category) -> QuerySet[Category]:
     """Category nodes used for brand facets on a category listing page."""
+    from .cross_sell import primary_listing_category_pks
+
+    primary_pks = primary_listing_category_pks(category)
+    if primary_pks is not None:
+        return Category.objects.filter(pk__in=primary_pks, is_active=True)
+
     return Category.objects.filter(tree_id=category.tree_id).filter(
         Q(lft__gte=category.lft, rght__lte=category.rght)
         | Q(lft__lt=category.lft, rght__gt=category.rght)

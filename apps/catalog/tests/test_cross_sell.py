@@ -1,6 +1,7 @@
 import pytest
 
 from apps.catalog.cross_sell import (
+    primary_listing_category_pks,
     suggested_products_for_category,
     suggested_products_for_product,
 )
@@ -92,3 +93,26 @@ class TestCrossSell:
         assert is_cross is True
         assert bag in picked
         assert laptop not in picked
+
+    def test_laptop_department_listing_excludes_components(self, product_factory):
+        from apps.catalog.services import category_listing_products
+
+        root = _ensure_branch(None, "Ноутбуки, планшети", "ноутбуки-планшети")
+        laptops = _ensure_branch(root, "Ноутбуки", "ноутбуки")
+        components = _ensure_branch(root, "Комплектуючі до ноутбуків", "комплектуючі-до-ноутбуків")
+        ssd = _ensure_branch(components, "Внутрішні SSD", "внутрішні-ssd")
+        games = _ensure_branch(root, "Ігрові приставки", "ігрові-приставки")
+
+        laptop = _product(product_factory, name="Laptop Z", slug="laptop-z-list")
+        drive = _product(product_factory, name="SSD 512", slug="ssd-512")
+        game = _product(product_factory, name="PS5 Game", slug="ps5-game")
+
+        laptop.categories.add(laptops)
+        drive.categories.add(ssd)
+        game.categories.add(games)
+
+        listed = set(category_listing_products(root).values_list("slug", flat=True))
+        assert "laptop-z-list" in listed
+        assert "ssd-512" not in listed
+        assert "ps5-game" not in listed
+        assert primary_listing_category_pks(root) is not None

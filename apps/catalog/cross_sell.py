@@ -19,6 +19,10 @@ _PC_ROOT = "компютери-аксесуари"
 _LAPTOP_PRIMARY_SLUGS = frozenset({"ноутбуки", "планшети", "електронні-книги"})
 _PC_PRIMARY_SLUGS = frozenset({"компютери", "монітори"})
 
+# Department landing pages list only primary devices in the main grid.
+_LAPTOP_DEPT_LISTING_SLUGS = ("ноутбуки", "планшети", "електронні-книги")
+_PC_DEPT_LISTING_SLUGS = ("компютери",)
+
 _LAPTOP_ACCESSORY_TARGETS = (
     "аксесуари-для-ноутбуків",
     "сумки-рюкзаки-чохли",
@@ -115,6 +119,15 @@ def _product_is_primary_device(categories: list[Category], branch: str) -> bool:
 
 def _product_is_accessory(categories: list[Category]) -> bool:
     return any(_is_accessory_category(category) for category in categories)
+
+
+def primary_listing_category_pks(category: Category) -> list[int] | None:
+    """Category PKs for the main product grid on department landing pages."""
+    if category.slug == _LAPTOP_ROOT:
+        return _union_subtree_pks(_LAPTOP_DEPT_LISTING_SLUGS)
+    if category.slug == _PC_ROOT:
+        return _union_subtree_pks(_PC_DEPT_LISTING_SLUGS)
+    return None
 
 
 def _cross_sell_target_slugs_for_product(categories: list[Category]) -> tuple[str, ...] | None:
