@@ -139,12 +139,36 @@ def svitik_mascot_png(variant: str = "tip", mascot: str = "") -> str:
 
 
 @register.simple_tag
+def svitik_mascot_sm(variant: str = "tip", mascot: str = "") -> str:
+    """Mobile-sized WebP mascot (smaller file for narrow viewports)."""
+    from django.templatetags.static import static
+
+    from apps.core.svitik import SVITIK_ASSET_VERSION, svitik_mascot_file, svitik_mascot_sm_name
+
+    filename = svitik_mascot_sm_name(svitik_mascot_file(variant=variant, mascot=mascot or None))
+    return f"{static(f'images/{filename}')}?v={SVITIK_ASSET_VERSION}"
+
+
+@register.simple_tag
+def svitik_mascot_sm_png(variant: str = "tip", mascot: str = "") -> str:
+    """PNG fallback for mobile-sized mascot."""
+    from django.templatetags.static import static
+
+    from apps.core.svitik import SVITIK_ASSET_VERSION, svitik_mascot_file, svitik_mascot_sm_name
+    from apps.core.svitik import svitik_mascot_png_name
+
+    webp = svitik_mascot_sm_name(svitik_mascot_file(variant=variant, mascot=mascot or None))
+    filename = svitik_mascot_png_name(webp)
+    return f"{static(f'images/{filename}')}?v={SVITIK_ASSET_VERSION}"
+
+
+@register.simple_tag
 def svitik_mascot_intrinsic(variant: str = "tip", mascot: str = "") -> dict[str, int]:
-    """Width/height of a mascot PNG for layout hints."""
-    from apps.core.svitik import svitik_mascot_dims, svitik_mascot_file
+    """Width/height for layout hints (mobile sm asset when available)."""
+    from apps.core.svitik import svitik_mascot_file, svitik_mascot_sm_dims
 
     filename = svitik_mascot_file(variant=variant, mascot=mascot or None)
-    width, height = svitik_mascot_dims(filename) or (0, 0)
+    width, height = svitik_mascot_sm_dims(filename) or (0, 0)
     return {"width": width, "height": height}
 
 

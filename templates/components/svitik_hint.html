@@ -43,7 +43,9 @@
   <div class="svitik-hint__mascot-wrap">
     {% svitik_mascot_intrinsic variant|default:'tip' mascot as dims %}
     <picture>
+      <source media="(max-width: 640px)" type="image/webp" srcset="{% svitik_mascot_sm variant|default:'tip' mascot %}">
       <source type="image/webp" srcset="{% svitik_mascot variant|default:'tip' mascot %}">
+      <source media="(max-width: 640px)" srcset="{% svitik_mascot_sm_png variant|default:'tip' mascot %}">
       <img
         class="svitik-hint__mascot"
         src="{% svitik_mascot_png variant|default:'tip' mascot %}"

@@ -6,7 +6,7 @@
 const STORAGE_KEY = "svitik-welcome-v1";
 const DEFAULT_DURATION = 7000;
 const COIN_SRC = "/static/images/svitpc-coin-light.png";
-const ASSET_VERSION = "4";
+const ASSET_VERSION = "5";
 
 const MASCOT_BY_KEY = {
   guide: "/static/images/pan-svitik-tech.webp",
@@ -22,10 +22,15 @@ const MASCOT_BY_KEY = {
 
 const MASCOT_DIMS = {
   "pan-svitik-choice.webp": [368, 441],
+  "pan-svitik-choice-sm.webp": [184, 221],
   "pan-svitik-coins.webp": [368, 565],
+  "pan-svitik-coins-sm.webp": [184, 283],
   "pan-svitik-search.webp": [368, 525],
+  "pan-svitik-search-sm.webp": [184, 263],
   "pan-svitik-tech.webp": [368, 474],
+  "pan-svitik-tech-sm.webp": [184, 237],
   "pan-svitik-celebrate.webp": [368, 407],
+  "pan-svitik-celebrate-sm.webp": [184, 204],
 };
 
 const VARIANT_MASCOT = {
@@ -43,6 +48,10 @@ const VARIANT_MASCOT = {
   tech: "tech",
 };
 
+const useSmMascot = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(max-width: 640px)").matches;
+
 const mascotSrc = (variant, mascotFile) => {
   let src;
   if (mascotFile) {
@@ -56,6 +65,9 @@ const mascotSrc = (variant, mascotFile) => {
   } else {
     const key = VARIANT_MASCOT[variant] ?? "guide";
     src = MASCOT_BY_KEY[key] ?? MASCOT_BY_KEY.guide;
+  }
+  if (useSmMascot() && src.includes("/pan-svitik-") && !src.includes("-sm.")) {
+    src = src.replace(".webp", "-sm.webp");
   }
   const join = src.includes("?") ? "&" : "?";
   return `${src}${join}v=${ASSET_VERSION}`;

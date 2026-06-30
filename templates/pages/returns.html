@@ -211,7 +211,9 @@
           <div class="returns-aside__mascot-wrap">
             {% svitik_mascot_intrinsic 'search' 'search' as dims %}
             <picture>
+              <source media="(max-width: 640px)" type="image/webp" srcset="{% svitik_mascot_sm 'search' 'search' %}">
               <source type="image/webp" srcset="{% svitik_mascot 'search' 'search' %}">
+              <source media="(max-width: 640px)" srcset="{% svitik_mascot_sm_png 'search' 'search' %}">
               <img
                 src="{% svitik_mascot_png 'search' 'search' %}"
                 alt=""

@@ -14,12 +14,20 @@
     <a href="{% url 'catalog:home' %}" class="site-header__logo" aria-label="{{ SITE_NAME }} — {% trans 'головна' %}">
       <picture>
         <source
+          media="(max-width: 640px)"
+          type="image/webp"
+          srcset="{% static 'images/logo-header.webp' %}">
+        <source
           type="image/webp"
           srcset="{% static 'images/logo-header.webp' %} 1x, {% static 'images/logo-header@2x.webp' %} 2x">
+        <source
+          media="(max-width: 640px)"
+          srcset="{% static 'images/logo-header.png' %}">
         <img
           class="site-header__logo-img"
           src="{% static 'images/logo-header.png' %}"
           srcset="{% static 'images/logo-header.png' %} 1x, {% static 'images/logo-header@2x.png' %} 2x"
+          sizes="(max-width: 640px) 168px, 200px"
           width="200"
           height="152"
           alt=""

@@ -15,6 +15,7 @@ DIMS_PATH = ROOT / "static" / "images" / "svitik-dims.json"
 
 LOGO_WIDTHS = {"": 200, "@2x": 400}
 SVITIK_MAX_WIDTH = 368
+SVITIK_SM_WIDTH = 184
 WEBP_QUALITY = 82
 
 
@@ -51,7 +52,7 @@ def optimize_logos() -> dict[str, dict[str, int]]:
 def optimize_svitik_mascots() -> dict[str, list[int]]:
     dims: dict[str, list[int]] = {}
     for png in sorted(IMAGES.glob("pan-svitik-*.png")):
-        if png.name == "pan-svitik.png":
+        if png.name == "pan-svitik.png" or "-sm.png" in png.name:
             continue
         img = Image.open(png)
         img = _resize_width(img, SVITIK_MAX_WIDTH)
@@ -60,6 +61,14 @@ def optimize_svitik_mascots() -> dict[str, list[int]]:
         dims[png.name] = [img.width, img.height]
         dims[webp_name] = [img.width, img.height]
         print(f"{png.name} -> {img.width}x{img.height}")
+
+        sm = _resize_width(img, SVITIK_SM_WIDTH)
+        sm_base = png.with_name(png.name.replace(".png", "-sm.png"))
+        _save_webp_and_png(sm, sm_base)
+        sm_webp = sm_base.name.replace(".png", ".webp")
+        dims[sm_base.name] = [sm.width, sm.height]
+        dims[sm_webp] = [sm.width, sm.height]
+        print(f"{sm_base.name} -> {sm.width}x{sm.height}")
     return dims
 
 

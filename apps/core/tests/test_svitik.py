@@ -103,6 +103,12 @@ def test_svitik_mascot_file_maps_variants():
     assert svitik_mascot_file(variant="guide") == "pan-svitik-tech.webp"
 
 
+def test_svitik_mascot_sm_name():
+    from apps.core.svitik import svitik_mascot_sm_name
+
+    assert svitik_mascot_sm_name("pan-svitik-tech.webp") == "pan-svitik-tech-sm.webp"
+
+
 def test_min_order_coin_gap():
     assert min_order_coin_gap(Decimal("100")) == Decimal("200")
     assert min_order_coin_gap(Decimal("500")) is None

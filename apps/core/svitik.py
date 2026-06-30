@@ -11,7 +11,10 @@ from apps.loyalty.coins import coins_for_order_total
 from apps.loyalty.constants import EARN_TIERS, MIN_ORDER_FOR_COINS
 
 # Bump when mascot assets change (cache-bust static URLs).
-SVITIK_ASSET_VERSION = "4"
+SVITIK_ASSET_VERSION = "5"
+
+# Listing / mobile-optimized width (matches --svitik-mascot-w on narrow viewports).
+SVITIK_SM_WIDTH = 184
 
 # HQ poses from brand kit. Keys without a dedicated render reuse the closest pose.
 SVITIK_MASCOTS: dict[str, str] = {
@@ -29,10 +32,15 @@ SVITIK_MASCOTS: dict[str, str] = {
 # Intrinsic pixel size of processed assets (width, height).
 SVITIK_MASCOT_DIMS: dict[str, tuple[int, int]] = {
     "pan-svitik-choice.webp": (368, 441),
+    "pan-svitik-choice-sm.webp": (184, 220),
     "pan-svitik-coins.webp": (368, 565),
+    "pan-svitik-coins-sm.webp": (184, 282),
     "pan-svitik-search.webp": (368, 525),
+    "pan-svitik-search-sm.webp": (184, 262),
     "pan-svitik-tech.webp": (368, 474),
+    "pan-svitik-tech-sm.webp": (184, 237),
     "pan-svitik-celebrate.webp": (368, 407),
+    "pan-svitik-celebrate-sm.webp": (184, 203),
 }
 
 VARIANT_MASCOT: dict[str, str] = {
@@ -59,6 +67,19 @@ def svitik_mascot_file(*, variant: str = "tip", mascot: str | None = None) -> st
 
 def svitik_mascot_dims(filename: str) -> tuple[int, int] | None:
     return SVITIK_MASCOT_DIMS.get(filename)
+
+
+def svitik_mascot_sm_name(webp_filename: str) -> str:
+    if webp_filename.endswith(".webp"):
+        return f"{webp_filename[:-5]}-sm.webp"
+    if webp_filename.endswith(".png"):
+        return f"{webp_filename[:-4]}-sm.png"
+    return f"{webp_filename}-sm.webp"
+
+
+def svitik_mascot_sm_dims(filename: str) -> tuple[int, int] | None:
+    sm_name = svitik_mascot_sm_name(filename)
+    return SVITIK_MASCOT_DIMS.get(sm_name) or SVITIK_MASCOT_DIMS.get(filename)
 
 
 def svitik_mascot_png_name(webp_filename: str) -> str:

@@ -18,6 +18,14 @@
       368,
       407
     ],
+    "pan-svitik-celebrate-sm.png": [
+      184,
+      203
+    ],
+    "pan-svitik-celebrate-sm.webp": [
+      184,
+      203
+    ],
     "pan-svitik-choice.png": [
       368,
       441
@@ -25,6 +33,14 @@
     "pan-svitik-choice.webp": [
       368,
       441
+    ],
+    "pan-svitik-choice-sm.png": [
+      184,
+      220
+    ],
+    "pan-svitik-choice-sm.webp": [
+      184,
+      220
     ],
     "pan-svitik-coins.png": [
       368,
@@ -34,6 +50,14 @@
       368,
       565
     ],
+    "pan-svitik-coins-sm.png": [
+      184,
+      282
+    ],
+    "pan-svitik-coins-sm.webp": [
+      184,
+      282
+    ],
     "pan-svitik-search.png": [
       368,
       525
@@ -42,6 +66,14 @@
       368,
       525
     ],
+    "pan-svitik-search-sm.png": [
+      184,
+      262
+    ],
+    "pan-svitik-search-sm.webp": [
+      184,
+      262
+    ],
     "pan-svitik-tech.png": [
       368,
       474
@@ -49,6 +81,14 @@
     "pan-svitik-tech.webp": [
       368,
       474
+    ],
+    "pan-svitik-tech-sm.png": [
+      184,
+      237
+    ],
+    "pan-svitik-tech-sm.webp": [
+      184,
+      237
     ]
   }
 }
