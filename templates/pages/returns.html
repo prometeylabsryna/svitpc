@@ -209,7 +209,7 @@
         <div class="returns-aside__panel">
           <h2 class="returns-aside__title" id="returns-aside-heading">{% trans "Пан Світік підказує" %}</h2>
           <div class="returns-aside__mascot-wrap">
-            {% with dims=svitik_mascot_intrinsic 'search' 'search' %}
+            {% svitik_mascot_intrinsic 'search' 'search' as dims %}
             <picture>
               <source type="image/webp" srcset="{% svitik_mascot 'search' 'search' %}">
               <img
@@ -221,7 +221,6 @@
                 loading="lazy"
                 decoding="async">
             </picture>
-            {% endwith %}
           </div>
           <div class="returns-aside__tip">
             <p>{% trans "Перед оформленням повернення перевірте комплектацію товару та збережіть заводське пакування — це допоможе швидше опрацювати вашу заявку." %}</p>

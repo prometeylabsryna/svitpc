@@ -41,7 +41,7 @@
     {% endif %}
   </div>
   <div class="svitik-hint__mascot-wrap">
-    {% with dims=svitik_mascot_intrinsic variant|default:'tip' mascot %}
+    {% svitik_mascot_intrinsic variant|default:'tip' mascot as dims %}
     <picture>
       <source type="image/webp" srcset="{% svitik_mascot variant|default:'tip' mascot %}">
       <img
@@ -53,6 +53,5 @@
         loading="lazy"
         decoding="async">
     </picture>
-    {% endwith %}
   </div>
 </aside>
