@@ -363,9 +363,11 @@
       transform: scale(0.97);
     }
 
-    svg {
-      width: 16px;
-      height: 16px;
+    svg,
+    .product-card__buy-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
     }
   }
 

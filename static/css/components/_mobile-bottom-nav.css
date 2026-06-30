@@ -71,13 +71,7 @@
     height: 24px;
     flex-shrink: 0;
     stroke: currentColor;
-    stroke-width: 2;
-    vector-effect: non-scaling-stroke;
-  }
-
-  .mobile-bottom-nav__icon--cart {
-    stroke: none;
-    fill: currentColor;
+    fill: none;
   }
 
   .mobile-bottom-nav__item.is-active .mobile-bottom-nav__icon-wrap {

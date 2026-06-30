@@ -26,9 +26,7 @@
      class="mobile-bottom-nav__item{% if request.resolver_match.url_name == 'detail' and request.resolver_match.app_name == 'cart' %} is-active{% endif %}"
      aria-label="{% trans 'Кошик' %}">
     <span class="mobile-bottom-nav__icon-wrap">
-      <svg class="mobile-bottom-nav__icon mobile-bottom-nav__icon--cart" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M7 18a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5Zm9 0a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5ZM6.2 6h13.1l-1.4 7.2a1 1 0 0 1-.98.8H8.05a1 1 0 0 1-.98-.8L5.1 6H3.5a.75.75 0 0 1 0-1.5h1.2l.5-2.5A.75.75 0 0 1 6 1h12a.75.75 0 0 1 .74.6l.5 2.5h1.26a.75.75 0 0 1 0 1.5H6.2Z"/>
-      </svg>
+      {% include "components/icons/icon_cart.html" with class="mobile-bottom-nav__icon" %}
       <span class="mobile-bottom-nav__badge" data-cart-count{% if not cart_count %} hidden{% endif %}>{{ cart_count }}</span>
     </span>
     <span>{% trans "Кошик" %}</span>
