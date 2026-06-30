@@ -291,6 +291,19 @@ class Product(models.Model):
         return resolve_product_image_url(self)
 
     @property
+    def listing_image_url(self) -> str:
+        """Optimized WebP thumbnail for grids (our domain, not Brain CDN)."""
+        from django.urls import reverse
+
+        from apps.catalog.gallery import resolve_product_image_url
+
+        if self.image:
+            return self.image_thumb.url
+        if resolve_product_image_url(self):
+            return reverse("product_listing_image", kwargs={"pk": self.pk})
+        return ""
+
+    @property
     def avg_rating(self) -> float | None:
         # Use queryset annotation when available (avoids N+1 on list pages).
         ann = self.__dict__.get("avg_rating_ann")

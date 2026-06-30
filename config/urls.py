@@ -9,6 +9,7 @@ from django.views.i18n import set_language
 
 from apps.core.converters import UnicodeSlugConverter
 from apps.core.views import service_worker
+from apps.catalog.views import product_listing_image_view
 from apps.seo.sitemaps import (
     BrandSitemap,
     CategorySitemap,
@@ -29,6 +30,7 @@ sitemaps = {
 
 urlpatterns = [
     path("healthz/", lambda request: HttpResponse("ok", content_type="text/plain")),
+    path("i/<int:pk>.webp", product_listing_image_view, name="product_listing_image"),
     path("sw.js", service_worker, name="service_worker"),
     path("i18n/set-language/", set_language, name="set_language"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),

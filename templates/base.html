@@ -59,9 +59,8 @@
 
   {# Preload critical CSS (single bundled file — no @import waterfall) #}
   <link rel="preload" href="{% static 'css/app.bundled.css' %}" as="style">
-
-  {# CSS #}
-  <link rel="stylesheet" href="{% static 'css/app.bundled.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.bundled.css' %}" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="{% static 'css/app.bundled.css' %}"></noscript>
   {% block extra_css %}{% endblock %}
 
   {# GTM — async, no inline scripts; using noscript fallback in body #}

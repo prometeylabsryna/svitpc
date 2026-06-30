@@ -12,7 +12,7 @@
     {% for promo in promotions %}
     <article class="promo-card">
       <a href="{{ promo.product.get_absolute_url }}" class="promo-card__img-link">
-        {% with img=promo.product.main_image_url %}
+        {% with img=promo.product.listing_image_url %}
         {% if img %}
         <img class="promo-card__img" src="{{ img }}" alt="{{ promo.product|localized:'name' }}" loading="lazy">
         {% else %}

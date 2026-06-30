@@ -124,7 +124,7 @@ def sync_product_pictures(
     used_orders: set[int] = set()
     for i, pic in enumerate(pics):
         img_url = normalize_brain_image_url(
-            pic.get("medium_image") or pic.get("large_image") or "",
+            pic.get("small_image") or pic.get("medium_image") or pic.get("large_image") or "",
         )
         if not img_url:
             continue

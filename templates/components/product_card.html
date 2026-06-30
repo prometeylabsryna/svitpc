@@ -54,11 +54,13 @@
 
   {# Image #}
   <a href="{{ product.get_absolute_url }}" class="product-card__image" tabindex="-1" aria-hidden="true">
-    {% with img=product.main_image_url %}
+    {% with img=product.listing_image_url %}
     <img
       src="{% if img %}{{ img }}{% else %}{% static 'images/no-photo.svg' %}{% endif %}"
       alt="{{ product|localized:'name' }}"
-      loading="lazy"
+      loading="{% if image_priority %}eager{% else %}lazy{% endif %}"
+      {% if image_priority %}fetchpriority="high"{% endif %}
+      decoding="async"
       width="300"
       height="300">
     {% endwith %}

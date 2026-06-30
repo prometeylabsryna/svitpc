@@ -369,3 +369,27 @@ def sale_products_view(request: HttpRequest) -> HttpResponse:
             "query_params": "",
         },
     )
+
+
+def product_listing_image_view(request: HttpRequest, pk: int) -> HttpResponse:
+    """Cached WebP thumbnail for product cards (Brain/external URLs)."""
+    from django.http import FileResponse, Http404, HttpResponseRedirect
+    from django.templatetags.static import static
+
+    from apps.catalog.listing_image import ensure_listing_webp
+    from apps.catalog.models import Product
+
+    product = Product.objects.filter(pk=pk, is_visible=True).first()
+    if not product:
+        raise Http404
+
+    if product.image:
+        return HttpResponseRedirect(product.image_thumb.url)
+
+    path = ensure_listing_webp(product)
+    if not path:
+        return HttpResponseRedirect(static("images/no-photo.svg"))
+
+    response = FileResponse(path.open("rb"), content_type="image/webp")
+    response["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response

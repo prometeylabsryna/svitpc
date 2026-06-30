@@ -1,0 +1,52 @@
+import pytest
+from django.urls import reverse
+
+from apps.catalog.listing_image import (
+    _resize_to_webp,
+    is_allowed_remote_url,
+    listing_source_key,
+)
+
+
+class TestAllowedRemoteUrl:
+    @pytest.mark.parametrize(
+        "url,ok",
+        [
+            ("https://opt.brain.com.ua/static/images/prod_img/1/3/U1.jpg", True),
+            ("https://evil.example/photo.jpg", False),
+            ("", False),
+        ],
+    )
+    def test_host_allowlist(self, url, ok):
+        assert is_allowed_remote_url(url) is ok
+
+
+class TestResizeToWebp:
+    def test_outputs_webp_bytes(self):
+        from PIL import Image
+        import io
+
+        img = Image.new("RGB", (640, 480), color=(120, 80, 40))
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG")
+        out = _resize_to_webp(buf.getvalue(), size=300)
+        assert out[:4] == b"RIFF"
+        assert len(out) < len(buf.getvalue())
+
+
+@pytest.mark.django_db
+class TestListingSourceKey:
+    def test_external_url_key_stable(self, product_factory):
+        product = product_factory(image_url="https://opt.brain.com.ua/static/images/prod_img/1/1/U1.jpg")
+        assert listing_source_key(product) == listing_source_key(product)
+
+    def test_listing_image_url_uses_proxy_for_brain(self, product_factory):
+        product = product_factory(image_url="https://opt.brain.com.ua/static/images/prod_img/1/1/U1.jpg")
+        assert product.listing_image_url == reverse("product_listing_image", kwargs={"pk": product.pk})
+
+
+@pytest.mark.django_db
+def test_listing_image_view_redirects_when_no_photo(client, product_factory):
+    product = product_factory(image_url="", image="")
+    response = client.get(reverse("product_listing_image", kwargs={"pk": product.pk}))
+    assert response.status_code in (302, 301)
