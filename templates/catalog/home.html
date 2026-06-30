@@ -44,6 +44,7 @@
 {% block content %}
 <div class="container">
 
+  {% if not is_mobile_ua %}
   <div
     id="svitik-welcome"
     hidden
@@ -53,6 +54,7 @@
     data-svitik-message="{% trans 'Допомагаю робити розумні покупки та накопичувати бонусні монети разом із СвітПК!' %}"
     data-svitik-variant="welcome">
   </div>
+  {% endif %}
 
   {% include "catalog/partials/home_ads.html" %}
 

@@ -10,6 +10,7 @@
   <div class="home-ads__viewport">
     <div class="home-ads__track" data-home-ads-track>
       {% for banner in home_ads %}
+      {% if not is_mobile_ua or forloop.first %}
       <article class="home-ads__slide">
         {% if banner.link %}
         <a href="{{ banner.link }}" class="home-ads__link">
@@ -36,10 +37,11 @@
         </div>
         {% endif %}
       </article>
+      {% endif %}
       {% endfor %}
     </div>
   </div>
-  {% if home_ads_carousel %}
+  {% if home_ads_carousel and not is_mobile_ua %}
   <button
     class="home-ads__arrow home-ads__arrow--prev"
     data-home-ads-prev

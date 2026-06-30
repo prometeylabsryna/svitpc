@@ -10228,12 +10228,6 @@
     box-shadow: var(--shadow-sm) !important;
   }
 
-  .product-card::before,
-  .promo-banner::before {
-    display: none !important;
-    content: none !important;
-  }
-
   .product-card:hover,
   .product-card:active,
   .category-card:hover {
@@ -10288,6 +10282,42 @@
   .svitik-hint__mascot-wrap,
   .svitik-popup__mascot-wrap {
     align-self: center;
+  }
+
+  .product-card::before,
+  .promo-banner::before {
+    display: none !important;
+    content: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+  }
+
+  .promo-banner__tag {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: currentColor !important;
+    color: var(--clr-primary-600) !important;
+  }
+
+  .category-card,
+  .categories-grid,
+  .card-grid {
+    contain: layout paint;
+    isolation: isolate;
+  }
+
+  .site-nav__icon,
+  .site-nav__icon-img,
+  .site-nav__icon-svg {
+    transform: none !important;
+  }
+
+  .home-ads,
+  .home-ads__viewport,
+  .home-ads__track {
+    contain: layout paint;
+    isolation: isolate;
   }
 
   /* Strip GPU filters globally on main surfaces */
