@@ -57,10 +57,31 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   {# PT Sans — loaded async via static/js/modules/fonts.js (non-blocking) #}
 
-  {# Critical layout — must apply before bundle (Android WebView skips async CSS) #}
+  {# Critical mobile layout — before bundle; prevents Android sidebar/compositor bugs #}
   <style>
-    .page-body__nav { display: none; }
-    @media (min-width: 769px) { .page-body__nav { display: block; } }
+    @media (max-width: 768px) {
+      .page-body__nav {
+        display: none !important;
+        visibility: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+      }
+      .page-body { overflow-x: hidden; }
+      .product-card::before { content: none !important; display: none !important; }
+      .product-card__price {
+        background: none !important;
+        -webkit-text-fill-color: currentColor !important;
+        color: #0d8fd6 !important;
+      }
+      .product-card__buy-btn { background: #0fa2f0 !important; }
+    }
+    @media (min-width: 769px) {
+      .page-body__nav { display: block; }
+    }
   </style>
 
   {# Preload + blocking CSS (do not use media=print — breaks Android Chrome) #}
