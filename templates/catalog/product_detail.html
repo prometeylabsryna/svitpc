@@ -278,7 +278,13 @@
   {% if related %}
   <section class="pdp-related">
     <div class="section-heading">
-      <h2 class="section-heading__title">{% trans "Схожі товари" %}</h2>
+      <h2 class="section-heading__title">
+        {% if suggested_cross_sell %}
+          {% trans "Рекомендуємо разом" %}
+        {% else %}
+          {% trans "Схожі товари" %}
+        {% endif %}
+      </h2>
     </div>
     {% with count=related|length %}
     <div class="card-grid {{ count|grid_cols_class:4 }}">

@@ -93,6 +93,27 @@
       {# Product grid — partial for HTMX #}
       {% include "catalog/partials/product_grid.html" %}
 
+      {% if suggested_products %}
+      <section class="pdp-related category-suggested" aria-labelledby="category-suggested-heading">
+        <div class="section-heading">
+          <h2 class="section-heading__title" id="category-suggested-heading">
+            {% if suggested_cross_sell %}
+              {% trans "Рекомендуємо разом" %}
+            {% else %}
+              {% trans "Схожі товари" %}
+            {% endif %}
+          </h2>
+        </div>
+        {% with count=suggested_products|length %}
+        <div class="card-grid {{ count|grid_cols_class:4 }}">
+          {% for product in suggested_products %}
+            {% include "components/product_card.html" with product=product %}
+          {% endfor %}
+        </div>
+        {% endwith %}
+      </section>
+      {% endif %}
+
     </div>
   </div>
 </div>

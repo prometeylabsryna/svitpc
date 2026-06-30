@@ -15,6 +15,7 @@ from apps.analytics.ecommerce import product_list_payload, product_view_payload
 from apps.core.svitik import product_purchase_tip
 from apps.promotions.services import with_active_promotions
 
+from .cross_sell import suggested_products_for_category, suggested_products_for_product
 from .gallery import filter_products_with_display_image, product_gallery_urls
 from .models import Brand, Category, Product
 from .services import (
@@ -118,6 +119,11 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
     subcategories = category.get_children().filter(is_active=True).order_by("sort_order", "name")
     category_ancestors = list(category.get_ancestors())
 
+    suggested_products: list[Product] = []
+    suggested_cross_sell = False
+    if page == 1:
+        suggested_products, suggested_cross_sell = suggested_products_for_category(category)
+
     ctx = {
         "category": category,
         "category_ancestors": category_ancestors,
@@ -141,6 +147,8 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
         "price_max": price_max,
         "in_stock": in_stock,
         "query_params": _qp.urlencode(),
+        "suggested_products": suggested_products,
+        "suggested_cross_sell": suggested_cross_sell,
     }
 
     return render(request, "catalog/category.html", ctx)
@@ -163,21 +171,7 @@ def product_detail_view(request: HttpRequest, slug: str) -> HttpResponse:
     Product.objects.filter(pk=product.pk).update(viewed=product.viewed + 1)
 
     category_pks = [category.pk for category in product.categories.all()]
-    related = order_stock_first(
-        with_active_promotions(
-            visible_catalog_products()
-            .filter(categories__in=category_pks)
-            .exclude(pk=product.pk)
-            .annotate(
-                avg_rating_ann=Avg("reviews__rating", filter=_approved),
-                review_count_ann=Count("reviews", filter=_approved),
-            )
-            .select_related("brand")
-            .prefetch_related("images")
-            .distinct()
-        ),
-        "sort_order",
-    )[:6]
+    related, suggested_cross_sell = suggested_products_for_product(product)
 
     primary_category = product.categories.all()[0] if category_pks else None
     category_ancestors = list(primary_category.get_ancestors()) if primary_category else []
@@ -206,6 +200,7 @@ def product_detail_view(request: HttpRequest, slug: str) -> HttpResponse:
         "gallery_urls": product_gallery_urls(product),
         "attrs_by_group": attrs_by_group.values(),
         "related": related,
+        "suggested_cross_sell": suggested_cross_sell,
         "ecommerce_product": product_view_payload(product),
         "svitik_tip": product_purchase_tip(product),
         "promotion": promotion,
