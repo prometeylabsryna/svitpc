@@ -46,14 +46,14 @@
   </div>
   {% endif %}
 
-  {# Attribute filters (facets) — first 5 always visible, rest collapsible #}
+  {# Attribute filters (facets) — priority specs always visible #}
   {% for gid, group in facets.items %}
-  <div class="filter-group{% if forloop.counter > 5 and not group.has_active %} filter-group--extra{% endif %}">
-    <button type="button" class="filter-group__title" data-filter-toggle="filter-group-{{ gid }}" aria-expanded="{% if group.has_active %}true{% else %}false{% endif %}">
+  <div class="filter-group{% if not group.is_priority and forloop.counter > 5 and not group.has_active %} filter-group--extra{% endif %}">
+    <button type="button" class="filter-group__title" data-filter-toggle="filter-group-{{ gid }}" aria-expanded="{% if group.is_priority or group.has_active %}true{% else %}false{% endif %}">
       {{ group.name }}
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
     </button>
-    <div id="filter-group-{{ gid }}" class="filter-group__items"{% if not group.has_active %} hidden{% endif %}>
+    <div id="filter-group-{{ gid }}" class="filter-group__items"{% if not group.is_priority and not group.has_active %} hidden{% endif %}>
       {% for opt in group.options %}
       <label class="filter-check">
         <input type="checkbox" name="f" value="{{ opt.id }}" {% if opt.id in selected_filters %}checked{% endif %}>
@@ -65,7 +65,7 @@
   </div>
   {% endfor %}
 
-  {# "More filters" toggle — only shown when there are more than 5 facet groups #}
+  {# "More filters" toggle — only non-priority groups beyond the first five #}
   {% if facets|length > 5 %}
   <button type="button" class="filters-more-btn" data-filters-more aria-expanded="false">
     <span class="filters-more-btn__label filters-more-btn__label--more">{% trans "Більше фільтрів" %}</span>

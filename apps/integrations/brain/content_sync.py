@@ -44,6 +44,10 @@ def sync_options_from_detail(product: "Product", detail: dict) -> int:
             defaults={"value": attr_val},
         )
         written += 1
+
+    from apps.catalog.spec_filters import sync_spec_filters_from_options
+
+    sync_spec_filters_from_options(product, options)
     return written
 
 
