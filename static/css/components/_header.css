@@ -354,9 +354,7 @@
   .mobile-menu__backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.65);
     animation: backdrop-in 0.2s var(--ease-out) both;
   }
 

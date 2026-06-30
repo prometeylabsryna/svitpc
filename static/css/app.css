@@ -25,6 +25,7 @@
 @import "components/_svitik.css"           layer(components);
 @import "components/_timer.css"            layer(components);
 @import "components/_mobile-bottom-nav.css" layer(components);
+@import "components/_gpu-safe.css"          layer(components);
 
 @import "pages/_home.css"     layer(pages);
 @import "pages/_catalog.css"  layer(pages);

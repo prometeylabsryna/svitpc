@@ -57,10 +57,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   {# PT Sans — loaded async via static/js/modules/fonts.js (non-blocking) #}
 
-  {# Preload critical CSS (single bundled file — no @import waterfall) #}
+  {# Critical layout — must apply before bundle (Android WebView skips async CSS) #}
+  <style>
+    .page-body__nav { display: none; }
+    @media (min-width: 769px) { .page-body__nav { display: block; } }
+  </style>
+
+  {# Preload + blocking CSS (do not use media=print — breaks Android Chrome) #}
   <link rel="preload" href="{% static 'css/app.bundled.css' %}" as="style">
-  <link rel="stylesheet" href="{% static 'css/app.bundled.css' %}" media="print" onload="this.media='all'">
-  <noscript><link rel="stylesheet" href="{% static 'css/app.bundled.css' %}"></noscript>
+  <link rel="stylesheet" href="{% static 'css/app.bundled.css' %}">
   {% block extra_css %}{% endblock %}
 
   {# GTM — async, no inline scripts; using noscript fallback in body #}
