@@ -30,17 +30,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options) -> None:
-        from apps.catalog.filter_dedup import dedupe_catalog_filters
-
         limit = int(options["limit"] or 0)
         category_slug = (options["category_slug"] or "").strip()
-
-        self.stdout.write("Merging duplicate filter groups (OpenCart legacy)…")
-        dedupe_stats = dedupe_catalog_filters()
-        self.stdout.write(
-            f"dedupe: groups_merged={dedupe_stats.groups_merged}, "
-            f"filters_merged={dedupe_stats.filters_merged}",
-        )
 
         qs = (
             Product.objects.filter(source=Product.SOURCE_BRAIN, is_visible=True)
