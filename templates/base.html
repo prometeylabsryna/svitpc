@@ -78,6 +78,8 @@
         color: #0d8fd6 !important;
       }
       .product-card__buy-btn { background: #0fa2f0 !important; }
+      .home-ads__slide:not(:first-child) { display: none !important; }
+      .home-ads__viewport { overflow: hidden !important; scroll-snap-type: none !important; }
     }
     @media (min-width: 769px) {
       .page-body__nav { display: block; }
@@ -116,9 +118,11 @@
   {% include "components/header.html" %}
 
   <div class="page-body">
+    {% if show_desktop_sidebar %}
     <aside class="page-body__nav" aria-label="{% trans 'Каталог товарів' %}">
       {% include "components/nav.html" %}
     </aside>
+    {% endif %}
     <div class="page-body__main">
       <main id="main-content">
         {% block content %}{% endblock %}

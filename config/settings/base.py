@@ -116,6 +116,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.i18n",
                 "apps.core.context_processors.site_context",
+                "apps.core.context_processors.device_context",
                 "apps.catalog.context_processors.catalog_nav",
                 "apps.cart.context_processors.cart_context",
                 "apps.compare.context_processors.compare_context",

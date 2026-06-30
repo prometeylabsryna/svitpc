@@ -2,14 +2,16 @@
  * Home page ad carousel: scroll-snap with dot navigation.
  */
 
-const MOBILE_MQ = "(max-width: 639px)";
-const TABLET_MQ = "(max-width: 1023px)";
+const MOBILE_MQ = "(max-width: 768px)";
+
+const isMobileLayout = () => window.matchMedia(MOBILE_MQ).matches;
 
 function effectiveColumns(root) {
   const configured = parseInt(root.dataset.columns, 10) || 4;
-  if (window.matchMedia(MOBILE_MQ).matches) {
+  if (isMobileLayout()) {
     return 1;
   }
+  const TABLET_MQ = "(max-width: 1023px)";
   if (window.matchMedia(TABLET_MQ).matches) {
     return Math.min(2, configured);
   }
@@ -45,6 +47,9 @@ function setActiveDot(container, index) {
 
 export function initHomeAds() {
   document.querySelectorAll("[data-home-ads]").forEach((root) => {
+    if (isMobileLayout()) {
+      return;
+    }
     const viewport = root.querySelector(".home-ads__viewport");
     const track = root.querySelector("[data-home-ads-track]");
     const dotsRoot = root.querySelector("[data-home-ads-dots]");

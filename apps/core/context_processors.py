@@ -5,8 +5,18 @@ from __future__ import annotations
 from django.conf import settings
 from django.http import HttpRequest
 
+from apps.core.device import is_mobile_user_agent
 from apps.core.models import SiteSettings
 from apps.core.store import store_address, store_maps_embed_url, store_maps_url
+
+
+def device_context(request: HttpRequest) -> dict:
+    ua = request.META.get("HTTP_USER_AGENT", "")
+    mobile = is_mobile_user_agent(ua)
+    return {
+        "is_mobile_ua": mobile,
+        "show_desktop_sidebar": not mobile,
+    }
 
 
 def site_context(request: HttpRequest) -> dict:

@@ -1,114 +1,143 @@
-@layer components {
-  /*
-   * Android Chrome / mobile WebView: compositor bugs cause duplicated UI
-   * (stacked buttons, ghosted text, sidebar bleed, horizontal tearing).
-   * Use max-width — more reliable than (hover: none) on Android.
-   */
-  @media (max-width: 768px) {
-    /* Desktop sidebar must not paint on mobile at all */
-    .page-body__nav {
-      display: none !important;
-      visibility: hidden !important;
-      position: absolute !important;
-      left: -9999px !important;
-      top: 0 !important;
-      width: 0 !important;
-      height: 0 !important;
-      overflow: hidden !important;
-      pointer-events: none !important;
-      opacity: 0 !important;
-    }
+/*
+ * Mali-G76 / Android (e.g. Redmi Note 10S) compositor fixes.
+ * OUTSIDE @layer — must override layered component CSS.
+ */
+@media (max-width: 768px) {
+  .page-body {
+    display: block !important;
+    overflow-x: hidden;
+  }
 
-    .page-body {
-      overflow-x: hidden;
-    }
+  /* Home banners: one slide only — scroll-snap causes horizontal static/tearing */
+  .home-ads__viewport,
+  .home-ads__viewport--scroll {
+    overflow: hidden !important;
+    scroll-snap-type: none !important;
+    -webkit-overflow-scrolling: auto !important;
+  }
 
-    /* Product cards — no container queries, masks, or GPU layers */
-    .product-card {
-      container-type: normal;
-      transform: none !important;
-      will-change: auto;
-    }
+  .home-ads__track {
+    display: block !important;
+    transform: none !important;
+    gap: 0 !important;
+  }
 
-    .product-card::before {
-      content: none !important;
-      display: none !important;
-    }
+  .home-ads__slide {
+    flex: none !important;
+    width: 100% !important;
+    scroll-snap-align: none !important;
+  }
 
-    .product-card:hover,
-    .product-card:active {
-      transform: none !important;
-      box-shadow: var(--shadow-sm);
-    }
+  .home-ads__slide:not(:first-child) {
+    display: none !important;
+  }
 
-    .product-card:hover .product-card__image img,
-    .product-card__image img {
-      transform: none !important;
-    }
+  .home-ads__arrow,
+  .home-ads__dots {
+    display: none !important;
+  }
 
-    /* background-clip:text duplicates glyphs on Android */
-    .product-card__price,
-    .pdp-price {
-      background: none !important;
-      -webkit-background-clip: unset !important;
-      background-clip: unset !important;
-      -webkit-text-fill-color: currentColor !important;
-      color: var(--clr-primary-600) !important;
-    }
+  .home-ads__img {
+    transform: none !important;
+    filter: none !important;
+  }
 
-    .product-card__buy-btn,
-    .btn--primary {
-      background: var(--clr-primary-500) !important;
-    }
+  /* Product / category cards */
+  .product-card,
+  .category-card {
+    container-type: normal !important;
+    transform: none !important;
+    will-change: auto !important;
+    box-shadow: var(--shadow-sm) !important;
+  }
 
-    .category-card:hover,
-    .promo-banner:hover {
-      transform: none !important;
-    }
+  .product-card::before,
+  .promo-banner::before {
+    display: none !important;
+    content: none !important;
+  }
 
-    .category-card:hover img {
-      transform: none !important;
-    }
+  .product-card:hover,
+  .product-card:active,
+  .category-card:hover {
+    transform: none !important;
+  }
 
-    .promo-banner::before {
-      content: none !important;
-    }
+  .product-card:hover .product-card__image img,
+  .product-card__image img,
+  .category-card img,
+  .category-card:hover img {
+    transform: none !important;
+  }
 
-    /* Native controls — avoid compositor ghosts */
-    .sort-select,
-    .sort-bar__controls {
-      transform: none !important;
-      filter: none !important;
-    }
+  .product-card__price,
+  .pdp-price {
+    background: none !important;
+    background-image: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: currentColor !important;
+    color: var(--clr-primary-600) !important;
+  }
 
-    /* Svitik popup — opacity only, no translate animation */
-    .svitik-popup {
-      animation: svitik-fade-in 0.2s ease both;
-    }
+  .product-card__buy-btn,
+  .btn--primary,
+  .search-bar__btn {
+    background: var(--clr-primary-500) !important;
+    background-image: none !important;
+  }
 
-    @keyframes svitik-fade-in {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
+  .sort-select,
+  .sort-bar__controls {
+    transform: none !important;
+    filter: none !important;
+  }
 
-    .svitik-popups {
-      transform: none !important;
-    }
+  /* Svitik — flex instead of grid, no motion */
+  .svitik-hint,
+  .svitik-popup {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: unset !important;
+    animation: none !important;
+    transform: none !important;
+  }
 
-    /* Product description / specs — normal line rhythm */
-    .tab-panel[data-tab-panel="desc"],
-    .tab-panel[data-tab-panel="attrs"] {
-      line-height: var(--leading-normal);
-    }
+  .svitik-popups {
+    transform: none !important;
+    filter: none !important;
+  }
 
-    .tab-panel[data-tab-panel="desc"] p,
-    .tab-panel[data-tab-panel="desc"] li,
-    .tab-panel[data-tab-panel="desc"] div {
-      margin-block: 0.4em;
-    }
+  .svitik-hint__mascot-wrap,
+  .svitik-popup__mascot-wrap {
+    align-self: center;
+  }
 
-    .pdp-attr-row {
-      min-height: unset;
-    }
+  /* Strip GPU filters globally on main surfaces */
+  .site-header,
+  .mobile-bottom-nav,
+  .mobile-menu__backdrop,
+  .modal-backdrop,
+  .home-ads__link,
+  .chat-widget__fab {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
+
+  .mobile-bottom-nav {
+    background: var(--clr-bg) !important;
+  }
+
+  .tab-panel[data-tab-panel="desc"],
+  .tab-panel[data-tab-panel="attrs"] {
+    line-height: var(--leading-normal);
+  }
+
+  .tab-panel[data-tab-panel="desc"] p,
+  .tab-panel[data-tab-panel="desc"] li,
+  .tab-panel[data-tab-panel="desc"] div {
+    margin-block: 0.4em;
   }
 }

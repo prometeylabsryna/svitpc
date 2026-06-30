@@ -9,6 +9,105 @@
 
 /* ── Layers ──────────────────────────────────────────────────────────────── */
 
+/* ── Utilities ────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+  }
+
+  .text-center { text-align: center; }
+  .text-muted  { color: var(--clr-text-muted); }
+
+  .mt-auto { margin-top: auto; }
+  .flex    { display: flex; }
+  /* Native [hidden] attribute — in utilities layer so it wins over components/pages without !important */
+  [hidden] { display: none; }
+  .hidden  { display: none; }
+
+  /* HTMX loading indicator */
+  .htmx-indicator { opacity: 0; transition: opacity 200ms ease; }
+  .htmx-request .htmx-indicator,
+  .htmx-request.htmx-indicator { opacity: 1; }
+}
+
+/* Password toggle — outside @layer so it always wins (modals, HTMX partials) */
+.form-password {
+  position: relative;
+  width: 100%;
+}
+
+.form-password__input {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+
+.form-password__suffix {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  padding-right: 0.5rem;
+  pointer-events: none;
+}
+
+.form-password__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--clr-text-subtle);
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.form-password__toggle:hover {
+  color: var(--clr-text);
+  background: var(--clr-neutral-100);
+}
+
+.form-password__toggle:focus-visible {
+  outline: 2px solid var(--clr-primary-500);
+  outline-offset: 2px;
+}
+
+.form-password__icon {
+  width: 20px;
+  height: 20px;
+  max-width: none;
+  flex-shrink: 0;
+}
+
+.form-password__icon--hide {
+  display: none;
+}
+
+.form-password__toggle.is-visible .form-password__icon--show {
+  display: none;
+}
+
+.form-password__toggle.is-visible .form-password__icon--hide {
+  display: block;
+}
+
+.auth-form--modal .form-password__input {
+  padding-right: 3rem;
+}
+
+/* Mobile Android / Mali-GPU fixes — outside @layer (see _mobile-android.css) */
+
 @layer reset {
   *, *::before, *::after {
     box-sizing: border-box;
@@ -1557,16 +1656,6 @@
 
     .product-card__one-click {
       width: 100%;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .product-card__footer {
-      flex-direction: row;
-    }
-
-    .product-card__one-click {
-      display: flex;
     }
   }
 
@@ -3888,121 +3977,6 @@
   @media (max-width: 768px) {
     .page-wrapper {
       padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-    }
-  }
-}
-
-@layer components {
-  /*
-   * Android Chrome / mobile WebView: compositor bugs cause duplicated UI
-   * (stacked buttons, ghosted text, sidebar bleed, horizontal tearing).
-   * Use max-width — more reliable than (hover: none) on Android.
-   */
-  @media (max-width: 768px) {
-    /* Desktop sidebar must not paint on mobile at all */
-    .page-body__nav {
-      display: none !important;
-      visibility: hidden !important;
-      position: absolute !important;
-      left: -9999px !important;
-      top: 0 !important;
-      width: 0 !important;
-      height: 0 !important;
-      overflow: hidden !important;
-      pointer-events: none !important;
-      opacity: 0 !important;
-    }
-
-    .page-body {
-      overflow-x: hidden;
-    }
-
-    /* Product cards — no container queries, masks, or GPU layers */
-    .product-card {
-      container-type: normal;
-      transform: none !important;
-      will-change: auto;
-    }
-
-    .product-card::before {
-      content: none !important;
-      display: none !important;
-    }
-
-    .product-card:hover,
-    .product-card:active {
-      transform: none !important;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .product-card:hover .product-card__image img,
-    .product-card__image img {
-      transform: none !important;
-    }
-
-    /* background-clip:text duplicates glyphs on Android */
-    .product-card__price,
-    .pdp-price {
-      background: none !important;
-      -webkit-background-clip: unset !important;
-      background-clip: unset !important;
-      -webkit-text-fill-color: currentColor !important;
-      color: var(--clr-primary-600) !important;
-    }
-
-    .product-card__buy-btn,
-    .btn--primary {
-      background: var(--clr-primary-500) !important;
-    }
-
-    .category-card:hover,
-    .promo-banner:hover {
-      transform: none !important;
-    }
-
-    .category-card:hover img {
-      transform: none !important;
-    }
-
-    .promo-banner::before {
-      content: none !important;
-    }
-
-    /* Native controls — avoid compositor ghosts */
-    .sort-select,
-    .sort-bar__controls {
-      transform: none !important;
-      filter: none !important;
-    }
-
-    /* Svitik popup — opacity only, no translate animation */
-    .svitik-popup {
-      animation: svitik-fade-in 0.2s ease both;
-    }
-
-    @keyframes svitik-fade-in {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    .svitik-popups {
-      transform: none !important;
-    }
-
-    /* Product description / specs — normal line rhythm */
-    .tab-panel[data-tab-panel="desc"],
-    .tab-panel[data-tab-panel="attrs"] {
-      line-height: var(--leading-normal);
-    }
-
-    .tab-panel[data-tab-panel="desc"] p,
-    .tab-panel[data-tab-panel="desc"] li,
-    .tab-panel[data-tab-panel="desc"] div {
-      margin-block: 0.4em;
-    }
-
-    .pdp-attr-row {
-      min-height: unset;
     }
   }
 }
@@ -10201,99 +10175,147 @@
   }
 }
 
-/* ── Utilities ────────────────────────────────────────────────────────────── */
-@layer utilities {
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0,0,0,0);
-    white-space: nowrap;
+/*
+ * Mali-G76 / Android (e.g. Redmi Note 10S) compositor fixes.
+ * OUTSIDE @layer — must override layered component CSS.
+ */
+@media (max-width: 768px) {
+  .page-body {
+    display: block !important;
+    overflow-x: hidden;
   }
 
-  .text-center { text-align: center; }
-  .text-muted  { color: var(--clr-text-muted); }
+  /* Home banners: one slide only — scroll-snap causes horizontal static/tearing */
+  .home-ads__viewport,
+  .home-ads__viewport--scroll {
+    overflow: hidden !important;
+    scroll-snap-type: none !important;
+    -webkit-overflow-scrolling: auto !important;
+  }
 
-  .mt-auto { margin-top: auto; }
-  .flex    { display: flex; }
-  /* Native [hidden] attribute — in utilities layer so it wins over components/pages without !important */
-  [hidden] { display: none; }
-  .hidden  { display: none; }
+  .home-ads__track {
+    display: block !important;
+    transform: none !important;
+    gap: 0 !important;
+  }
 
-  /* HTMX loading indicator */
-  .htmx-indicator { opacity: 0; transition: opacity 200ms ease; }
-  .htmx-request .htmx-indicator,
-  .htmx-request.htmx-indicator { opacity: 1; }
+  .home-ads__slide {
+    flex: none !important;
+    width: 100% !important;
+    scroll-snap-align: none !important;
+  }
+
+  .home-ads__slide:not(:first-child) {
+    display: none !important;
+  }
+
+  .home-ads__arrow,
+  .home-ads__dots {
+    display: none !important;
+  }
+
+  .home-ads__img {
+    transform: none !important;
+    filter: none !important;
+  }
+
+  /* Product / category cards */
+  .product-card,
+  .category-card {
+    container-type: normal !important;
+    transform: none !important;
+    will-change: auto !important;
+    box-shadow: var(--shadow-sm) !important;
+  }
+
+  .product-card::before,
+  .promo-banner::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  .product-card:hover,
+  .product-card:active,
+  .category-card:hover {
+    transform: none !important;
+  }
+
+  .product-card:hover .product-card__image img,
+  .product-card__image img,
+  .category-card img,
+  .category-card:hover img {
+    transform: none !important;
+  }
+
+  .product-card__price,
+  .pdp-price {
+    background: none !important;
+    background-image: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: currentColor !important;
+    color: var(--clr-primary-600) !important;
+  }
+
+  .product-card__buy-btn,
+  .btn--primary,
+  .search-bar__btn {
+    background: var(--clr-primary-500) !important;
+    background-image: none !important;
+  }
+
+  .sort-select,
+  .sort-bar__controls {
+    transform: none !important;
+    filter: none !important;
+  }
+
+  /* Svitik — flex instead of grid, no motion */
+  .svitik-hint,
+  .svitik-popup {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: unset !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .svitik-popups {
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .svitik-hint__mascot-wrap,
+  .svitik-popup__mascot-wrap {
+    align-self: center;
+  }
+
+  /* Strip GPU filters globally on main surfaces */
+  .site-header,
+  .mobile-bottom-nav,
+  .mobile-menu__backdrop,
+  .modal-backdrop,
+  .home-ads__link,
+  .chat-widget__fab {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
+
+  .mobile-bottom-nav {
+    background: var(--clr-bg) !important;
+  }
+
+  .tab-panel[data-tab-panel="desc"],
+  .tab-panel[data-tab-panel="attrs"] {
+    line-height: var(--leading-normal);
+  }
+
+  .tab-panel[data-tab-panel="desc"] p,
+  .tab-panel[data-tab-panel="desc"] li,
+  .tab-panel[data-tab-panel="desc"] div {
+    margin-block: 0.4em;
+  }
 }
 
-/* Password toggle — outside @layer so it always wins (modals, HTMX partials) */
-.form-password {
-  position: relative;
-  width: 100%;
-}
-
-.form-password__input {
-  width: 100%;
-  padding-right: 2.75rem;
-}
-
-.form-password__suffix {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  padding-right: 0.5rem;
-  pointer-events: none;
-}
-
-.form-password__toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  color: var(--clr-text-subtle);
-  background: transparent;
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-.form-password__toggle:hover {
-  color: var(--clr-text);
-  background: var(--clr-neutral-100);
-}
-
-.form-password__toggle:focus-visible {
-  outline: 2px solid var(--clr-primary-500);
-  outline-offset: 2px;
-}
-
-.form-password__icon {
-  width: 20px;
-  height: 20px;
-  max-width: none;
-  flex-shrink: 0;
-}
-
-.form-password__icon--hide {
-  display: none;
-}
-
-.form-password__toggle.is-visible .form-password__icon--show {
-  display: none;
-}
-
-.form-password__toggle.is-visible .form-password__icon--hide {
-  display: block;
-}
-
-.auth-form--modal .form-password__input {
-  padding-right: 3rem;
-}

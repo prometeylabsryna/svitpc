@@ -190,6 +190,11 @@ export const showSvitik = ({
 };
 
 const showWelcomeIfNeeded = () => {
+  if (window.matchMedia("(max-width: 768px)").matches) {
+    const el = document.querySelector("[data-svitik-welcome]");
+    if (el) el.remove();
+    return;
+  }
   const el = document.querySelector("[data-svitik-welcome]");
   if (!el || sessionStorage.getItem(STORAGE_KEY)) return;
 
