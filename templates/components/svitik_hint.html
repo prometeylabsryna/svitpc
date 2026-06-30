@@ -41,11 +41,18 @@
     {% endif %}
   </div>
   <div class="svitik-hint__mascot-wrap">
-    <img
-      class="svitik-hint__mascot"
-      src="{% svitik_mascot variant|default:'tip' mascot %}"
-      alt=""
-      loading="lazy"
-      decoding="async">
+    {% with dims=svitik_mascot_intrinsic variant|default:'tip' mascot %}
+    <picture>
+      <source type="image/webp" srcset="{% svitik_mascot variant|default:'tip' mascot %}">
+      <img
+        class="svitik-hint__mascot"
+        src="{% svitik_mascot_png variant|default:'tip' mascot %}"
+        alt=""
+        width="{{ dims.width }}"
+        height="{{ dims.height }}"
+        loading="lazy"
+        decoding="async">
+    </picture>
+    {% endwith %}
   </div>
 </aside>

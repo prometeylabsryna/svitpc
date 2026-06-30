@@ -10,29 +10,29 @@ from django.utils.translation import gettext as _
 from apps.loyalty.coins import coins_for_order_total
 from apps.loyalty.constants import EARN_TIERS, MIN_ORDER_FOR_COINS
 
-# Bump when mascot PNGs change (cache-bust static URLs).
-SVITIK_ASSET_VERSION = "3"
+# Bump when mascot assets change (cache-bust static URLs).
+SVITIK_ASSET_VERSION = "4"
 
 # HQ poses from brand kit. Keys without a dedicated render reuse the closest pose.
 SVITIK_MASCOTS: dict[str, str] = {
-    "guide": "pan-svitik-tech.png",
-    "welcome": "pan-svitik-choice.png",
-    "cart": "pan-svitik-coins.png",
-    "choice": "pan-svitik-choice.png",
-    "search": "pan-svitik-search.png",
-    "tech": "pan-svitik-tech.png",
-    "coins": "pan-svitik-coins.png",
-    "progress": "pan-svitik-celebrate.png",
-    "celebrate": "pan-svitik-celebrate.png",
+    "guide": "pan-svitik-tech.webp",
+    "welcome": "pan-svitik-choice.webp",
+    "cart": "pan-svitik-coins.webp",
+    "choice": "pan-svitik-choice.webp",
+    "search": "pan-svitik-search.webp",
+    "tech": "pan-svitik-tech.webp",
+    "coins": "pan-svitik-coins.webp",
+    "progress": "pan-svitik-celebrate.webp",
+    "celebrate": "pan-svitik-celebrate.webp",
 }
 
-# Intrinsic pixel size of processed PNGs (width, height).
+# Intrinsic pixel size of processed assets (width, height).
 SVITIK_MASCOT_DIMS: dict[str, tuple[int, int]] = {
-    "pan-svitik-choice.png": (712, 855),
-    "pan-svitik-coins.png": (594, 912),
-    "pan-svitik-search.png": (604, 862),
-    "pan-svitik-tech.png": (709, 915),
-    "pan-svitik-celebrate.png": (787, 872),
+    "pan-svitik-choice.webp": (368, 441),
+    "pan-svitik-coins.webp": (368, 565),
+    "pan-svitik-search.webp": (368, 525),
+    "pan-svitik-tech.webp": (368, 474),
+    "pan-svitik-celebrate.webp": (368, 407),
 }
 
 VARIANT_MASCOT: dict[str, str] = {
@@ -59,6 +59,14 @@ def svitik_mascot_file(*, variant: str = "tip", mascot: str | None = None) -> st
 
 def svitik_mascot_dims(filename: str) -> tuple[int, int] | None:
     return SVITIK_MASCOT_DIMS.get(filename)
+
+
+def svitik_mascot_png_name(webp_filename: str) -> str:
+    if webp_filename.endswith(".webp"):
+        return f"{webp_filename[:-5]}.png"
+    if webp_filename.endswith(".png"):
+        return webp_filename
+    return f"{webp_filename}.png"
 
 
 @dataclass(frozen=True)

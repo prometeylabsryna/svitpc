@@ -188,3 +188,15 @@ class Banner(models.Model):
 
     def __str__(self) -> str:
         return self.title or f"Banner {self.pk}"
+
+    def save(self, *args, **kwargs) -> None:
+        from django.core.cache import cache
+
+        from apps.catalog.home_cache import _home_cache_key
+
+        from .banner_image import DESKTOP_MAX_WIDTH, MOBILE_MAX_WIDTH, optimize_field_file
+
+        optimize_field_file(self.image, max_width=DESKTOP_MAX_WIDTH)
+        optimize_field_file(self.image_mobile, max_width=MOBILE_MAX_WIDTH)
+        super().save(*args, **kwargs)
+        cache.delete(_home_cache_key("banners"))

@@ -118,12 +118,23 @@ def _messenger_phone_digits(value: object) -> str:
 
 @register.simple_tag
 def svitik_mascot(variant: str = "tip", mascot: str = "") -> str:
-    """Static URL for a Pan Svitik mascot pose."""
+    """Static URL for a Pan Svitik mascot pose (WebP)."""
     from django.templatetags.static import static
 
     from apps.core.svitik import SVITIK_ASSET_VERSION, svitik_mascot_file
 
     filename = svitik_mascot_file(variant=variant, mascot=mascot or None)
+    return f"{static(f'images/{filename}')}?v={SVITIK_ASSET_VERSION}"
+
+
+@register.simple_tag
+def svitik_mascot_png(variant: str = "tip", mascot: str = "") -> str:
+    """PNG fallback URL for a Pan Svitik mascot pose."""
+    from django.templatetags.static import static
+
+    from apps.core.svitik import SVITIK_ASSET_VERSION, svitik_mascot_file, svitik_mascot_png_name
+
+    filename = svitik_mascot_png_name(svitik_mascot_file(variant=variant, mascot=mascot or None))
     return f"{static(f'images/{filename}')}?v={SVITIK_ASSET_VERSION}"
 
 

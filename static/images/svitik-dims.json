@@ -1,0 +1,54 @@
+{
+  "logos": {
+    "1x": {
+      "width": 200,
+      "height": 152
+    },
+    "@2x": {
+      "width": 400,
+      "height": 304
+    }
+  },
+  "svitik": {
+    "pan-svitik-celebrate.png": [
+      368,
+      407
+    ],
+    "pan-svitik-celebrate.webp": [
+      368,
+      407
+    ],
+    "pan-svitik-choice.png": [
+      368,
+      441
+    ],
+    "pan-svitik-choice.webp": [
+      368,
+      441
+    ],
+    "pan-svitik-coins.png": [
+      368,
+      565
+    ],
+    "pan-svitik-coins.webp": [
+      368,
+      565
+    ],
+    "pan-svitik-search.png": [
+      368,
+      525
+    ],
+    "pan-svitik-search.webp": [
+      368,
+      525
+    ],
+    "pan-svitik-tech.png": [
+      368,
+      474
+    ],
+    "pan-svitik-tech.webp": [
+      368,
+      474
+    ]
+  }
+}

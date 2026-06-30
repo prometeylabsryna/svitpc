@@ -91,16 +91,16 @@ def test_cart_coin_hint_payload_includes_coins():
     assert payload is not None
     assert payload["variant"] == "cart"
     assert payload["coins"] == 1
-    assert payload["mascot"] == "pan-svitik-coins.png"
+    assert payload["mascot"] == "pan-svitik-coins.webp"
 
 
 def test_svitik_mascot_file_maps_variants():
-    assert svitik_mascot_file(variant="welcome") == "pan-svitik-choice.png"
-    assert svitik_mascot_file(variant="choice") == "pan-svitik-choice.png"
-    assert svitik_mascot_file(variant="cart") == "pan-svitik-coins.png"
-    assert svitik_mascot_file(variant="checkout", mascot="coins") == "pan-svitik-coins.png"
-    assert svitik_mascot_file(variant="success") == "pan-svitik-celebrate.png"
-    assert svitik_mascot_file(variant="guide") == "pan-svitik-tech.png"
+    assert svitik_mascot_file(variant="welcome") == "pan-svitik-choice.webp"
+    assert svitik_mascot_file(variant="choice") == "pan-svitik-choice.webp"
+    assert svitik_mascot_file(variant="cart") == "pan-svitik-coins.webp"
+    assert svitik_mascot_file(variant="checkout", mascot="coins") == "pan-svitik-coins.webp"
+    assert svitik_mascot_file(variant="success") == "pan-svitik-celebrate.webp"
+    assert svitik_mascot_file(variant="guide") == "pan-svitik-tech.webp"
 
 
 def test_min_order_coin_gap():

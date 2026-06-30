@@ -92,7 +92,12 @@ superuser:
 	$(SETTINGS) $(MANAGE) createsuperuser
 
 collectstatic:
+	python3 scripts/build_css_bundle.py
 	$(SETTINGS) $(MANAGE) collectstatic --noinput
+
+assets:
+	python3 scripts/optimize_static_images.py
+	python3 scripts/build_css_bundle.py
 
 docker-build:
 	docker compose -f docker-compose.yml -f docker-compose.http.yml build

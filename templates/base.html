@@ -57,11 +57,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   {# PT Sans — loaded async via static/js/modules/fonts.js (non-blocking) #}
 
-  {# Preload critical CSS #}
-  <link rel="preload" href="{% static 'css/app.css' %}" as="style">
+  {# Preload critical CSS (single bundled file — no @import waterfall) #}
+  <link rel="preload" href="{% static 'css/app.bundled.css' %}" as="style">
 
   {# CSS #}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.bundled.css' %}">
   {% block extra_css %}{% endblock %}
 
   {# GTM — async, no inline scripts; using noscript fallback in body #}

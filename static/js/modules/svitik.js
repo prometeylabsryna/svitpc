@@ -6,26 +6,26 @@
 const STORAGE_KEY = "svitik-welcome-v1";
 const DEFAULT_DURATION = 7000;
 const COIN_SRC = "/static/images/svitpc-coin-light.png";
-const ASSET_VERSION = "3";
+const ASSET_VERSION = "4";
 
 const MASCOT_BY_KEY = {
-  guide: "/static/images/pan-svitik-tech.png",
-  welcome: "/static/images/pan-svitik-choice.png",
-  cart: "/static/images/pan-svitik-coins.png",
-  choice: "/static/images/pan-svitik-choice.png",
-  search: "/static/images/pan-svitik-search.png",
-  tech: "/static/images/pan-svitik-tech.png",
-  coins: "/static/images/pan-svitik-coins.png",
-  progress: "/static/images/pan-svitik-celebrate.png",
-  celebrate: "/static/images/pan-svitik-celebrate.png",
+  guide: "/static/images/pan-svitik-tech.webp",
+  welcome: "/static/images/pan-svitik-choice.webp",
+  cart: "/static/images/pan-svitik-coins.webp",
+  choice: "/static/images/pan-svitik-choice.webp",
+  search: "/static/images/pan-svitik-search.webp",
+  tech: "/static/images/pan-svitik-tech.webp",
+  coins: "/static/images/pan-svitik-coins.webp",
+  progress: "/static/images/pan-svitik-celebrate.webp",
+  celebrate: "/static/images/pan-svitik-celebrate.webp",
 };
 
 const MASCOT_DIMS = {
-  "pan-svitik-choice.png": [712, 855],
-  "pan-svitik-coins.png": [594, 912],
-  "pan-svitik-search.png": [604, 862],
-  "pan-svitik-tech.png": [709, 915],
-  "pan-svitik-celebrate.png": [787, 872],
+  "pan-svitik-choice.webp": [368, 441],
+  "pan-svitik-coins.webp": [368, 565],
+  "pan-svitik-search.webp": [368, 525],
+  "pan-svitik-tech.webp": [368, 474],
+  "pan-svitik-celebrate.webp": [368, 407],
 };
 
 const VARIANT_MASCOT = {
@@ -48,7 +48,7 @@ const mascotSrc = (variant, mascotFile) => {
   if (mascotFile) {
     if (mascotFile.startsWith("/") || mascotFile.startsWith("http")) {
       src = mascotFile;
-    } else if (mascotFile.endsWith(".png")) {
+    } else if (mascotFile.endsWith(".png") || mascotFile.endsWith(".webp")) {
       src = `/static/images/${mascotFile}`;
     } else {
       src = MASCOT_BY_KEY[mascotFile] ?? MASCOT_BY_KEY.guide;
@@ -155,6 +155,11 @@ export const showSvitik = ({
   const src = mascotSrc(variant, mascot);
   mascotEl.src = src;
   mascotEl.alt = "";
+  const dims = mascotDims(src);
+  if (dims) {
+    mascotEl.width = dims[0];
+    mascotEl.height = dims[1];
+  }
   mascotEl.loading = "lazy";
   mascotEl.decoding = "async";
   mascotWrap.append(mascotEl);
