@@ -33,10 +33,7 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.integrations.brain.tasks.sync_products",
         "schedule": crontab(hour=4, minute=15),
     },
-    "brain-sync-images-nightly": {
-        "task": "apps.integrations.brain.tasks.sync_brain_images_nightly",
-        "schedule": crontab(hour=7, minute=0),
-    },
+    # Images + availability chain from sync_products / sync_brain_images_nightly.
     "brain-backfill-descriptions": {
         "task": "apps.integrations.brain.tasks.backfill_descriptions",
         "schedule": crontab(hour=7, minute=30),
@@ -48,7 +45,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     "catalog-translate-en": {
         "task": "catalog.translate_to_english",
-        "schedule": crontab(hour=10, minute=0),
+        "schedule": crontab(hour=12, minute=0),
         "kwargs": {
             "what": "catalog",
             "with_descriptions": True,
@@ -59,11 +56,6 @@ CELERY_BEAT_SCHEDULE = {
     "brain-sync-options": {
         "task": "apps.integrations.brain.tasks.sync_options",
         "schedule": crontab(hour=8, minute=30),
-    },
-    "brain-sync-all-availability": {
-        "task": "apps.integrations.brain.tasks.sync_all_availability",
-        "schedule": crontab(hour=9, minute=0),
-        "kwargs": {"hide_missing": True},
     },
     # ── Daytime (light API passes) ────────────────────────────────────────────
     "brain-sync-prices": {

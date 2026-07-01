@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 _BACKFILL_CHUNK = 1000
 _NIGHTLY_IMAGE_CHUNK = 5000
 _STALE_STOCK_CHUNK = 600
+_LOCK_RETRY_SECONDS = 600
 
 
 def _utc_since(hours: int) -> str:
@@ -74,8 +75,14 @@ def sync_products() -> None:
     """Full nightly sync: categories → vendors → products → options → images."""
     with heavy_catalog_sync_lock("brain_products") as acquired:
         if not acquired:
+            sync_products.apply_async(countdown=_LOCK_RETRY_SECONDS)
+            logger.warning(
+                "Brain sync_products: lock busy, retry in %ss",
+                _LOCK_RETRY_SECONDS,
+            )
             return
         _sync_products_impl()
+    sync_brain_images_nightly.apply_async(countdown=30)
 
 
 def _sync_products_impl() -> None:
@@ -191,6 +198,8 @@ def _sync_products_impl() -> None:
 @shared_task
 def sync_prices() -> None:
     """Sync prices (+ brand/category when present) for recently modified products."""
+    from apps.catalog.models import Product
+
     client = _brain_client()
     vendor_map = client.get_all_vendors()
     cat_map = build_category_map_from_db(client)
@@ -342,9 +351,15 @@ def sync_brain_images_nightly() -> None:
     """Once per night: pull missing photos and apply image changes from Brain."""
     with heavy_catalog_sync_lock("brain_images") as acquired:
         if not acquired:
+            sync_brain_images_nightly.apply_async(countdown=_LOCK_RETRY_SECONDS)
+            logger.warning(
+                "Brain sync_images nightly: lock busy, retry in %ss",
+                _LOCK_RETRY_SECONDS,
+            )
             return
         _backfill_images_impl(chunk=_NIGHTLY_IMAGE_CHUNK)
         _sync_images_impl(since_hours=24)
+    sync_all_availability.apply_async(kwargs={"hide_missing": True}, countdown=30)
 
 
 # ── sync_new_products ─────────────────────────────────────────────────────────
@@ -654,6 +669,14 @@ def sync_all_availability(hide_missing: bool = True) -> dict[str, int] | None:
     """Daily full availability pass — is_archive for entire Brain catalog."""
     with heavy_catalog_sync_lock("brain_availability") as acquired:
         if not acquired:
+            sync_all_availability.apply_async(
+                countdown=_LOCK_RETRY_SECONDS,
+                kwargs={"hide_missing": hide_missing},
+            )
+            logger.warning(
+                "Brain sync_all_availability: lock busy, retry in %ss",
+                _LOCK_RETRY_SECONDS,
+            )
             return None
         return _sync_all_availability_impl(hide_missing=hide_missing)
 

@@ -341,6 +341,8 @@ def sync_all() -> None:
     """Full Kancmaster XML sync: upsert all products, update descriptions/categories."""
     with heavy_catalog_sync_lock("kancmaster") as acquired:
         if not acquired:
+            sync_all.apply_async(countdown=600)
+            logger.warning("Kancmaster sync: lock busy, retry in 600s")
             return
         _run_kancmaster_sync()
 
