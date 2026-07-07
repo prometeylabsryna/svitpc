@@ -44,8 +44,8 @@ def merchant_feed_queryset() -> QuerySet[Product]:
 
 
 def remarketing_feed_queryset() -> QuerySet[Product]:
-    max_items = getattr(settings, "ANALYTICS_FEED_MAX_PRODUCTS", 10000)
-    return visible_products_queryset().order_by("pk")[:max_items]
+    """All visible products — no artificial limit."""
+    return visible_products_queryset().order_by("pk")
 
 
 def merchant_feed_cheap_queryset() -> QuerySet[Product]:
@@ -232,7 +232,7 @@ def _compute_feed_stats(site_url: str) -> FeedStats:
         visible_products=visible_count,
         merchant_eligible=merchant_eligible,
         merchant_in_feed=merchant_eligible,
-        remarketing_in_feed=min(visible_count, max_items),
+        remarketing_in_feed=visible_count,
         merchant_issues=_issue_stats(merchant_base),
         remarketing_issues=_issue_stats(visible),
         price_tiers=_price_tier_stats(None),
