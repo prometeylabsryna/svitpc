@@ -215,12 +215,12 @@ def _price_tier_stats(request: HttpRequest | None) -> tuple[PriceTierStat, ...]:
     )
 
 
-def collect_feed_stats(request: HttpRequest | None = None) -> FeedStats:
-    max_items = getattr(settings, "ANALYTICS_FEED_MAX_PRODUCTS", 10000)
-    site_url = (getattr(settings, "SITE_URL", "") or "").rstrip("/")
-    if not site_url and request is not None:
-        site_url = f"{request.scheme}://{request.get_host()}"
+_FEED_STATS_CACHE_KEY = "analytics:feed_stats_v2"
+_FEED_STATS_CACHE_TTL = 300  # 5 minutes
 
+
+def _compute_feed_stats(site_url: str) -> FeedStats:
+    max_items = getattr(settings, "ANALYTICS_FEED_MAX_PRODUCTS", 10000)
     visible = Product.objects.filter(is_visible=True)
     merchant_base = visible.filter(stock__gt=0)
     visible_count = visible.count()
@@ -235,5 +235,21 @@ def collect_feed_stats(request: HttpRequest | None = None) -> FeedStats:
         remarketing_in_feed=min(visible_count, max_items),
         merchant_issues=_issue_stats(merchant_base),
         remarketing_issues=_issue_stats(visible),
-        price_tiers=_price_tier_stats(request),
+        price_tiers=_price_tier_stats(None),
     )
+
+
+def collect_feed_stats(request: HttpRequest | None = None) -> FeedStats:
+    from django.core.cache import cache
+
+    site_url = (getattr(settings, "SITE_URL", "") or "").rstrip("/")
+    if not site_url and request is not None:
+        site_url = f"{request.scheme}://{request.get_host()}"
+
+    cached = cache.get(_FEED_STATS_CACHE_KEY)
+    if cached is not None:
+        return cached
+
+    stats = _compute_feed_stats(site_url)
+    cache.set(_FEED_STATS_CACHE_KEY, stats, _FEED_STATS_CACHE_TTL)
+    return stats

@@ -1,11 +1,15 @@
 from django.http import HttpRequest
 
+from apps.core.admin_mixins import is_admin_request
+
 from .cache import get_cached_wishlist_ids, invalidate_wishlist_ids_cache, set_cached_wishlist_ids
 
 _SESSION_KEY = "wishlist"
 
 
 def wishlist_context(request: HttpRequest) -> dict:
+    if is_admin_request(request):
+        return {}
     if request.user.is_authenticated:
         user_id = request.user.pk
         ids = get_cached_wishlist_ids(user_id)

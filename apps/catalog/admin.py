@@ -205,8 +205,8 @@ class ProductAdmin(OptimizedAdminMixin, ModelAdmin):
         css = {"all": ("css/admin_extra.css",)}
 
     list_display = ("name", "sku", "brand", "price", "stock", "is_visible", "is_new", "is_hit", "source", "thumb_preview")
-    list_filter = ("source", "is_visible", "is_new", "is_hit", "brand")
-    search_fields = ("name", "name_uk", "name_en", "sku", "external_id", "slug")
+    list_filter = ("source", "is_visible", "is_new", "is_hit")
+    search_fields = ("name", "name_uk", "name_en", "sku", "external_id", "slug", "brand__name")
     list_editable = ("is_visible", "is_new", "is_hit", "price")
     prepopulated_fields = {"slug": ("name",)}
     autocomplete_fields = ("brand",)
@@ -268,6 +268,12 @@ class ProductAdmin(OptimizedAdminMixin, ModelAdmin):
                 "search_vector",
             )
         return qs.prefetch_related("images", "categories")
+
+    def get_ordering(self, request: HttpRequest):
+        # PK ordering uses the btree index directly — avoids 377k-row sort_order/name sort.
+        if admin_is_changelist(request):
+            return ["-pk"]
+        return super().get_ordering(request)
 
     @admin.display(description=_("Фото"))
     def thumb_preview(self, obj: Product) -> str:

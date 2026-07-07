@@ -132,6 +132,8 @@ DATABASES = {
     "default": env.db("DATABASE_URL", default="postgres://svitpc:svitpc@localhost:5432/svitpc"),
 }
 DATABASES["default"]["OPTIONS"] = {"connect_timeout": 10}
+DATABASES["default"]["CONN_MAX_AGE"] = 60
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 # Full-text search — 'ukrainian' is created by apps.search migration (COPY simple)
 POSTGRES_FTS_CONFIG = env("POSTGRES_FTS_CONFIG", default="ukrainian")
