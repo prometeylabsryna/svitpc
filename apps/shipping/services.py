@@ -119,7 +119,8 @@ def _np_city_from_api(item: dict):
     from types import SimpleNamespace
 
     ref = (item.get("DeliveryCityRef") or item.get("Ref") or "").strip()
-    name = (item.get("Present") or item.get("MainDescription") or "").strip()
+    # Use MainDescription (just city name: "Київ") not Present (full string: "м. Київ, Київська обл.")
+    name = (item.get("MainDescription") or item.get("Present") or "").strip()
     area = (
         item.get("AreaDescription")
         or item.get("RegionDescription")
@@ -263,6 +264,8 @@ def search_np_warehouses(city_ref: str, query: str = "", limit: int = 20) -> lis
         from django.db.models import Q
 
         q_filter = Q(name__icontains=q)
+        if q.isdigit():
+            q_filter |= Q(number=q)
         for term in warehouse_search_variants(q)[1:]:
             q_filter |= Q(name__icontains=term)
         qs = qs.filter(q_filter)
