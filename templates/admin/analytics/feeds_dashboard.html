@@ -29,8 +29,8 @@
       <strong class="feeds-card__value">{{ stats.merchant_in_feed }}</strong>
     </article>
     <article class="feeds-card feeds-card--stat">
-      <span class="feeds-card__label">{% trans "Ліміт у фіді" %}</span>
-      <strong class="feeds-card__value">{{ stats.max_products }}</strong>
+      <span class="feeds-card__label">{% trans "Remarketing (всі видимі)" %}</span>
+      <strong class="feeds-card__value">{{ stats.remarketing_in_feed }}</strong>
     </article>
   </section>
 
@@ -98,6 +98,48 @@
       </p>
     </section>
   </div>
+
+  {% if price_tier_feeds %}
+  <section class="feeds-dashboard__tiers" aria-label="{% trans 'Цінові сегменти' %}">
+    <h2 class="feeds-dashboard__section-title">{% trans "Фіди за ціновими сегментами" %}</h2>
+    <p class="feeds-dashboard__section-lead">
+      {% trans "Окремі Merchant-фіди по ціновому діапазону — зручно для таргетованих кампаній Performance Max або Shopping з різними стратегіями ставок." %}
+    </p>
+    <div class="feeds-dashboard__tier-grid">
+      {% for tf in price_tier_feeds %}
+      <section class="feeds-card feeds-card--tier">
+        <div class="feeds-card__head">
+          <h3 class="feeds-card__title">{{ tf.tier.title }}</h3>
+          <span class="feeds-card__badge feeds-card__badge--tier">{{ tf.tier.count }} {% trans "товарів" %}</span>
+        </div>
+        <p class="feeds-card__text">{{ tf.tier.description }}</p>
+        <p class="feeds-card__range">
+          <strong>{% trans "Ціна:" %}</strong> {{ tf.tier.price_range }}
+        </p>
+
+        <label class="feeds-field__label" for="tier-url-{{ forloop.counter }}">{% trans "URL фіду" %}</label>
+        <div class="feeds-field">
+          <input
+            id="tier-url-{{ forloop.counter }}"
+            class="feeds-field__input"
+            type="url"
+            readonly
+            value="{{ tf.url }}"
+          >
+          <div class="feeds-field__actions">
+            <button type="button" class="feeds-btn feeds-btn--ghost" data-copy-target="tier-url-{{ forloop.counter }}">
+              {% trans "Копіювати" %}
+            </button>
+            <a class="feeds-btn feeds-btn--primary" href="{{ tf.url }}" target="_blank" rel="noopener noreferrer">
+              {% trans "Відкрити" %}
+            </a>
+          </div>
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 </div>
 
 <script>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from django.conf import settings
@@ -16,6 +17,13 @@ if TYPE_CHECKING:
 
 FEED_MERCHANT_SLUG = "google-merchant"
 FEED_REMARKETING_SLUG = "google-ads"
+FEED_MERCHANT_CHEAP_SLUG = "google-merchant-cheap"
+FEED_MERCHANT_MEDIUM_SLUG = "google-merchant-medium"
+FEED_MERCHANT_EXPENSIVE_SLUG = "google-merchant-expensive"
+
+# Price thresholds (UAH): cheap < CHEAP_MAX ≤ medium ≤ EXPENSIVE_MIN < expensive
+PRICE_CHEAP_MAX = Decimal("500")
+PRICE_EXPENSIVE_MIN = Decimal("5000")
 
 
 def visible_products_queryset() -> QuerySet[Product]:
@@ -26,14 +34,36 @@ def visible_products_queryset() -> QuerySet[Product]:
     )
 
 
+def _merchant_base() -> QuerySet[Product]:
+    return visible_products_queryset().filter(stock__gt=0).order_by("pk")
+
+
 def merchant_feed_queryset() -> QuerySet[Product]:
-    max_items = getattr(settings, "ANALYTICS_FEED_MAX_PRODUCTS", 10000)
-    return visible_products_queryset().filter(stock__gt=0).order_by("pk")[:max_items]
+    """All visible in-stock products — no artificial limit."""
+    return _merchant_base()
 
 
 def remarketing_feed_queryset() -> QuerySet[Product]:
     max_items = getattr(settings, "ANALYTICS_FEED_MAX_PRODUCTS", 10000)
     return visible_products_queryset().order_by("pk")[:max_items]
+
+
+def merchant_feed_cheap_queryset() -> QuerySet[Product]:
+    """In-stock products priced below PRICE_CHEAP_MAX."""
+    return _merchant_base().filter(price__lt=PRICE_CHEAP_MAX)
+
+
+def merchant_feed_medium_queryset() -> QuerySet[Product]:
+    """In-stock products priced between PRICE_CHEAP_MAX and PRICE_EXPENSIVE_MIN."""
+    return _merchant_base().filter(
+        price__gte=PRICE_CHEAP_MAX,
+        price__lte=PRICE_EXPENSIVE_MIN,
+    )
+
+
+def merchant_feed_expensive_queryset() -> QuerySet[Product]:
+    """In-stock products priced above PRICE_EXPENSIVE_MIN."""
+    return _merchant_base().filter(price__gt=PRICE_EXPENSIVE_MIN)
 
 
 def _invalid_image_q() -> Q:
@@ -65,6 +95,15 @@ class FeedIssueStat:
 
 
 @dataclass(frozen=True)
+class PriceTierStat:
+    slug: str
+    title: str
+    description: str
+    count: int
+    price_range: str
+
+
+@dataclass(frozen=True)
 class FeedStats:
     site_url: str
     max_products: int
@@ -74,13 +113,14 @@ class FeedStats:
     remarketing_in_feed: int
     merchant_issues: tuple[FeedIssueStat, ...]
     remarketing_issues: tuple[FeedIssueStat, ...]
+    price_tiers: tuple[PriceTierStat, ...]
 
 
 FEED_DEFINITIONS: tuple[FeedDefinition, ...] = (
     FeedDefinition(
         slug=FEED_MERCHANT_SLUG,
-        title="Google Merchant Center",
-        description="Основний товарний фід для Shopping / Performance Max. Лише видимі товари в наявності.",
+        title="Google Merchant Center — усі товари",
+        description="Основний товарний фід для Shopping / Performance Max. Лише видимі товари в наявності. Без ліміту кількості.",
         queryset_builder="merchant",
     ),
     FeedDefinition(
@@ -145,6 +185,36 @@ def _issue_stats(qs: QuerySet[Product]) -> tuple[FeedIssueStat, ...]:
     )
 
 
+def _price_tier_stats(request: HttpRequest | None) -> tuple[PriceTierStat, ...]:
+    cheap_count = merchant_feed_cheap_queryset().count()
+    medium_count = merchant_feed_medium_queryset().count()
+    expensive_count = merchant_feed_expensive_queryset().count()
+
+    return (
+        PriceTierStat(
+            slug=FEED_MERCHANT_CHEAP_SLUG,
+            title="Merchant — дешеві товари",
+            description=f"Товари до {int(PRICE_CHEAP_MAX)} грн. Канцтовари, аксесуари, витратні матеріали.",
+            count=cheap_count,
+            price_range=f"до {int(PRICE_CHEAP_MAX)} UAH",
+        ),
+        PriceTierStat(
+            slug=FEED_MERCHANT_MEDIUM_SLUG,
+            title="Merchant — середній сегмент",
+            description=f"Товари {int(PRICE_CHEAP_MAX)}–{int(PRICE_EXPENSIVE_MIN)} грн. Комплектуючі, периферія, принтери.",
+            count=medium_count,
+            price_range=f"{int(PRICE_CHEAP_MAX)}–{int(PRICE_EXPENSIVE_MIN)} UAH",
+        ),
+        PriceTierStat(
+            slug=FEED_MERCHANT_EXPENSIVE_SLUG,
+            title="Merchant — дорогі товари",
+            description=f"Товари понад {int(PRICE_EXPENSIVE_MIN)} грн. Ноутбуки, комп'ютери, сервери.",
+            count=expensive_count,
+            price_range=f"від {int(PRICE_EXPENSIVE_MIN)} UAH",
+        ),
+    )
+
+
 def collect_feed_stats(request: HttpRequest | None = None) -> FeedStats:
     max_items = getattr(settings, "ANALYTICS_FEED_MAX_PRODUCTS", 10000)
     site_url = (getattr(settings, "SITE_URL", "") or "").rstrip("/")
@@ -161,8 +231,9 @@ def collect_feed_stats(request: HttpRequest | None = None) -> FeedStats:
         max_products=max_items,
         visible_products=visible_count,
         merchant_eligible=merchant_eligible,
-        merchant_in_feed=min(merchant_eligible, max_items),
+        merchant_in_feed=merchant_eligible,
         remarketing_in_feed=min(visible_count, max_items),
         merchant_issues=_issue_stats(merchant_base),
         remarketing_issues=_issue_stats(visible),
+        price_tiers=_price_tier_stats(request),
     )

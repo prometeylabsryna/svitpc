@@ -224,12 +224,55 @@
   line-height: 1.5;
 }
 
+/* Price tier section */
+
+.feeds-dashboard__tiers {
+  margin-top: 2rem;
+}
+
+.feeds-dashboard__section-title {
+  font-size: clamp(1.1rem, 2vw, 1.25rem);
+  margin: 0 0 0.5rem;
+}
+
+.feeds-dashboard__section-lead {
+  margin: 0 0 1.25rem;
+  color: var(--feeds-muted);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.feeds-dashboard__tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--feeds-gap);
+}
+
+.feeds-card--tier {
+  border-left: 3px solid rgb(2 132 199);
+}
+
+.feeds-card__badge--tier {
+  background: rgb(236 254 255);
+  color: rgb(14 116 144);
+}
+
+.feeds-card__range {
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
+  color: var(--feeds-muted);
+}
+
 @media (max-width: 1024px) {
   .feeds-dashboard__summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .feeds-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feeds-dashboard__tier-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -264,5 +307,10 @@
   .feeds-card__badge {
     background: rgb(12 74 110);
     color: rgb(186 230 253);
+  }
+
+  .feeds-card__badge--tier {
+    background: rgb(8 51 68);
+    color: rgb(165 243 252);
   }
 }

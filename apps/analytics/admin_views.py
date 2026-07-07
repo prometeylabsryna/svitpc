@@ -18,6 +18,7 @@ class FeedsDashboardView(View):
 
     def get(self, request):
         stats = collect_feed_stats(request)
+
         feeds = [
             {
                 "definition": definition,
@@ -35,6 +36,15 @@ class FeedsDashboardView(View):
             }
             for definition in FEED_DEFINITIONS
         ]
+
+        price_tier_feeds = [
+            {
+                "tier": tier,
+                "url": absolute_feed_url(request, tier.slug),
+            }
+            for tier in stats.price_tiers
+        ]
+
         return render(
             request,
             "admin/analytics/feeds_dashboard.html",
@@ -42,6 +52,7 @@ class FeedsDashboardView(View):
                 "title": _("Фіди Google Merchant / Ads"),
                 "stats": stats,
                 "feeds": feeds,
+                "price_tier_feeds": price_tier_feeds,
                 **admin.site.each_context(request),
             },
         )
