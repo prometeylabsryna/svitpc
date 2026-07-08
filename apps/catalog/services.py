@@ -4,7 +4,22 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from django.db.models import Avg, Case, Count, F, IntegerField, Q, QuerySet, Value, When
+from django.db.models import (
+    Avg,
+    Case,
+    Count,
+    Exists,
+    F,
+    FloatField,
+    IntegerField,
+    OuterRef,
+    Q,
+    QuerySet,
+    Subquery,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from apps.core.i18n import localized_field
@@ -24,22 +39,32 @@ def visible_catalog_products() -> QuerySet[Product]:
 
 
 def category_listing_products(category: Category) -> QuerySet[Product]:
-    """Products for a category page — subtree plus items assigned to ancestor categories only."""
+    """Products for a category page — subtree plus items assigned to ancestor categories only.
+
+    Uses an EXISTS semi-join against the M2M through table instead of a
+    JOIN + DISTINCT: a product can be linked to several categories inside
+    the same subtree, so the JOIN form duplicates rows and forces Postgres
+    to deduplicate tens of thousands of rows on every COUNT/listing query
+    for large subtrees (e.g. the ~57k-product "Канцелярські товари" tree).
+    EXISTS never duplicates rows, so no DISTINCT is needed at all.
+    """
     from .cross_sell import primary_listing_category_pks
 
     primary_pks = primary_listing_category_pks(category)
     if primary_pks is not None:
         return visible_catalog_products().filter(categories__in=primary_pks).distinct()
 
-    return (
-        visible_catalog_products()
-        .filter(categories__tree_id=category.tree_id)
-        .filter(
-            Q(categories__lft__gte=category.lft, categories__rght__lte=category.rght)
-            | Q(categories__lft__lt=category.lft, categories__rght__gt=category.rght)
-        )
-        .distinct()
+    subtree_pks = Category.objects.filter(tree_id=category.tree_id).filter(
+        Q(lft__gte=category.lft, rght__lte=category.rght)
+        | Q(lft__lt=category.lft, rght__gt=category.rght)
+    ).values("pk")
+
+    through = Product.categories.through
+    membership = through.objects.filter(
+        product_id=OuterRef("pk"),
+        category_id__in=Subquery(subtree_pks),
     )
+    return visible_catalog_products().filter(Exists(membership))
 
 
 def category_listing_category_scope(category: Category) -> QuerySet[Category]:
@@ -142,10 +167,24 @@ def finalize_product_listing(
     if with_reviews_ann:
         # Annotate so product cards avoid N+1 queries when rendering
         # avg_rating / review_count (@property reads these via __dict__ first).
-        approved_reviews = Q(reviews__is_approved=True)
+        #
+        # Correlated Subquery instead of a JOIN+Avg/Count(GROUP BY): the JOIN
+        # form forces Postgres to aggregate every matching row (tens of
+        # thousands for large categories) before it can ORDER BY + LIMIT.
+        # A scalar subquery lets the planner sort/limit the base queryset
+        # first and only evaluate the review stats for the winning page of
+        # rows — the listing itself only ever needs `sort` (rating-sort is
+        # the one case where the DB must still touch every row's subquery).
+        from apps.reviews.models import Review
+
+        approved = Review.objects.filter(product_id=OuterRef("pk"), is_approved=True)
+        review_avg_sq = approved.order_by().values("product_id").annotate(a=Avg("rating")).values("a")
+        review_count_sq = approved.order_by().values("product_id").annotate(c=Count("id")).values("c")
         qs = qs.annotate(
-            avg_rating_ann=Avg("reviews__rating", filter=approved_reviews),
-            review_count_ann=Count("reviews", filter=approved_reviews),
+            avg_rating_ann=Subquery(review_avg_sq, output_field=FloatField()),
+            review_count_ann=Coalesce(
+                Subquery(review_count_sq, output_field=IntegerField()), Value(0)
+            ),
         )
 
     qs = order_stock_first(qs, sort_field)
