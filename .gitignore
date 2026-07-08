@@ -18,4 +18,5 @@ node_modules/
 .DS_Store
 db.sqlite3
 data/*.sql
+data/bestseller_feed_pks.json
 celerybeat-schedule*
