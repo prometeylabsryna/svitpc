@@ -157,18 +157,20 @@ def accrue_coins_for_order(order) -> BonusTransaction | None:
     """Credit coins after delivery; idempotent per order."""
     if not order.customer_id:
         return None
-    if BonusTransaction.objects.filter(
-        order=order,
-        transaction_type=BonusTransaction.TYPE_EARN,
-    ).exists():
-        return None
 
     coins = coins_for_order_total(order_total_for_coins(order))
     if coins <= 0:
         return None
 
+    # Спершу лок клієнта: серіалізує конкурентні нарахування, і лише потім
+    # перевірка ідемпотентності. DB-backstop — constraint loyalty_one_earn_per_order.
     user_model = get_user_model()
     customer = user_model.objects.select_for_update().get(pk=order.customer_id)
+    if BonusTransaction.objects.filter(
+        order=order,
+        transaction_type=BonusTransaction.TYPE_EARN,
+    ).exists():
+        return None
     expires_at = timezone.now() + timedelta(days=COIN_LIFETIME_DAYS)
     customer.bonus_balance += Decimal(coins)
     customer.save(update_fields=["bonus_balance"])

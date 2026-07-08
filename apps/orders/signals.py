@@ -35,11 +35,13 @@ def on_order_created(sender, instance: Order, created: bool, **kwargs) -> None:
         return
 
     def _enqueue() -> None:
+        from apps.core.celery_utils import safe_delay
         from apps.notifications.tasks import notify_new_order_customer, notify_new_order_owner
 
         # Owner email first (fast); customer SMS/push in a separate task.
-        notify_new_order_owner.delay(instance.pk)
-        notify_new_order_customer.delay(instance.pk)
+        # safe_delay: падіння брокера не має ламати створення замовлення.
+        safe_delay(notify_new_order_owner, instance.pk)
+        safe_delay(notify_new_order_customer, instance.pk)
 
     transaction.on_commit(_enqueue)
 
@@ -67,8 +69,10 @@ def on_order_status_notify(sender, instance: Order, created: bool, update_fields
         return
     if not instance.status_id:
         return
+    from apps.core.celery_utils import safe_delay
     from apps.notifications.tasks import notify_order_status
-    notify_order_status.delay(instance.pk)
+
+    safe_delay(notify_order_status, instance.pk)
 
 
 @receiver(post_save, sender=Order)
@@ -97,18 +101,12 @@ def on_order_paid(sender, instance: Order, created: bool, update_fields=None, **
         return
 
     def _fiscalize() -> None:
-        from apps.integrations.vchasnokasa.client import VchasnoKasaClient
+        # Через Celery (черга priority, retry×3) — не блокує webhook-запит
+        # і переживає тимчасові збої API Вчасно.Каса.
+        from apps.core.celery_utils import safe_delay
+        from apps.integrations.vchasnokasa.tasks import fiscalize_payment
 
-        try:
-            client = VchasnoKasaClient()
-            url = client.create_receipt(instance)
-            if url:
-                Order.objects.filter(pk=instance.pk).update(fiscal_check_url=url)
-        except Exception as exc:
-            import logging
-            logging.getLogger(__name__).error(
-                "on_order_paid fiscal receipt error #%s: %s", instance.pk, exc
-            )
+        safe_delay(fiscalize_payment, instance.pk)
 
     transaction.on_commit(_fiscalize)
 

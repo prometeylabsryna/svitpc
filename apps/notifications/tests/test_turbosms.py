@@ -18,7 +18,8 @@ def test_clean_ua_phone_for_storage():
     from apps.notifications.phone import clean_ua_phone_for_storage
 
     assert clean_ua_phone_for_storage("0501234567") == "+380501234567"
-    assert clean_ua_phone_for_storage("") == ""
+    # За замовчуванням телефон обов'язковий (checkout validation покладається на це)
+    assert clean_ua_phone_for_storage("", required=False) == ""
     with pytest.raises(InvalidPhoneError):
         clean_ua_phone_for_storage("", required=True)
     with pytest.raises(InvalidPhoneError):

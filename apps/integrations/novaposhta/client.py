@@ -115,19 +115,34 @@ class NovaPoshtaClient:
     def __init__(self) -> None:
         self._key = settings.NOVA_POSHTA_API_KEY
 
+    _POST_ATTEMPTS = 2
+    _RETRY_DELAY_SEC = 1.0
+
     def _post(self, model_name: str, method: str, props: dict | None = None) -> dict:
-        try:
-            resp = httpx.post(NP_API_URL, json={
-                "apiKey": self._key,
-                "modelName": model_name,
-                "calledMethod": method,
-                "methodProperties": props or {},
-            }, timeout=30)
-            resp.raise_for_status()
-            return resp.json()
-        except Exception as exc:
-            logger.error("NovaPoshta API error %s/%s: %s", model_name, method, exc)
-            return {"success": False, "data": []}
+        payload = {
+            "apiKey": self._key,
+            "modelName": model_name,
+            "calledMethod": method,
+            "methodProperties": props or {},
+        }
+        last_exc: Exception | None = None
+        for attempt in range(self._POST_ATTEMPTS):
+            try:
+                resp = httpx.post(NP_API_URL, json=payload, timeout=30)
+                resp.raise_for_status()
+                return resp.json()
+            except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+                # Мережеві збої/5xx — один швидкий повтор (Brain-патерн)
+                last_exc = exc
+                if attempt + 1 < self._POST_ATTEMPTS:
+                    import time
+
+                    time.sleep(self._RETRY_DELAY_SEC)
+            except Exception as exc:
+                last_exc = exc
+                break
+        logger.error("NovaPoshta API error %s/%s: %s", model_name, method, last_exc)
+        return {"success": False, "data": []}
 
     def search_cities(self, query: str) -> list[dict]:
         resp = self._post("Address", "searchSettlements", {"CityName": query, "Limit": 10})

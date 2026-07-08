@@ -1,12 +1,12 @@
 from celery import shared_task
 
+from .client import NovaPoshtaClient
+
 NP_WAREHOUSE_SYNC_CHUNK_SIZE = 75
 
 
 def _sync_warehouses_for_cities(city_pks: list[int]) -> int:
     from apps.shipping.models import NovaPoshtaCity, NovaPoshtaWarehouse
-
-    from .client import NovaPoshtaClient
 
     client = NovaPoshtaClient()
     total = 0
@@ -56,8 +56,6 @@ def enqueue_np_warehouse_sync(*, missing_only: bool = False) -> tuple[int, int]:
 @shared_task
 def sync_np_cities():
     """Download/refresh Nova Poshta city list."""
-    from .client import NovaPoshtaClient
-
     client = NovaPoshtaClient()
     count = client.sync_cities_to_db()
     return f"Synced {count} cities"

@@ -95,4 +95,16 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.integrations.ukrposhta.tasks.update_up_delivery_statuses",
         "schedule": crontab(minute=17, hour="*/1"),
     },
+    # Перегляди товарів: PDP пише в Redis-hash, у БД — батчем кожні 5 хв.
+    "catalog-flush-product-views": {
+        "task": "catalog.flush_product_views",
+        "schedule": crontab(minute="*/5"),
+        "options": {"queue": "light"},
+    },
+    # Нічний аудит цін нижче собівартості (після нічних синків постачальників).
+    "catalog-audit-prices-below-cost": {
+        "task": "catalog.audit_prices_below_cost",
+        "schedule": crontab(hour=6, minute=45),
+        "options": {"queue": "light"},
+    },
 }

@@ -71,13 +71,13 @@ def toggle_view(request: HttpRequest, product_id: int) -> HttpResponse:
     else:
         created, count = _guest_toggle(request, product.pk)
     message = _("Товар додано до бажаних") if created else _("Прибрано з бажаних")
-    response = HttpResponse(status=204)
-    response["HX-Trigger"] = json.dumps(
+    from apps.core.htmx import hx_trigger
+
+    return hx_trigger(
+        HttpResponse(status=204),
         {
             "wishlistUpdated": count,
             "wishlistActive": created,
             "toast": {"message": message, "type": "success"},
         },
-        ensure_ascii=True,
     )
-    return response

@@ -42,10 +42,11 @@ class TestSyncAllAvailabilityFromBrain:
         client.get_all_categories.return_value = [
             {"categoryID": 1181, "parentID": 1, "realcat": 0, "name": "Ноутбуки"},
         ]
+        # recommendable_price обов'язковий: без shelf-ціни brain_catalog_visible ховає товар
         client.get_products.return_value = (
             [
-                {"productID": 100, "is_archive": False},
-                {"productID": 200, "is_archive": True},
+                {"productID": 100, "is_archive": False, "recommendable_price": "999"},
+                {"productID": 200, "is_archive": True, "recommendable_price": "999"},
             ],
             2,
         )
@@ -60,7 +61,8 @@ class TestSyncAllAvailabilityFromBrain:
         archived.refresh_from_db()
         missing.refresh_from_db()
 
-        assert stats["updated"] == 2
+        # "visible" не змінився (stock/visibility/hide ті самі) — updated лише archived
+        assert stats["updated"] == 1
         assert stats["missing_hidden"] == 1
         assert visible.stock == 1 and visible.is_visible is True
         assert archived.stock == 0 and archived.is_visible is False

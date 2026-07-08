@@ -7,6 +7,15 @@ import pytest
 _counter = itertools.count(1)
 
 
+@pytest.fixture(autouse=True)
+def _clear_cache():
+    """Герметичність: LocMem-кеш (nav, admin tree, facets) не тече між тестами."""
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+
+
 
 @pytest.fixture
 def brand_factory(db):
@@ -43,6 +52,8 @@ def product_factory(db):
         kwargs.setdefault("price", Decimal("999"))
         kwargs.setdefault("stock", 10)
         kwargs.setdefault("is_visible", True)
+        # Валідний URL фото — товар проходить фільтр has_display_image у каталозі
+        kwargs.setdefault("image_url", f"https://example.com/p{n}.jpg")
         slug = kwargs.pop("slug", f"test-product-{n}")
         return Product.objects.create(name=name, slug=slug, **kwargs)
 

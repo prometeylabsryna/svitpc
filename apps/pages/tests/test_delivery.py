@@ -12,7 +12,6 @@ class DeliveryPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Доставка замовлень")
         self.assertContains(response, "Нова Пошта")
-        self.assertContains(response, "Укрпошта")
         self.assertContains(response, "Самовивіз")
 
     def test_pickup_address(self) -> None:

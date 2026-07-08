@@ -338,19 +338,21 @@ def one_click_view(request: HttpRequest, product_id: int) -> HttpResponse:
             ctx["phone_error"] = str(_("Введіть коректний номер телефону (+380…)."))
 
         if name and phone:
-            order = Order.objects.create(
-                customer=request.user if request.user.is_authenticated else None,
-                status=_default_status(),
-                first_name=name,
-                last_name="",
-                email="",
-                phone=phone,
-                delivery_type="nova_poshta",
-                payment_method="cod",
-                total=product.price,
-                comment=_("Замовлення в 1 клік"),
-            )
-            OrderItem.objects.create(order=order, product=product, name=product.name, price=product.price, qty=1)
+            # atomic: Order без OrderItem не має існувати (сигнали шлють on_commit)
+            with transaction.atomic():
+                order = Order.objects.create(
+                    customer=request.user if request.user.is_authenticated else None,
+                    status=_default_status(),
+                    first_name=name,
+                    last_name="",
+                    email="",
+                    phone=phone,
+                    delivery_type="nova_poshta",
+                    payment_method="cod",
+                    total=product.price,
+                    comment=_("Замовлення в 1 клік"),
+                )
+                OrderItem.objects.create(order=order, product=product, name=product.name, price=product.price, qty=1)
             order = Order.objects.prefetch_related("items").get(pk=order.pk)
             return render(
                 request,

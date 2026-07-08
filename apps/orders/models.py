@@ -92,6 +92,12 @@ class Order(models.Model):
     # Delivery identifiers
     ttn = models.CharField(_("ТТН (НП)"), max_length=100, blank=True)
     up_barcode = models.CharField(_("Штрихкод УкрПошти"), max_length=100, blank=True)
+    shipping_error = models.CharField(
+        _("Помилка створення відправлення"),
+        max_length=500,
+        blank=True,
+        help_text=_("Остання помилка API перевізника при створенні ТТН; очищається при успіху."),
+    )
     postcode = models.CharField(_("Індекс (УкрПошта)"), max_length=10, blank=True)
 
     # Fiscalization

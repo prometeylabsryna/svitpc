@@ -46,25 +46,54 @@ def _valid_image_url_q(*, field: str = "image_url") -> Q:
     return Q(**{f"{field}__gt": ""}) & ~_invalid_image_url_q(field=field)
 
 
+def _has_file_q(*, field: str = "image") -> Q:
+    """Непорожній файл (ImageField): NULL і '' — обидва означають «без файлу»."""
+    return Q(**{f"{field}__isnull": False}) & ~Q(**{field: ""})
+
+
 def _has_display_image_q() -> Q:
     from apps.catalog.models import ProductImage
 
     has_valid_gallery = Exists(
         ProductImage.objects.filter(product_id=OuterRef("pk")).filter(
-            ~Q(image="") | _valid_image_url_q(field="image_url"),
+            _has_file_q() | _valid_image_url_q(field="image_url"),
         ),
     )
-    return ~Q(image="") | _valid_image_url_q(field="image_url") | has_valid_gallery
+    return _has_file_q() | _valid_image_url_q(field="image_url") | has_valid_gallery
 
 
 def filter_products_with_display_image(qs: QuerySet) -> QuerySet:
-    """Products that resolve to a real photo (upload, valid URL, or gallery)."""
+    """Products that resolve to a real photo (upload, valid URL, or gallery).
+
+    Повний (дорогий) предикат з EXISTS по галереї. Для гарячих шляхів каталогу
+    використовуйте денормалізований прапорець ``has_display_image`` — див.
+    ``visible_catalog_products()`` та ``recompute_has_display_image()``.
+    """
     return qs.filter(_has_display_image_q())
 
 
 def filter_products_missing_display_image(qs: QuerySet) -> QuerySet:
     """Products with no displayable photo (placeholder/stale URLs do not count)."""
     return qs.exclude(_has_display_image_q())
+
+
+def recompute_has_display_image(product_ids=None) -> int:
+    """Перерахувати денормалізований Product.has_display_image.
+
+    Два bulk UPDATE за повним предикатом. Викликати після bulk-операцій з фото
+    (синки постачальників, cleanup, міграції URL), які обходять save()/сигнали.
+    Повертає кількість змінених рядків.
+    """
+    from apps.catalog.models import Product
+
+    qs = Product.objects.all()
+    if product_ids is not None:
+        qs = qs.filter(pk__in=list(product_ids))
+
+    q = _has_display_image_q()
+    changed = qs.filter(q, has_display_image=False).update(has_display_image=True)
+    changed += qs.filter(~q, has_display_image=True).update(has_display_image=False)
+    return changed
 
 
 def normalize_brain_image_url(url: str) -> str:
@@ -108,7 +137,7 @@ def product_gallery_urls(product: Product) -> list[str]:
     return urls
 
 
-def cleanup_product_gallery(*, dry_run: bool = False) -> dict[str, int]:
+def cleanup_product_gallery(*, dry_run: bool = False, recompute_flags: bool = True) -> dict[str, int]:
     """Remove stale OpenCart URLs, Brain placeholders, and duplicate ProductImage rows."""
     from django.db import connection
 
@@ -186,5 +215,9 @@ def cleanup_product_gallery(*, dry_run: bool = False) -> dict[str, int]:
             ):
                 cursor.execute(sql)
                 stats[key] = cursor.rowcount
+
+    # recompute_flags=False лише для історичної міграції 0008 (колонки ще немає)
+    if not dry_run and recompute_flags:
+        stats["flag_recomputed"] = recompute_has_display_image()
 
     return stats

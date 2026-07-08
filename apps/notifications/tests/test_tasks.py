@@ -123,17 +123,16 @@ def test_on_order_created_enqueues_after_commit(django_capture_on_commit_callbac
     with patch("apps.notifications.tasks.notify_new_order_owner.delay") as owner_delay, patch(
         "apps.notifications.tasks.notify_new_order_customer.delay",
     ) as customer_delay:
-        with transaction.atomic():
-            Order.objects.create(
-                status=status,
-                first_name="Олег",
-                phone="+380671111111",
-                total=Decimal("200.00"),
-            )
-        owner_delay.assert_not_called()
-        customer_delay.assert_not_called()
-
-        django_capture_on_commit_callbacks()
+        with django_capture_on_commit_callbacks(execute=True):
+            with transaction.atomic():
+                Order.objects.create(
+                    status=status,
+                    first_name="Олег",
+                    phone="+380671111111",
+                    total=Decimal("200.00"),
+                )
+            owner_delay.assert_not_called()
+            customer_delay.assert_not_called()
 
     owner_delay.assert_called_once()
     customer_delay.assert_called_once()

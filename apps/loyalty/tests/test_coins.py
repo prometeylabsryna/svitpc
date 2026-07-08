@@ -48,6 +48,34 @@ def test_next_milestone_progress():
 
 
 @pytest.mark.django_db
+def test_accrue_coins_idempotent_per_order(customer_factory):
+    """Повторний виклик accrue для того ж замовлення не подвоює монети."""
+    from apps.orders.models import Order, OrderStatus
+
+    customer = customer_factory()
+    status = OrderStatus.objects.create(name="Доставлено", is_completed=True)
+    order = Order.objects.create(
+        customer=customer,
+        first_name="Тест",
+        last_name="Юзер",
+        phone="+380",
+        email=customer.email,
+        total=Decimal("2999.00"),  # 1 монета — нижче першого milestone (10)
+        status=status,
+    )
+    first = accrue_coins_for_order(order)
+    second = accrue_coins_for_order(order)
+
+    assert first is not None
+    assert second is None
+    customer.refresh_from_db()
+    assert customer.bonus_balance == Decimal("1")
+    assert BonusTransaction.objects.filter(
+        order=order, transaction_type=BonusTransaction.TYPE_EARN
+    ).count() == 1
+
+
+@pytest.mark.django_db
 def test_accrue_coins_example_order(customer_factory):
     from apps.orders.models import Order, OrderStatus
 

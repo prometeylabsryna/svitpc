@@ -1,13 +1,29 @@
 """Tests for integration product deduplication."""
 
 import pytest
+from django.db import connection
 
 from apps.catalog.models import Product
 from apps.catalog.product_dedup import dedupe_source_external_id, merge_product_into
 
 
+def _drop_source_external_id_constraint() -> None:
+    """dedupe_* — історичний хелпер для даних ДО constraint (міграція 0018).
+
+    Щоб відтворити дублікати, тимчасово знімаємо constraint; DDL відкотиться
+    разом із тестовою транзакцією.
+    """
+    constraint = next(
+        c for c in Product._meta.constraints
+        if c.name == "catalog_product_source_external_id_uniq"
+    )
+    with connection.schema_editor() as editor:
+        editor.remove_constraint(Product, constraint)
+
+
 @pytest.mark.django_db
 def test_dedupe_brain_external_id_keeps_one(product_factory):
+    _drop_source_external_id_constraint()
     first = product_factory(
         name="Item A",
         slug="brain-dup-a",

@@ -60,7 +60,9 @@ def test_reorder_adds_to_cart(client, order, customer):
 
 
 @pytest.mark.django_db
-def test_bonus_signal_accrues_on_completed_status(order, customer, completed_status):
+def test_bonus_signal_accrues_on_completed_status(
+    order, customer, completed_status, django_capture_on_commit_callbacks,
+):
     """Completed status should credit coins synchronously after commit."""
     from apps.orders.models import OrderStatus
 
@@ -68,8 +70,10 @@ def test_bonus_signal_accrues_on_completed_status(order, customer, completed_sta
     order.status = pending
     order.save(update_fields=["status"])
 
-    order.status = completed_status
-    order.save(update_fields=["status"])
+    # Сигнал нараховує монети через transaction.on_commit — виконуємо callbacks
+    with django_capture_on_commit_callbacks(execute=True):
+        order.status = completed_status
+        order.save(update_fields=["status"])
 
     customer.refresh_from_db()
     assert customer.bonus_balance == Decimal("1")

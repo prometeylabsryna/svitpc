@@ -16,12 +16,13 @@ from apps.core.svitik import product_purchase_tip
 from apps.promotions.services import with_active_promotions
 
 from .cross_sell import suggested_products_for_category, suggested_products_for_product
-from .gallery import filter_products_with_display_image, product_gallery_urls
+from .gallery import product_gallery_urls
 from .models import Brand, Category, Product
 from .services import (
     cached_product_count,
     category_listing_category_scope,
     category_listing_products,
+    finalize_product_listing,
     get_brands_for_category,
     get_category_facets,
     get_filtered_products,
@@ -69,33 +70,22 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
     )
     count_key = count_cache_key(scope="category-v2", scope_id=category.pk, params=filter_params)
 
-    qs_lite = with_active_promotions(
-        get_filtered_products(
-            base_qs,
-            brand_ids,
-            filter_ids,
-            price_min,
-            price_max,
-            in_stock,
-            sort,
-            for_count=True,
-            skip_image_filter=True,
-        )
+    # Фільтри будуються один раз: qs_lite — для count і фасетів,
+    # finalize_product_listing — доводить той самий queryset для сторінки.
+    qs_lite = get_filtered_products(
+        base_qs,
+        brand_ids,
+        filter_ids,
+        price_min,
+        price_max,
+        in_stock,
+        sort,
+        for_count=True,
+        skip_image_filter=True,
     )
     total = cached_product_count(qs_lite, cache_key=count_key)
 
-    qs = with_active_promotions(
-        get_filtered_products(
-            base_qs,
-            brand_ids,
-            filter_ids,
-            price_min,
-            price_max,
-            in_stock,
-            sort,
-            skip_image_filter=True,
-        )
-    )
+    qs = with_active_promotions(finalize_product_listing(qs_lite, sort))
     products = qs[(page - 1) * per_page: page * per_page]
 
     _qp = request.GET.copy()
@@ -168,7 +158,9 @@ def product_detail_view(request: HttpRequest, slug: str) -> HttpResponse:
         ),
         slug=slug,
     )
-    Product.objects.filter(pk=product.pk).update(viewed=product.viewed + 1)
+    from apps.catalog.view_counter import bump_product_view
+
+    bump_product_view(product.pk)
 
     category_pks = [category.pk for category in product.categories.all()]
     related, suggested_cross_sell = suggested_products_for_product(product)
@@ -230,32 +222,20 @@ def brand_view(request: HttpRequest, slug: str) -> HttpResponse:
     count_key = count_cache_key(scope="brand", scope_id=brand.pk, params=filter_params)
     facet_key = facet_cache_key(scope="brand", scope_id=brand.pk, params=filter_params)
 
-    base_qs = filter_products_with_display_image(brand.products.filter(is_visible=True))
-    qs_lite = with_active_promotions(
-        get_filtered_products(
-            base_qs,
-            filters=filter_ids,
-            price_min=price_min,
-            price_max=price_max,
-            in_stock_only=in_stock,
-            sort=sort,
-            for_count=True,
-            skip_image_filter=True,
-        )
+    base_qs = brand.products.filter(is_visible=True, has_display_image=True)
+    qs_lite = get_filtered_products(
+        base_qs,
+        filters=filter_ids,
+        price_min=price_min,
+        price_max=price_max,
+        in_stock_only=in_stock,
+        sort=sort,
+        for_count=True,
+        skip_image_filter=True,
     )
     total = cached_product_count(qs_lite, cache_key=count_key)
 
-    qs = with_active_promotions(
-        get_filtered_products(
-            base_qs,
-            filters=filter_ids,
-            price_min=price_min,
-            price_max=price_max,
-            in_stock_only=in_stock,
-            sort=sort,
-            skip_image_filter=True,
-        )
-    )
+    qs = with_active_promotions(finalize_product_listing(qs_lite, sort))
     products = qs[(page - 1) * per_page: page * per_page]
 
     _qp = request.GET.copy()

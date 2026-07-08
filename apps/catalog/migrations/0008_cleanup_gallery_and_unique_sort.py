@@ -4,7 +4,8 @@ from django.db import migrations, models
 def cleanup_gallery(apps, schema_editor):
     from apps.catalog.gallery import cleanup_product_gallery
 
-    cleanup_product_gallery(dry_run=False)
+    # recompute_flags=False: колонка has_display_image з'являється лише в 0020
+    cleanup_product_gallery(dry_run=False, recompute_flags=False)
 
 
 class Migration(migrations.Migration):

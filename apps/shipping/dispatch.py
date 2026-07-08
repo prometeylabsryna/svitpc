@@ -32,11 +32,13 @@ def dispatch_shipment_for_order(order_pk: int) -> None:
     if not order_ready_for_shipment(order):
         return
 
+    from apps.core.celery_utils import safe_delay
+
     if order.delivery_type == Order.DELIVERY_NP:
         from apps.shipping.tasks import create_ttn_for_order
 
-        create_ttn_for_order.delay(order.pk)
+        safe_delay(create_ttn_for_order, order.pk)
     elif order.delivery_type == Order.DELIVERY_UP:
         from apps.integrations.ukrposhta.tasks import create_up_shipment_for_order
 
-        create_up_shipment_for_order.delay(order.pk)
+        safe_delay(create_up_shipment_for_order, order.pk)

@@ -28,9 +28,10 @@ AXES_ENABLED = False
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
-# pgvector extension may not be available in CI/local test DB;
-# skip the embedding migration to keep tests runnable without it.
-# The field is nullable, so existing tests are unaffected.
-MIGRATION_MODULES = {
-    "catalog": "apps.catalog.migrations_no_vector",
-}
+# Герметичність: локальний .env не має впливати на очікування тестів
+BRAIN_DEFAULT_MARKUP_PERCENT = 0
+
+# Тестова БД використовує справжні міграції catalog (pgvector має бути
+# встановлений: локально brew/збірка, у Docker — образ pgvector/pgvector).
+# Застарілий обхід migrations_no_vector видалено: він відстав від справжніх
+# міграцій і ламав залежності інших apps (services.0004 → catalog.0011).

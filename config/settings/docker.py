@@ -15,7 +15,6 @@ MIDDLEWARE = [
     not in (
         "whitenoise.middleware.WhiteNoiseMiddleware",
         "django.middleware.gzip.GZipMiddleware",
-        "apps.core.middleware_debug_i18n.DebugI18nMiddleware",
     )
 ]
 

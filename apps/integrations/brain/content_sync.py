@@ -83,7 +83,8 @@ def sync_pictures_from_detail(product: "Product", detail: dict, name: str) -> bo
 
     main_url = rows[0][1]
     if is_valid_product_image_url(main_url):
-        Product.objects.filter(pk=product.pk).update(image_url=main_url)
+        # .update() обходить save() — прапорець виставляємо явно
+        Product.objects.filter(pk=product.pk).update(image_url=main_url, has_display_image=True)
     return True
 
 

@@ -95,7 +95,6 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
     "axes.middleware.AxesMiddleware",
     "apps.core.middleware.RedirectMiddleware",
-    "apps.core.middleware_debug_i18n.DebugI18nMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -210,8 +209,10 @@ CELERY_TASK_ROUTES = {
     "apps.notifications.tasks.notify_new_order_owner": {"queue": "priority"},
     "apps.notifications.tasks.notify_new_order_customer": {"queue": "priority"},
     "apps.notifications.tasks.notify_order_status": {"queue": "priority"},
+    "apps.integrations.vchasnokasa.tasks.fiscalize_payment": {"queue": "priority"},
     # Light — frequent / chunked jobs that must not block catalog imports.
     "apps.shipping.tasks.update_delivery_statuses": {"queue": "light"},
+    "catalog.flush_product_views": {"queue": "light"},
     "apps.integrations.ukrposhta.tasks.update_up_delivery_statuses": {"queue": "light"},
     "apps.integrations.novaposhta.tasks.sync_np_cities": {"queue": "light"},
     "apps.integrations.novaposhta.tasks.sync_np_warehouses": {"queue": "light"},

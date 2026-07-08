@@ -33,10 +33,7 @@ def cart_detail_view(request: HttpRequest) -> HttpResponse:
     return render(request, "cart/cart.html", _cart_context(cart))
 
 
-def _hx_trigger(response: HttpResponse, payload: dict) -> HttpResponse:
-    # ASCII-only JSON so the header is not RFC 2047–encoded (breaks JSON.parse in JS).
-    response["HX-Trigger"] = json.dumps(payload, ensure_ascii=True)
-    return response
+from apps.core.htmx import hx_trigger as _hx_trigger  # спільний ASCII-safe helper
 
 
 def _cart_added_message(qty: int) -> str:

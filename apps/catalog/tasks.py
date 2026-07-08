@@ -11,6 +11,29 @@ logger = logging.getLogger(__name__)
 _TRANSLATE_REQUEUE_SECONDS = 120
 
 
+@shared_task(name="catalog.flush_product_views")
+def flush_product_views() -> int:
+    """Скинути накопичені в Redis перегляди товарів у БД (кожні 5 хв)."""
+    from apps.catalog.view_counter import flush_product_views as _flush
+
+    updated = _flush()
+    if updated:
+        logger.info("flush_product_views: %d products updated", updated)
+    return updated
+
+
+@shared_task(name="catalog.audit_prices_below_cost")
+def audit_prices_below_cost() -> None:
+    """Нічний аудит: підняти ціни нижче закупівлі + MarkupRule (шар 3 захисту).
+
+    Ловить обходи сигналів (bulk-синки) та товари з даними, що змінились
+    після застосування правил. Див. shop_security SEC-09.
+    """
+    from django.core.management import call_command
+
+    call_command("fix_prices_below_cost")
+
+
 @shared_task(
     name="catalog.translate_to_english",
     soft_time_limit=3600,

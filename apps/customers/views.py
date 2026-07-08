@@ -23,9 +23,7 @@ from .utils import customer_display_name, customer_welcome_message
 _CUSTOMER_AUTH_BACKEND = "apps.customers.backends.CustomerModelBackend"
 
 
-def _hx_trigger(response: HttpResponse, payload: dict) -> HttpResponse:
-    response["HX-Trigger"] = json.dumps(payload, ensure_ascii=True)
-    return response
+from apps.core.htmx import hx_trigger as _hx_trigger  # спільний ASCII-safe helper
 
 
 def _product_from_request(request: HttpRequest) -> Product | None:

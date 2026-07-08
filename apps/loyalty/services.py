@@ -70,10 +70,12 @@ def validate_coupon(
 def calculate_coupon_discount(coupon: Coupon, subtotal: Decimal) -> Decimal:
     if subtotal <= 0:
         return Decimal("0")
+    # Coerce: у щойно створеного (не перечитаного з БД) Coupon discount_value може бути int
+    value = Decimal(str(coupon.discount_value))
     if coupon.discount_type == "percent":
-        discount = (subtotal * coupon.discount_value / Decimal("100")).quantize(Decimal("0.01"))
+        discount = (subtotal * value / Decimal("100")).quantize(Decimal("0.01"))
     else:
-        discount = coupon.discount_value.quantize(Decimal("0.01"))
+        discount = value.quantize(Decimal("0.01"))
     discount = min(discount, subtotal)
     if coupon.source == Coupon.SOURCE_COIN_REWARD:
         max_by_percent = (subtotal * COUPON_MAX_ORDER_PERCENT / Decimal("100")).quantize(Decimal("0.01"))

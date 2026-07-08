@@ -33,6 +33,14 @@ class BonusTransaction(models.Model):
         verbose_name = _("Бонусна транзакція")
         verbose_name_plural = _("Бонусні транзакції")
         ordering = ["-created_at"]
+        constraints = [
+            # Одне нарахування на замовлення — DB-запобіжник від подвійного earn
+            models.UniqueConstraint(
+                fields=["order", "transaction_type"],
+                condition=models.Q(transaction_type="earn", order__isnull=False),
+                name="loyalty_one_earn_per_order",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.get_transaction_type_display()} {self.amount} — {self.customer}"

@@ -16,7 +16,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils import translation
 
-from apps.catalog.gallery import _valid_image_url_q, filter_products_with_display_image
+from apps.catalog.gallery import _valid_image_url_q
 from apps.catalog.models import Product
 from apps.catalog.services import order_stock_first
 from apps.promotions.services import with_active_promotions
@@ -123,10 +123,10 @@ def _search_cache_key(prefix: str, q: str, limit: int) -> str:
 def _load_search_products(pks: list[int]) -> list[Product]:
     if not pks:
         return []
-    qs = filter_products_with_display_image(
-        with_active_promotions(
-            Product.objects.filter(pk__in=pks).select_related("brand").prefetch_related("images")
-        )
+    qs = with_active_promotions(
+        Product.objects.filter(pk__in=pks, has_display_image=True)
+        .select_related("brand")
+        .prefetch_related("images")
     )
     pk_map = {p.pk: p for p in qs}
     return [pk_map[pk] for pk in pks if pk in pk_map]
@@ -223,19 +223,6 @@ def _trigram_fallback(q: str, *, limit: int) -> list[Product]:
     )
 
 
-def _icontains_fallback_q(q: str) -> Q:
-    cond = Q(name__icontains=q) | Q(sku__icontains=q) | Q(model__icontains=q)
-    product_cols = _table_columns("catalog_product")
-    for field in ("name_uk", "name_en"):
-        if field in product_cols:
-            cond |= Q(**{f"{field}__icontains": q})
-    brand_cols = _table_columns("catalog_brand")
-    for field in ("name", "name_uk", "name_en"):
-        if field in brand_cols:
-            cond |= Q(**{f"brand__{field}__icontains": q})
-    return cond
-
-
 def _fts_results_multi(variants: list[str], *, limit: int) -> list[Product]:
     """Single FTS query for all spelling variants (one DB round-trip)."""
     if not variants:
@@ -266,21 +253,13 @@ def _fts_results_multi(variants: list[str], *, limit: int) -> list[Product]:
         return []
 
 
-def _icontains_results_multi(variants: list[str], *, limit: int) -> list[Product]:
-    """Single icontains query — slow on large catalogs; skipped in fast/live mode."""
-    if not variants:
-        return []
-    combined_q = reduce(or_, (_icontains_fallback_q(t) for t in variants))
-    return list(
-        order_stock_first(
-            _search_pick_qs().filter(combined_q).distinct(),
-            "name",
-        )[:limit]
-    )
-
-
 def _search_qs(q: str, *, limit: int = _SEARCH_LIMIT, fast: bool = False) -> list[Product]:
-    """FTS (1 query) → icontains (full page only) → trigram fallback."""
+    """FTS (1 query) → trigram fallback.
+
+    icontains-fallback (повний скан таблиці на 35k+ товарів) прибрано:
+    trigram-індекси (міграція 0017) покривають опечатки/часткові збіги
+    швидше за seq scan. ``fast`` збережено для сумісності викликів.
+    """
     variants = _search_variants(q)
     if not variants:
         return []
@@ -288,11 +267,6 @@ def _search_qs(q: str, *, limit: int = _SEARCH_LIMIT, fast: bool = False) -> lis
     results = _fts_results_multi(variants, limit=limit)
     if results:
         return results
-
-    if not fast:
-        results = _icontains_results_multi(variants, limit=limit)
-        if results:
-            return results
 
     return _trigram_fallback(variants[0], limit=limit)
 

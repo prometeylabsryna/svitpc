@@ -42,7 +42,7 @@ def test_feeds_admin_dashboard(client, product_factory, settings):
 
     settings.SITE_URL = "https://svitpc.com.ua"
     User = get_user_model()
-    user = User.objects.create_superuser(username="feedadmin", email="a@test.com", password="pass")
+    user = User.objects.create_superuser(email="a@test.com", password="pass")
     product_factory(
         name="Merchant item",
         slug="merchant-item",
@@ -51,6 +51,12 @@ def test_feeds_admin_dashboard(client, product_factory, settings):
         short_description="Short",
     )
     client.force_login(user)
+    # SplitSessionMiddleware: адмінка читає окремий cookie admin_sessionid
+    from django.conf import settings as dj_settings
+
+    client.cookies[dj_settings.ADMIN_SESSION_COOKIE_NAME] = client.cookies[
+        dj_settings.SESSION_COOKIE_NAME
+    ].value
     response = client.get(reverse("admin:analytics_feeds_dashboard"))
     assert response.status_code == 200
     body = response.content.decode()

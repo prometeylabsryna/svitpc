@@ -193,7 +193,11 @@ def _sync_gallery(prod: "Product", image_urls: list[str]) -> None:  # type: igno
         sort_order += 1
 
     if to_create:
+        # bulk_create не шле post_save — прапорець перераховуємо явно
         ProductImage.objects.bulk_create(to_create)
+        from apps.catalog.gallery import recompute_has_display_image
+
+        recompute_has_display_image([prod.pk])
 
 
 def _compute_shelf_price(

@@ -46,9 +46,13 @@ def update_delivery_statuses() -> None:
             logger.error("update_delivery_statuses order #%s: %s", order.pk, exc)
 
 
-@shared_task(queue="priority")
-def create_ttn_for_order(order_pk: int) -> str | None:
-    """Create Nova Poshta TTN. Returns error message on failure, None on success."""
+@shared_task(bind=True, queue="priority", max_retries=3, default_retry_delay=60)
+def create_ttn_for_order(self, order_pk: int) -> str | None:
+    """Create Nova Poshta TTN. Returns error message on failure, None on success.
+
+    Помилка API (валідація даних) — зберігається в Order.shipping_error без retry;
+    неочікуваний виняток (мережа) — Celery retry ×3 з паузою 60 с.
+    """
     from django.db import transaction
 
     from apps.integrations.novaposhta.client import NovaPoshtaClient
@@ -70,15 +74,20 @@ def create_ttn_for_order(order_pk: int) -> str | None:
             ttn, error = client.create_ttn(order)
             if ttn:
                 order.ttn = ttn
-                order.save(update_fields=["ttn"])
+                order.shipping_error = ""
+                order.save(update_fields=["ttn", "shipping_error"])
             elif error:
+                # Помилка даних (refs, ім'я, оплата) — retry не допоможе;
+                # показуємо в адмінці, менеджер виправляє і перезапускає
                 logger.error("create_ttn_for_order #%s: %s", order_pk, error)
+                order.shipping_error = error[:500]
+                order.save(update_fields=["shipping_error"])
                 return error
     except Order.DoesNotExist:
         return None
     except Exception as exc:
-        logger.error("create_ttn_for_order #%s: %s", order_pk, exc)
-        return str(exc)
+        logger.error("create_ttn_for_order #%s: %s (retry %s/3)", order_pk, exc, self.request.retries)
+        raise self.retry(exc=exc)
 
     if ttn:
         try:

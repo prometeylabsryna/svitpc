@@ -81,9 +81,12 @@ class MonobankProvider:
         expected = hmac.new(token.encode(), body, hashlib.sha256).hexdigest()
         return hmac.compare_digest(expected, signature)
 
-    def handle_webhook(self, body: bytes) -> None:
-        from apps.orders.models import Order
-        from apps.integrations.payments.signals import payment_completed
+    def handle_webhook(self, body: bytes, signature: str = "") -> None:
+        from apps.payments.services import apply_payment_event
+
+        if signature and not self.verify_signature(body, signature):
+            logger.warning("Monobank: invalid webhook signature")
+            return
 
         try:
             data = json.loads(body)
@@ -93,16 +96,18 @@ class MonobankProvider:
 
             if not reference.isdigit():
                 return
-            order_pk = int(reference)
 
-            try:
-                order = Order.objects.get(pk=order_pk)
-            except Order.DoesNotExist:
+            # Оплатою вважаємо лише фінальний success; failure фіксуємо для аудиту
+            if status not in ("success", "failure", "expired", "reversed"):
                 return
 
-            if status in ("success", "processing"):
-                order.is_paid = True
-                order.save(update_fields=["is_paid"])
-                logger.info("Monobank invoice %s paid, order #%s", invoice_id, order_pk)
+            apply_payment_event(
+                order_id=int(reference),
+                provider="monobank",
+                idempotency_key=f"monobank_{invoice_id}_{status}",
+                succeeded=status == "success",
+                transaction_id=invoice_id,
+                raw_response=data,
+            )
         except Exception as exc:
             logger.error("Monobank webhook error: %s", exc)

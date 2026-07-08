@@ -237,6 +237,9 @@ class Product(models.Model):
     # Image
     image = models.ImageField(_("Основне фото"), upload_to="products/", null=True, blank=True)
     image_url = models.URLField(_("URL фото (зовнішній)"), max_length=500, blank=True)
+    # Денормалізовано: чи має товар придатне фото (файл / валідний URL / галерея).
+    # Підтримується у Product.save(), сигналах ProductImage та recompute_has_display_image().
+    has_display_image = models.BooleanField(_("Є фото для вітрини"), default=False, editable=False)
     image_thumb = ImageSpecField(
         source="image",
         processors=[ResizeToFit(300, 300)],
@@ -265,7 +268,28 @@ class Product(models.Model):
             models.Index(fields=["is_visible", "stock"]),
             models.Index(fields=["is_new"]),
             models.Index(fields=["is_hit"]),
+            models.Index(fields=["is_visible", "sort_order"], name="catalog_prod_vis_sort"),
+            models.Index(fields=["is_visible", "price"], name="catalog_prod_vis_price"),
+            models.Index(fields=["is_visible", "stock", "price"], name="catalog_prod_vis_stock_price"),
+            models.Index(fields=["is_visible", "has_display_image"], name="catalog_prod_vis_img_idx"),
             GinIndex(fields=["search_vector"], name="catalog_product_search_gin"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source", "external_id"],
+                condition=~models.Q(external_id=""),
+                name="catalog_product_source_external_id_uniq",
+            ),
+            # Захист грошей на рівні БД: жоден шлях запису (включно з bulk_update
+            # синків, які обходять сигнали) не може поставити ціну нижче закупівлі.
+            models.CheckConstraint(
+                condition=(
+                    models.Q(purchase_price__isnull=True)
+                    | models.Q(purchase_price__lte=0)
+                    | models.Q(price__gte=models.F("purchase_price"))
+                ),
+                name="catalog_product_price_above_cost",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -330,7 +354,23 @@ class Product(models.Model):
             self.slug = f"{base}-{self.oc_id or self.pk or ''}"
         if self.hide_if_out_of_stock and self.stock <= 0:
             self.is_visible = False
+        self._refresh_has_display_image_flag()
         super().save(*args, **kwargs)
+
+    def _refresh_has_display_image_flag(self) -> None:
+        from apps.catalog.gallery import is_valid_product_image_url
+
+        own = bool(self.image) or is_valid_product_image_url(self.image_url)
+        if own:
+            self.has_display_image = True
+        elif self.pk:
+            from apps.catalog.gallery import _has_file_q, _valid_image_url_q
+
+            self.has_display_image = ProductImage.objects.filter(product_id=self.pk).filter(
+                _has_file_q() | _valid_image_url_q(field="image_url"),
+            ).exists()
+        else:
+            self.has_display_image = False
 
 
 class ProductImage(models.Model):
@@ -389,6 +429,9 @@ class ProductFilter(models.Model):
         verbose_name = _("Фільтр товару")
         verbose_name_plural = _("Фільтри товару")
         unique_together = [("product", "filter")]
+        indexes = [
+            models.Index(fields=["filter", "product"], name="catalog_pf_filter_product"),
+        ]
 
 
 # ── SEO URL (legacy redirect support) ─────────────────────────────────────────

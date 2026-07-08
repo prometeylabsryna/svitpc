@@ -88,6 +88,10 @@ class WayForPayProvider:
         return hmac.compare_digest(expected, received_sig)
 
     def handle_webhook(self, body: bytes) -> None:
+        from decimal import Decimal
+
+        from apps.payments.services import apply_payment_event
+
         try:
             data = json.loads(body)
         except Exception:
@@ -97,17 +101,26 @@ class WayForPayProvider:
             logger.warning("WayForPay: invalid webhook signature")
             return
 
-        from apps.orders.models import Order
-        order_ref = data.get("orderReference", "")
+        order_ref = str(data.get("orderReference", ""))
         if not order_ref.isdigit():
-            return
-        try:
-            order = Order.objects.get(pk=int(order_ref))
-        except Order.DoesNotExist:
             return
 
         status = data.get("transactionStatus", "")
-        if status in ("Approved", "Captured"):
-            order.is_paid = True
-            order.save(update_fields=["is_paid"])
-            logger.info("WayForPay payment approved for order #%s", order.pk)
+        if status not in ("Approved", "Captured", "Declined", "Expired", "Refunded"):
+            return  # проміжні статуси (InProcessing, Pending) не записуємо
+
+        tx_id = str(data.get("transactionId") or data.get("authCode") or "")
+        try:
+            amount = Decimal(str(data.get("amount", 0)))
+        except Exception:
+            amount = None
+
+        apply_payment_event(
+            order_id=int(order_ref),
+            provider="wayforpay",
+            idempotency_key=f"wayforpay_{order_ref}_{tx_id}_{status}",
+            succeeded=status in ("Approved", "Captured"),
+            amount=amount,
+            transaction_id=tx_id,
+            raw_response=data,
+        )

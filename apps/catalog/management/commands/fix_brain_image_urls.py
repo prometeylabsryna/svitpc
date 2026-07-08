@@ -68,4 +68,10 @@ class Command(BaseCommand):
                 else:
                     total_images = n
 
-        self.stdout.write(self.style.SUCCESS(f"Updated {total_products} products, {total_images} product images."))
+        from apps.catalog.gallery import recompute_has_display_image
+
+        recomputed = recompute_has_display_image()
+        self.stdout.write(self.style.SUCCESS(
+            f"Updated {total_products} products, {total_images} product images; "
+            f"has_display_image recomputed for {recomputed} products."
+        ))

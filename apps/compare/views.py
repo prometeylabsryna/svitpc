@@ -92,9 +92,9 @@ def _compare_response(
         payload["compareActive"] = compare_active
     if toast_message:
         payload["toast"] = {"message": toast_message, "type": toast_type}
-    response = HttpResponse(status=204)
-    # ASCII-only JSON so the header is not RFC 2047–encoded (breaks JSON.parse in JS).
-    response["HX-Trigger"] = json.dumps(payload, ensure_ascii=True)
+    from apps.core.htmx import hx_trigger
+
+    response = hx_trigger(HttpResponse(status=204), payload)
     if request.headers.get("HX-Request") and "/compare" in request.headers.get("HX-Current-URL", ""):
         response["HX-Redirect"] = reverse("compare:page")
     return response

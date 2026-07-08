@@ -45,8 +45,14 @@ def optimize_field_file(field: FieldFile, *, max_width: int) -> bool:
     from django.core.files.base import ContentFile
 
     try:
-        with field.open("rb") as handle:
-            original = handle.read()
+        # Не закривати файл (без with): для ще не збереженого upload це той самий
+        # об'єкт, який Django Storage читатиме далі — закриття ламає save().
+        handle = field.open("rb")
+        original = handle.read()
+        try:
+            handle.seek(0)
+        except (OSError, ValueError):
+            pass
         img = Image.open(io.BytesIO(original))
         img.load()
     except (OSError, Image.UnidentifiedImageError):

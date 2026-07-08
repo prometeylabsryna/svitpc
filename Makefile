@@ -45,7 +45,7 @@ shell:
 	$(SETTINGS) $(MANAGE) shell_plus --ipython
 
 test:
-	$(SETTINGS) pytest --cov=apps --cov-report=term-missing -x
+	DJANGO_SETTINGS_MODULE=config.settings.test uv run pytest --cov=apps --cov-report=term-missing -x
 
 test-sms:
 	$(SETTINGS) $(MANAGE) test_sms --ping-only
@@ -137,5 +137,3 @@ rebuild-search:
 
 populate-site:
 	$(SETTINGS) $(MANAGE) populate_site
-
-backup-db:

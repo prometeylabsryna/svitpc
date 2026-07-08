@@ -150,16 +150,27 @@ class HomeAdSettings(models.Model):
         verbose_name = _("Реклама на головній")
         verbose_name_plural = _("Реклама на головній")
 
+    CACHE_KEY = "promotions:home_ad_settings:v1"
+
     def save(self, *args, **kwargs) -> None:
+        from django.core.cache import cache
+
         self.pk = 1
         super().save(*args, **kwargs)
+        cache.delete(self.CACHE_KEY)
 
     def delete(self, *args, **kwargs) -> None:
         return
 
     @classmethod
     def load(cls) -> HomeAdSettings:
+        from django.core.cache import cache
+
+        cached = cache.get(cls.CACHE_KEY)
+        if isinstance(cached, cls):
+            return cached
         obj, _ = cls.objects.get_or_create(pk=1, defaults={"visible_columns": 4})
+        cache.set(cls.CACHE_KEY, obj, timeout=None)
         return obj
 
     def __str__(self) -> str:

@@ -23,12 +23,16 @@ class TestGetSaleProductsQueryset:
         assert Product.objects.get(slug="discounted").pk in pks
         assert Product.objects.get(slug="regular").pk not in pks
 
-    def test_excludes_price_below_purchase(self, product_factory):
-        product_factory(
+    def test_price_below_purchase_blocked_by_db(self, product_factory):
+        """Збиткову ціну неможливо записати навіть через .update() в обхід сигналів:
+        CheckConstraint catalog_product_price_above_cost — шар 2 захисту (SEC-09)."""
+        from django.db import IntegrityError
+
+        product = product_factory(
             slug="loss-leader",
-            price=Decimal("50"),
+            price=Decimal("90"),
             old_price=Decimal("100"),
             purchase_price=Decimal("80"),
         )
-        pks = set(get_sale_products_queryset().values_list("pk", flat=True))
-        assert Product.objects.get(slug="loss-leader").pk not in pks
+        with pytest.raises(IntegrityError):
+            Product.objects.filter(pk=product.pk).update(price=Decimal("50"))

@@ -46,18 +46,23 @@ def test_store_address_admin_override():
 
 @pytest.mark.django_db
 def test_delivery_map_link_uses_coordinates(client: Client):
+    from django.utils.html import escape
+
     response = client.get(reverse("pages:delivery"))
     assert response.status_code == 200
     content = response.content.decode()
-    assert store_maps_url() in content
+    # URL у html-атрибуті екранується (& → &amp;)
+    assert escape(store_maps_url()) in content
     assert "maps.google.com/?q=%D0%BF%D1%80%D0%BE%D1%81%D0%BF%D0%B5%D0%BA%D1%82" not in content
 
 
 @pytest.mark.django_db
 def test_contact_page_shows_map_and_address(client: Client):
+    from django.utils.html import escape
+
     response = client.get(reverse("pages:contact"))
     assert response.status_code == 200
     content = response.content.decode()
     assert "проспект Незалежності, 26" in content
-    assert store_maps_url() in content
-    assert store_maps_embed_url() in content
+    assert escape(store_maps_url()) in content
+    assert escape(store_maps_embed_url()) in content

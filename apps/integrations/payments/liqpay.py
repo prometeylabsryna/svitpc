@@ -51,9 +51,7 @@ class LiqPayProvider:
         return {"url": self.URL, "data": data, "signature": signature}
 
     def handle_webhook(self, post_data: dict) -> None:
-        from django.db import transaction
-        from apps.orders.models import Order
-        from apps.payments.models import Payment
+        from apps.payments.services import apply_payment_event
 
         data_b64 = post_data.get("data", "")
         sig = post_data.get("signature", "")
@@ -65,34 +63,18 @@ class LiqPayProvider:
             order_id = int(decoded.get("order_id", 0))
             status = decoded.get("status", "")
             payment_id = str(decoded.get("payment_id", ""))
-            idem_key = f"liqpay_{payment_id}_{status}"
 
-            with transaction.atomic():
-                order = Order.objects.select_for_update().get(pk=order_id)
+            if status not in ("success", "sandbox", "failure", "error", "reversed"):
+                return  # проміжні статуси (wait_accept тощо) не записуємо
 
-                # idempotency guard — skip already-processed callbacks
-                if Payment.objects.filter(idempotency_key=idem_key).exists():
-                    return
-
-                pmt, _ = Payment.objects.get_or_create(
-                    order=order,
-                    provider="liqpay",
-                    defaults={"amount": Decimal(str(decoded.get("amount", 0)))},
-                )
-                pmt.idempotency_key = idem_key
-                pmt.raw_response = decoded
-
-                if status in ("success", "sandbox"):
-                    pmt.status = Payment.STATUS_SUCCESS
-                    pmt.transaction_id = payment_id
-                    order.is_paid = True
-                    order.payment_id = payment_id
-                    order.save(update_fields=["is_paid", "payment_id"])
-                elif status in ("failure", "error", "reversed"):
-                    pmt.status = Payment.STATUS_FAILED
-                pmt.save()
-
-        except Order.DoesNotExist:
-            logger.warning("LiqPay webhook: order #%s not found", decoded.get("order_id"))
+            apply_payment_event(
+                order_id=order_id,
+                provider="liqpay",
+                idempotency_key=f"liqpay_{payment_id}_{status}",
+                succeeded=status in ("success", "sandbox"),
+                amount=Decimal(str(decoded.get("amount", 0))),
+                transaction_id=payment_id,
+                raw_response=decoded,
+            )
         except Exception as exc:
             logger.error("LiqPay webhook error: %s", exc)

@@ -339,7 +339,7 @@ def _sync_images_impl(*, since_hours: int) -> None:
         if main_img:
             from apps.catalog.models import Product
 
-            Product.objects.filter(pk=product.pk).update(image_url=main_img)
+            Product.objects.filter(pk=product.pk).update(image_url=main_img, has_display_image=True)
         sync_product_pictures(client, product, brain_id, product.name)
         updated += 1
 
@@ -696,14 +696,23 @@ def _sync_all_availability_impl(*, hide_missing: bool) -> dict[str, int]:
 
 @shared_task
 def sync_all_incremental() -> None:
-    """Manual / admin trigger: run all incremental Brain sync steps in sequence."""
-    sync_categories()
-    sync_prices()
-    sync_stock()
-    sync_options()
-    sync_images()
-    sync_new_products()
-    backfill_metadata()
-    backfill_descriptions.apply_async(kwargs={"reset_cursor": True})
-    sync_description_updates()
-    reconcile_stale_stock()
+    """Manual / admin trigger: enqueue all incremental Brain sync steps as a chain.
+
+    Кожен крок — окрема Celery-задача у своїй черзі (замість синхронного
+    виконання всього ланцюжка в одному воркері: timeout/OOM-ризик, блокування
+    черги на години).
+    """
+    from celery import chain
+
+    chain(
+        sync_categories.si(),
+        sync_prices.si(),
+        sync_stock.si(),
+        sync_options.si(),
+        sync_images.si(),
+        sync_new_products.si(),
+        backfill_metadata.si(),
+        backfill_descriptions.si(reset_cursor=True),
+        sync_description_updates.si(),
+        reconcile_stale_stock.si(),
+    ).apply_async()

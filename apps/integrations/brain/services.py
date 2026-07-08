@@ -148,7 +148,8 @@ def sync_product_pictures(
 
     main_url = rows[0][1]
     if is_valid_product_image_url(main_url):
-        Product.objects.filter(pk=product.pk).update(image_url=main_url)
+        # .update() обходить save() — прапорець виставляємо явно
+        Product.objects.filter(pk=product.pk).update(image_url=main_url, has_display_image=True)
 
 
 def brain_hide_out_of_stock_enabled() -> bool:

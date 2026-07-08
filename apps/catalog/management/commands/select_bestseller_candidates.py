@@ -90,8 +90,11 @@ class Command(BaseCommand):
         parser.add_argument(
             "--output",
             type=str,
-            default="data/bestseller_feed_pks.json",
-            help="Path to write the selected product PKs as JSON (relative to project root).",
+            default="private/bestseller_feed_pks.json",
+            help=(
+                "Path to write the selected product PKs as JSON, relative to MEDIA_ROOT "
+                "(the ./data mount is read-only in Docker; MEDIA_ROOT is a writable volume)."
+            ),
         )
         parser.add_argument("--top-examples", type=int, default=15, help="How many top-scored examples to print.")
 
@@ -226,11 +229,14 @@ class Command(BaseCommand):
             )
 
         # ── Persist selection ─────────────────────────────────────────────
+        # NOTE: writes under MEDIA_ROOT, not BASE_DIR/data — the `./data` host
+        # mount is read-only in docker-compose (`./data:/app/data:ro`), while
+        # MEDIA_ROOT (`media_volume`) is a writable volume in every environment.
         output_path = Path(options["output"])
         if not output_path.is_absolute():
             from django.conf import settings
 
-            output_path = Path(settings.BASE_DIR) / output_path
+            output_path = Path(settings.MEDIA_ROOT) / output_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(selected_pks, ensure_ascii=False))
         self.stdout.write(self.style.SUCCESS(f"\nЗбережено {len(selected_pks)} PK у {output_path}"))

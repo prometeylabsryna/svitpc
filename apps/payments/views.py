@@ -40,5 +40,7 @@ def wayforpay_webhook_view(request: HttpRequest) -> HttpResponse:
 @require_POST
 def monobank_webhook_view(request: HttpRequest) -> HttpResponse:
     from apps.integrations.payments.monobank import MonobankProvider
-    MonobankProvider().handle_webhook(request.body)
+    provider = MonobankProvider()
+    signature = request.headers.get(provider.WEBHOOK_SECRET_HEADER, "")
+    provider.handle_webhook(request.body, signature=signature)
     return HttpResponse("OK")

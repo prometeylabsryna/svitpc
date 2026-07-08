@@ -12,8 +12,8 @@ class PaymentPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Способи оплати")
         self.assertContains(response, "Банківська картка")
-        self.assertContains(response, "Післяплата")
-        self.assertContains(response, "Миттєва розстрочка")
+        self.assertContains(response, "Google Pay / Apple Pay")
+        self.assertContains(response, "Оплата при самовивозі")
 
     def test_payment_instructions(self) -> None:
         response = self.client.get(self.url)

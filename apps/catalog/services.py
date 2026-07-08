@@ -9,16 +9,18 @@ from django.utils import timezone
 
 from apps.core.i18n import localized_field
 
-from .gallery import filter_products_with_display_image
 from .models import Category, Filter, Product
 
 
 def visible_catalog_products() -> QuerySet[Product]:
-    """Visible products with a real display photo (no placeholder/stale URLs)."""
-    qs = Product.objects.filter(is_visible=True).filter(
+    """Visible products with a real display photo (no placeholder/stale URLs).
+
+    Фото перевіряється денормалізованим прапорцем has_display_image
+    (індекс is_visible+has_display_image) замість EXISTS по галереї.
+    """
+    return Product.objects.filter(is_visible=True, has_display_image=True).filter(
         Q(stock__gt=0) | Q(hide_if_out_of_stock=False),
     )
-    return filter_products_with_display_image(qs)
 
 
 def category_listing_products(category: Category) -> QuerySet[Product]:
@@ -82,7 +84,7 @@ def get_filtered_products(
 
     qs = queryset.filter(is_visible=True)
     if not skip_image_filter:
-        qs = filter_products_with_display_image(qs)
+        qs = qs.filter(has_display_image=True)
 
     if brands:
         qs = qs.filter(brand_id__in=brands)
@@ -105,20 +107,37 @@ def get_filtered_products(
     if in_stock_only:
         qs = qs.filter(stock__gt=0)
 
-    sort_map = {
-        "price_asc": "price",
-        "price_desc": "-price",
-        "new": "-date_added",
-        "name_asc": "name",
-        "name_desc": "-name",
-        "popular": "-viewed",
-        "rating": "-avg_rating_ann",
-        "default": "sort_order",
-    }
-    sort_field = sort_map.get(sort, "sort_order")
-
     if for_count:
         return qs
+
+    return finalize_product_listing(qs, sort, with_reviews_ann=with_reviews_ann)
+
+
+LISTING_SORT_MAP = {
+    "price_asc": "price",
+    "price_desc": "-price",
+    "new": "-date_added",
+    "name_asc": "name",
+    "name_desc": "-name",
+    "popular": "-viewed",
+    "rating": "-avg_rating_ann",
+    "default": "sort_order",
+}
+
+
+def finalize_product_listing(
+    qs: QuerySet[Product],
+    sort: str = "default",
+    *,
+    with_reviews_ann: bool = True,
+) -> QuerySet[Product]:
+    """Довести відфільтрований queryset до готового для рендеру:
+    annotate відгуків, сортування, select_related/prefetch.
+
+    Дозволяє будувати фільтри ОДИН раз (для count/фасетів) і доводити
+    той самий queryset для сторінки — без другої побудови з нуля.
+    """
+    sort_field = LISTING_SORT_MAP.get(sort, "sort_order")
 
     if with_reviews_ann:
         # Annotate so product cards avoid N+1 queries when rendering
@@ -256,8 +275,8 @@ def get_sale_products_queryset() -> QuerySet[Product]:
     promo_q = Q(pk__in=running_promotions_qs().values("product_id"))
     approved_reviews = Q(reviews__is_approved=True)
 
-    qs = filter_products_with_display_image(
-        Product.objects.filter(is_visible=True)
+    qs = (
+        Product.objects.filter(is_visible=True, has_display_image=True)
         .filter(discounted_q | promo_q)
         .exclude(purchase_price__gt=0, price__lt=F("purchase_price"))
     )

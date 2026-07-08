@@ -9,8 +9,8 @@ from celery import shared_task
 logger = logging.getLogger(__name__)
 
 
-@shared_task(queue="priority")
-def create_up_shipment_for_order(order_pk: int) -> None:
+@shared_task(bind=True, queue="priority", max_retries=3, default_retry_delay=60)
+def create_up_shipment_for_order(self, order_pk: int) -> None:
     """Create Ukrposhta shipment for an order and save barcode."""
     from django.db import transaction
 
@@ -29,13 +29,17 @@ def create_up_shipment_for_order(order_pk: int) -> None:
             barcode = client.create_shipment(order)
             if barcode:
                 order.up_barcode = barcode
-                order.save(update_fields=["up_barcode"])
+                order.shipping_error = ""
+                order.save(update_fields=["up_barcode", "shipping_error"])
                 logger.info("UP barcode %s saved for order #%s", barcode, order_pk)
     except Order.DoesNotExist:
         return
     except Exception as exc:
-        logger.error("create_up_shipment_for_order #%s: %s", order_pk, exc)
-        return
+        logger.error(
+            "create_up_shipment_for_order #%s: %s (retry %s/3)",
+            order_pk, exc, self.request.retries,
+        )
+        raise self.retry(exc=exc)
 
     if barcode:
         try:

@@ -8,7 +8,9 @@ from django.db.models import Prefetch
 
 from .models import Category
 
-NAV_ORDER_CACHE_KEY = "catalog:nav_order_v1"
+# v2: кешується повний payload (категорії + діти), а не лише порядок PK —
+# warm path не робить жодного SQL-запиту (раніше: in_bulk на кожен запит).
+NAV_ORDER_CACHE_KEY = "catalog:nav_payload_v2"
 NAV_CACHE_TIMEOUT = 1800
 
 
@@ -56,19 +58,6 @@ def _get_subtree_product_counts(category_pks: set[int]) -> dict[int, int]:
     return {pk: counts.get(pk, 0) for pk in category_pks}
 
 
-def _filter_nav_categories(categories: list[Category], hidden: frozenset[int]) -> list[Category]:
-    if not hidden:
-        return categories
-    filtered: list[Category] = []
-    for cat in categories:
-        if cat.pk in hidden:
-            continue
-        children = [child for child in cat.children.all() if child.pk not in hidden]
-        cat._prefetched_objects_cache = {"children": children}
-        filtered.append(cat)
-    return filtered
-
-
 def _sort_nav_categories(categories: list[Category], counts: dict[int, int]) -> list[Category]:
     """Categories with products first; empty ones at the bottom (keep sort_order within each group)."""
     return sorted(
@@ -81,45 +70,15 @@ def _sort_nav_categories(categories: list[Category], counts: dict[int, int]) -> 
     )
 
 
-def _serialize_nav_order(categories: list[Category]) -> dict:
-    return {
-        "tops": [c.pk for c in categories],
-        "children": {
-            str(c.pk): [child.pk for child in c.children.all()]
-            for c in categories
-        },
-    }
+def _build_nav_payload() -> list[Category]:
+    """Повна побудова навігації (cache miss): запити, підрахунки, сортування.
 
-
-def _load_categories_from_order(order: dict, limit: int, *, hidden: frozenset[int]) -> list[Category]:
-    top_ids = [pk for pk in order["tops"] if pk not in hidden][:limit]
-    child_map = order.get("children", {})
-    child_ids = [cid for tid in top_ids for cid in child_map.get(str(tid), []) if cid not in hidden]
-    all_ids = set(top_ids) | set(child_ids)
-
-    by_pk = Category.objects.filter(pk__in=all_ids).in_bulk()
-    categories: list[Category] = []
-    for pk in top_ids:
-        cat = by_pk.get(pk)
-        if not cat:
-            continue
-        children = [by_pk[cid] for cid in child_map.get(str(pk), []) if cid in by_pk]
-        cat._prefetched_objects_cache = {"children": children}
-        categories.append(cat)
-    return categories
-
-
-def get_top_categories(limit: int = 20) -> list[Category]:
-    """Top-level categories for site nav, with prefetched active children."""
-    hidden = _hidden_nav_pks()
-    cached_order = cache.get(NAV_ORDER_CACHE_KEY)
-    if cached_order is not None:
-        return _load_categories_from_order(cached_order, limit, hidden=hidden)
-
+    Hidden-фільтр тут НЕ застосовується — він накладається при читанні,
+    щоб зміна прихованих категорій не вимагала перебудови payload.
+    """
     categories = list(
         _base_top_qs().prefetch_related(Prefetch("children", queryset=_child_qs())),
     )
-    categories = _filter_nav_categories(categories, hidden)
 
     nav_pks = {c.pk for c in categories}
     for cat in categories:
@@ -127,16 +86,35 @@ def get_top_categories(limit: int = 20) -> list[Category]:
 
     counts = _get_subtree_product_counts(nav_pks)
     categories = _sort_nav_categories(categories, counts)
-
-    order = _serialize_nav_order(categories)
-    cache.set(NAV_ORDER_CACHE_KEY, order, NAV_CACHE_TIMEOUT)
-
-    categories = categories[:limit]
+    # Підкатегорії теж: порожні — вниз (та сама політика, що для топ-рівня)
     for cat in categories:
-        child_ids = order["children"].get(str(cat.pk), [])
-        by_pk = {c.pk: c for c in cat.children.all()}
         cat._prefetched_objects_cache = {
-            "children": [by_pk[cid] for cid in child_ids if cid in by_pk],
+            "children": _sort_nav_categories(list(cat.children.all()), counts),
         }
-
     return categories
+
+
+def get_top_categories(limit: int = 20) -> list[Category]:
+    """Top-level categories for site nav, with prefetched active children.
+
+    Warm path: 0 SQL — повністю зібрані Category-інстанси з кешу
+    (cache backend повертає копії, мутувати їх безпечно).
+    """
+    categories: list[Category] | None = cache.get(NAV_ORDER_CACHE_KEY)
+    if categories is None:
+        categories = _build_nav_payload()
+        cache.set(NAV_ORDER_CACHE_KEY, categories, NAV_CACHE_TIMEOUT)
+
+    hidden = _hidden_nav_pks()
+    result: list[Category] = []
+    for cat in categories:
+        if cat.pk in hidden:
+            continue
+        if hidden:
+            cat._prefetched_objects_cache = {
+                "children": [c for c in cat.children.all() if c.pk not in hidden],
+            }
+        result.append(cat)
+        if len(result) >= limit:
+            break
+    return result

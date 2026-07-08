@@ -97,4 +97,6 @@ class TestHomeView:
     def test_home_without_banners_omits_section(self, client):
         response = client.get("/")
         assert response.status_code == 200
-        assert "home-ads" not in response.content.decode()
+        # base.html завжди містить критичний CSS ".home-ads__slide" — перевіряємо
+        # відсутність самої секції (markup), а не будь-якої згадки рядка.
+        assert 'class="home-ads' not in response.content.decode()

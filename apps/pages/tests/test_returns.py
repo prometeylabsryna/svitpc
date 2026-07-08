@@ -43,11 +43,14 @@ class ReturnsPageTests(TestCase):
         self.assertEqual(claim.order_number, "10001")
 
     def test_submit_with_photo(self) -> None:
-        photo = SimpleUploadedFile(
-            "product.jpg",
-            b"\xff\xd8\xff\xe0" + b"\x00" * 128,
-            content_type="image/jpeg",
-        )
+        # ImageField валідує вміст через Pillow — потрібен справжній JPEG
+        import io
+
+        from PIL import Image
+
+        buf = io.BytesIO()
+        Image.new("RGB", (1, 1), "white").save(buf, format="JPEG")
+        photo = SimpleUploadedFile("product.jpg", buf.getvalue(), content_type="image/jpeg")
         response = self.client.post(
             self.url,
             {
