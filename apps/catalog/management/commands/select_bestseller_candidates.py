@@ -15,7 +15,7 @@ Scoring combines (highest weight first):
 Hard requirements (must pass to be eligible at all):
   - is_visible=True, stock>0 (must be actually purchasable right now)
   - price <= --max-price
-  - has_display_image=True (no placeholder/stale photo — required for any ad feed)
+  - has a real display photo — no placeholder/stale image (required for any ad feed)
   - belongs to one of the target category subtrees
 
 Usage:
@@ -96,6 +96,7 @@ class Command(BaseCommand):
         parser.add_argument("--top-examples", type=int, default=15, help="How many top-scored examples to print.")
 
     def handle(self, *args, **options) -> None:
+        from apps.catalog.gallery import filter_products_with_display_image
         from apps.catalog.models import Category, Product
         from apps.orders.models import OrderItem
         from apps.reviews.models import Review
@@ -120,16 +121,17 @@ class Command(BaseCommand):
             return
 
         # ── Base eligible queryset (hard requirements) ──────────────────────
-        base_qs = (
+        # Note: uses the EXISTS-based gallery predicate (filter_products_with_display_image),
+        # not the denormalized `has_display_image` column — that column is a local,
+        # not-yet-deployed schema change and must not be relied on here.
+        base_qs = filter_products_with_display_image(
             Product.objects.filter(
                 is_visible=True,
                 stock__gt=0,
                 price__lte=max_price,
-                has_display_image=True,
                 categories__in=subtree_pks,
             )
-            .distinct()
-        )
+        ).distinct()
         eligible_count = base_qs.count()
 
         # ── Scoring subqueries (avoid join fan-out from M2M/reverse FK) ─────
