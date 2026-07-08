@@ -22,6 +22,48 @@ def flush_product_views() -> int:
     return updated
 
 
+@shared_task(name="catalog.warm_listing_caches", soft_time_limit=600, time_limit=900)
+def warm_listing_caches(limit: int = 20) -> int:
+    """Прогріти COUNT-кеш топ-категорій після інвалідації.
+
+    Після нічного синку кеші лічильників скидаються, і перший відвідувач
+    великої категорії платив ~1с+ за холодний COUNT. COUNT не залежить від
+    мови — рахуємо один раз і записуємо ключ для кожної мови сайту.
+    """
+    from django.conf import settings
+    from django.utils import translation
+
+    from apps.catalog.facet_cache import catalog_filter_params, count_cache_key, set_cached_count
+    from apps.catalog.nav import get_top_categories
+    from apps.catalog.services import category_listing_products, get_filtered_products
+
+    params = catalog_filter_params(
+        brand_ids=[],
+        filter_ids=[],
+        price_min=None,
+        price_max=None,
+        in_stock=False,
+        sort="default",
+    )
+
+    warmed = 0
+    for category in get_top_categories(limit=limit):
+        qs_lite = get_filtered_products(
+            category_listing_products(category),
+            for_count=True,
+            skip_image_filter=True,
+        )
+        total = qs_lite.count()
+        for lang_code, _name in settings.LANGUAGES:
+            with translation.override(lang_code):
+                key = count_cache_key(scope="category-v2", scope_id=category.pk, params=params)
+            set_cached_count(key, total)
+        warmed += 1
+
+    logger.info("warm_listing_caches: %d categories warmed", warmed)
+    return warmed
+
+
 @shared_task(name="catalog.audit_prices_below_cost")
 def audit_prices_below_cost() -> None:
     """Нічний аудит: підняти ціни нижче закупівлі + MarkupRule (шар 3 захисту).

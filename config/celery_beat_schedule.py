@@ -10,6 +10,11 @@ _STOCK_HOURS = "8,14,20"
 _METADATA_HOURS = "9,15"
 _TRANSLATE_MAX_ROWS = 1500
 
+# Нічні/важкі задачі: якщо воркер лежав у запланований час і задача пролежала
+# в черзі понад годину — скасувати її, а не виконувати у денний пік
+# (наступний запуск за розкладом надолужить роботу; всі синки інкрементальні).
+_HEAVY_EXPIRES = {"expires": 3600}
+
 CELERY_BEAT_SCHEDULE = {
     # ── Night batch (01:00–10:00 Kyiv) — NP first, then catalog imports ────────
     "novaposhta-sync-cities": {
@@ -24,24 +29,29 @@ CELERY_BEAT_SCHEDULE = {
     "kancmaster-sync": {
         "task": "apps.integrations.kancmaster.tasks.sync_all",
         "schedule": crontab(hour=3, minute=0),
+        "options": _HEAVY_EXPIRES,
     },
     "brain-sync-categories": {
         "task": "apps.integrations.brain.tasks.sync_categories",
         "schedule": crontab(hour=4, minute=0),
+        "options": _HEAVY_EXPIRES,
     },
     "brain-sync-products": {
         "task": "apps.integrations.brain.tasks.sync_products",
         "schedule": crontab(hour=4, minute=15),
+        "options": _HEAVY_EXPIRES,
     },
     # Images + availability chain from sync_products / sync_brain_images_nightly.
     "brain-backfill-descriptions": {
         "task": "apps.integrations.brain.tasks.backfill_descriptions",
         "schedule": crontab(hour=7, minute=30),
         "kwargs": {"reset_cursor": True},
+        "options": _HEAVY_EXPIRES,
     },
     "brain-sync-description-updates": {
         "task": "apps.integrations.brain.tasks.sync_description_updates",
         "schedule": crontab(hour=7, minute=45),
+        "options": _HEAVY_EXPIRES,
     },
     "catalog-translate-en": {
         "task": "catalog.translate_to_english",
@@ -56,6 +66,7 @@ CELERY_BEAT_SCHEDULE = {
     "brain-sync-options": {
         "task": "apps.integrations.brain.tasks.sync_options",
         "schedule": crontab(hour=8, minute=30),
+        "options": _HEAVY_EXPIRES,
     },
     # ── Daytime (light API passes) ────────────────────────────────────────────
     "brain-sync-prices": {

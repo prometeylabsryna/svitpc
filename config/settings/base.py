@@ -221,9 +221,17 @@ CELERY_TASK_ROUTES = {
     "apps.integrations.brain.tasks.sync_stock": {"queue": "light"},
     "apps.integrations.brain.tasks.reconcile_stale_stock": {"queue": "light"},
     "apps.integrations.brain.tasks.backfill_metadata": {"queue": "light"},
+    # Контентні бекфіли — довгі API-цикли; на light-воркері (CPU-ліміт 0.5)
+    # вони не забирають ядро у вебзапитів під час денних доганянь черги.
+    "apps.integrations.brain.tasks.backfill_descriptions": {"queue": "light"},
+    "apps.integrations.brain.tasks.sync_description_updates": {"queue": "light"},
     "apps.loyalty.tasks.expire_old_coins": {"queue": "light"},
     "apps.loyalty.tasks.send_birthday_greetings": {"queue": "light"},
+    "catalog.warm_listing_caches": {"queue": "light"},
 }
+# Не резервувати пачку важких задач наперед: 1 задача на процес за раз,
+# інакше воркер одразу "захоплює" весь накопичений backlog.
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 from config.celery_beat_schedule import CELERY_BEAT_SCHEDULE  # noqa: E402
 
 # ── Email ──────────────────────────────────────────────────────────────────────

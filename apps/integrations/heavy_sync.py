@@ -67,6 +67,24 @@ def flush_deferred_fts() -> int:
     return total
 
 
+_ANALYZE_TABLES = ("catalog_product", "catalog_product_categories", "catalog_category")
+
+
+def _analyze_catalog_tables() -> None:
+    """Оновити статистику планувальника після масових UPDATE/INSERT синку.
+
+    Без цього Postgres може обирати неефективні плани для великих категорій,
+    поки autovacuum не добереться до таблиць (спостерігали TTFB 8с+ після
+    міграції-бекфілу на 386k рядків).
+    """
+    from django.db import connection
+
+    with connection.cursor() as cursor:
+        for table in _ANALYZE_TABLES:
+            cursor.execute(f"ANALYZE {table}")
+    logger.info("ANALYZE done for %s", ", ".join(_ANALYZE_TABLES))
+
+
 @contextmanager
 def heavy_catalog_sync_lock(task_name: str) -> Iterator[bool]:
     """Return True when the lock was acquired and work should run."""
@@ -88,9 +106,22 @@ def heavy_catalog_sync_lock(task_name: str) -> Iterator[bool]:
         except Exception:
             logger.exception("Deferred FTS flush failed after %s", task_name)
         try:
+            _analyze_catalog_tables()
+        except Exception:
+            logger.exception("ANALYZE failed after %s", task_name)
+        try:
             # Синк змінив каталог — nav/home/facets не мають чекати TTL
             from apps.catalog.cache_invalidation import invalidate_catalog_listing_caches
 
             invalidate_catalog_listing_caches()
         except Exception:
             logger.exception("Catalog cache invalidation failed after %s", task_name)
+        try:
+            # Прогріти COUNT-кеш топ-категорій (light-черга), щоб перший
+            # відвідувач після синку не платив за холодний COUNT.
+            from apps.catalog.tasks import warm_listing_caches
+            from apps.core.celery_utils import safe_delay
+
+            safe_delay(warm_listing_caches)
+        except Exception:
+            logger.exception("Cache warmup enqueue failed after %s", task_name)

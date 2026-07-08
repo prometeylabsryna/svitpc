@@ -39,13 +39,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 90s
+      # 15 хв: міграції з data-backfill (напр. catalog 0020/0021) на 1vCPU/2GB
+      # тривають довше за старі 90с — інакше nginx падає з "dependency unhealthy",
+      # хоча міграція нормально працює у фоні.
+      start_period: 900s
 
   celery_worker:
     build:
       context: .
       dockerfile: ./deploy/backend/Dockerfile
     command: celery -A config worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-1} --max-memory-per-child=400000 -Q celery
+    # Важкі синки (Brain/Kancmaster) не повинні конкурувати з вебзапитами за CPU:
+    # без ліміту сплеск backfill-задач забирав ціле ядро і TTFB сайту падав до 8с+.
+    cpus: 0.75
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.docker
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -61,12 +67,20 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+    healthcheck:
+      # Ловить "завислий" воркер (процес живий, але не відповідає на ping).
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$(hostname) -t 10 | grep -q pong"]
+      interval: 120s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
 
   celery_worker_light:
     build:
       context: .
       dockerfile: ./deploy/backend/Dockerfile
     command: celery -A config worker --loglevel=info --concurrency=1 --max-memory-per-child=200000 -Q light
+    cpus: 0.5
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.docker
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -82,11 +96,18 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$(hostname) -t 10 | grep -q pong"]
+      interval: 120s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
 
   celery_worker_priority:
     build:
       context: .
       dockerfile: ./deploy/backend/Dockerfile
+    # Без CPU-ліміту: ТТН і сповіщення про замовлення мають виконуватись одразу.
     command: celery -A config worker --loglevel=info --concurrency=1 -Q priority
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.docker
@@ -103,6 +124,12 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$(hostname) -t 10 | grep -q pong"]
+      interval: 120s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
 
   celery_beat:
     build:
@@ -122,6 +149,13 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+    healthcheck:
+      # Beat не відповідає на inspect ping — перевіряємо, що процес планувальника живий.
+      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' > /dev/null || exit 1"]
+      interval: 120s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   redis:
     image: redis:7-alpine
