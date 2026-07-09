@@ -16,8 +16,9 @@ from apps.integrations.brain.description_sync import (
 
 
 @pytest.mark.django_db
-def test_fetch_backfill_chunk_respects_cursor() -> None:
+def test_fetch_backfill_chunk_respects_cursor(category_factory) -> None:
     cache.delete(CURSOR_CACHE_KEY)
+    root = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
     p1 = Product.objects.create(
         name="A",
         slug="desc-a",
@@ -26,7 +27,8 @@ def test_fetch_backfill_chunk_respects_cursor() -> None:
         external_id="101",
         description_uk="",
     )
-    Product.objects.create(
+    p1.categories.add(root)
+    p2 = Product.objects.create(
         name="B",
         slug="desc-b",
         price=10,
@@ -34,6 +36,7 @@ def test_fetch_backfill_chunk_respects_cursor() -> None:
         external_id="102",
         description_uk="",
     )
+    p2.categories.add(root)
     advance_backfill_cursor([p1])
     chunk = fetch_backfill_chunk(reset_cursor=False)
     assert len(chunk) == 1
@@ -50,7 +53,8 @@ def test_should_requeue_when_progress_made() -> None:
 
 
 @pytest.mark.django_db
-def test_should_requeue_when_more_pk_ahead() -> None:
+def test_should_requeue_when_more_pk_ahead(category_factory) -> None:
+    root = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
     p1 = Product.objects.create(
         name="First",
         slug="desc-first",
@@ -59,7 +63,8 @@ def test_should_requeue_when_more_pk_ahead() -> None:
         external_id="201",
         description_uk="",
     )
-    Product.objects.create(
+    p1.categories.add(root)
+    p2 = Product.objects.create(
         name="Later",
         slug="desc-later",
         price=10,
@@ -67,6 +72,7 @@ def test_should_requeue_when_more_pk_ahead() -> None:
         external_id="202",
         description_uk="",
     )
+    p2.categories.add(root)
     assert should_requeue_backfill(
         before_remaining=2,
         after_remaining=2,
@@ -83,9 +89,10 @@ def test_should_not_requeue_when_done() -> None:
 
 
 @pytest.mark.django_db
-def test_needing_content_includes_product_with_desc_but_no_warranty() -> None:
+def test_needing_content_includes_product_with_desc_but_no_warranty(category_factory) -> None:
     from apps.catalog.models import Attribute, AttributeGroup, ProductAttribute
 
+    root = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
     p = Product.objects.create(
         name="Laptop",
         slug="laptop-warranty",
@@ -94,6 +101,7 @@ def test_needing_content_includes_product_with_desc_but_no_warranty() -> None:
         external_id="501",
         description_uk="Повний опис ноутбука",
     )
+    p.categories.add(root)
     assert brain_products_needing_content_qs().filter(pk=p.pk).exists()
 
     ag, _ = AttributeGroup.objects.get_or_create(name="Характеристики")

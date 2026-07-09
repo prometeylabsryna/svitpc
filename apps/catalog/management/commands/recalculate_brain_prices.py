@@ -43,17 +43,17 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any) -> None:
         from apps.catalog.models import Product
         from apps.integrations.brain.client import BrainAPIClient
+        from apps.integrations.brain.category_filter import filter_brain_products_queryset
         from apps.integrations.brain.services import brain_shelf_prices, brain_stock_from_detail, brain_visibility
 
         dry_run: bool = options["dry_run"]
         limit: int = options["limit"]
         sleep_s: float = options["sleep"]
 
-        qs = (
+        qs = filter_brain_products_queryset(
             Product.objects.filter(source=Product.SOURCE_BRAIN, external_id__gt="")
             .only("pk", "external_id", "price", "old_price", "purchase_price")
-            .order_by("pk")
-        )
+        ).order_by("pk")
         if limit:
             qs = qs[:limit]
         total = qs.count()

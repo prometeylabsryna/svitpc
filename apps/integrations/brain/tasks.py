@@ -10,6 +10,14 @@ from django.db.models import Q
 
 from apps.integrations.heavy_sync import heavy_catalog_sync_lock
 
+from .category_filter import (
+    allowed_brain_top_categories,
+    brain_product_allowed_for_sync,
+    build_allowed_brain_category_id_set,
+    filter_brain_products_queryset,
+    is_brain_detail_allowed,
+)
+
 from .services import (
     apply_detail_to_product,
     brain_catalog_visible,
@@ -58,6 +66,10 @@ def _products_by_external_ids(modified_ids: list[int]) -> dict[str, "Product"]: 
     }
 
 
+def _allowed_brain_category_ids(client) -> frozenset[int]:
+    return build_allowed_brain_category_id_set(client, lang="ua")
+
+
 # ── sync_categories ───────────────────────────────────────────────────────────
 
 @shared_task
@@ -96,7 +108,8 @@ def _sync_products_impl() -> None:
     cat_map = sync_brain_categories(client)
     vendor_map = client.get_all_vendors()
     all_brain_cats = client.get_all_categories(lang="ua")
-    top_cats = [c for c in all_brain_cats if c.get("parentID") == 1 and c.get("realcat", 0) == 0]
+    top_cats = allowed_brain_top_categories(client, lang="ua")
+    allowed_brain_ids = build_allowed_brain_category_id_set(client, lang="ua")
     hide_default = brain_hide_out_of_stock_enabled()
 
     for brain_cat in top_cats:
@@ -117,6 +130,8 @@ def _sync_products_impl() -> None:
 
                 name = localize_ru_to_uk((item.get("name") or "").strip())
                 if not brain_id or not name:
+                    continue
+                if not is_brain_detail_allowed(item, allowed_brain_ids):
                     continue
 
                 brain_id = int(brain_id)
@@ -184,7 +199,11 @@ def _sync_products_impl() -> None:
             if offset >= total or len(items) < limit:
                 break
 
-    logger.info("Brain sync_products completed: %d top categories processed", len(top_cats))
+    logger.info(
+        "Brain sync_products completed: %d allowed top categories processed (of %d total)",
+        len(top_cats),
+        len([c for c in all_brain_cats if c.get("parentID") == 1 and c.get("realcat", 0) == 0]),
+    )
 
     from apps.integrations.brain.description_sync import count_brain_products_missing_description
 
@@ -203,6 +222,7 @@ def sync_prices() -> None:
     client = _brain_client()
     vendor_map = client.get_all_vendors()
     cat_map = build_category_map_from_db(client)
+    allowed_ids = _allowed_brain_category_ids(client)
 
     modified_ids = client.get_modified_since(_utc_since(5), limit=10000)
     if not modified_ids:
@@ -217,6 +237,8 @@ def sync_prices() -> None:
             continue
         detail = client.get_product(brain_id)
         if not detail:
+            continue
+        if not brain_product_allowed_for_sync(product, detail, allowed_ids):
             continue
         if apply_detail_to_product(
             product,
@@ -235,7 +257,8 @@ def sync_prices() -> None:
         source=Product.SOURCE_BRAIN,
         price__lte=0,
         is_visible=True,
-    ).update(is_visible=False)
+    )
+    hidden_zero = filter_brain_products_queryset(hidden_zero).update(is_visible=False)
 
     logger.info(
         "Brain sync_prices done: %d updated / %d modified, hid_zero_price=%d",
@@ -253,6 +276,7 @@ def sync_stock() -> None:
     client = _brain_client()
     vendor_map = client.get_all_vendors()
     cat_map = build_category_map_from_db(client)
+    allowed_ids = _allowed_brain_category_ids(client)
 
     modified_ids = client.get_modified_since(_utc_since(5), limit=10000)
     if not modified_ids:
@@ -267,6 +291,8 @@ def sync_stock() -> None:
             continue
         detail = client.get_product(brain_id)
         if not detail:
+            continue
+        if not brain_product_allowed_for_sync(product, detail, allowed_ids):
             continue
         if apply_detail_to_product(
             product,
@@ -289,6 +315,7 @@ def sync_stock() -> None:
 @shared_task
 def sync_options() -> None:
     client = _brain_client()
+    allowed_ids = _allowed_brain_category_ids(client)
     modified_ids = client.get_modified_since(_utc_since(8), limit=10000, mod_type="options")
     updated = 0
     if modified_ids:
@@ -296,6 +323,8 @@ def sync_options() -> None:
         for brain_id in modified_ids:
             product = products.get(str(brain_id))
             if not product:
+                continue
+            if not brain_product_allowed_for_sync(product, None, allowed_ids):
                 continue
             sync_product_options(client, product, brain_id)
             updated += 1
@@ -317,6 +346,7 @@ def sync_images() -> None:
 
 def _sync_images_impl(*, since_hours: int) -> None:
     client = _brain_client()
+    allowed_ids = _allowed_brain_category_ids(client)
     modified_ids = client.get_modified_since(_utc_since(since_hours), limit=10000, mod_type="images")
     if not modified_ids:
         logger.info("Brain sync_images: nothing changed")
@@ -327,6 +357,8 @@ def _sync_images_impl(*, since_hours: int) -> None:
     for brain_id in modified_ids:
         product = products.get(str(brain_id))
         if not product:
+            continue
+        if not brain_product_allowed_for_sync(product, None, allowed_ids):
             continue
         detail = client.get_product(brain_id)
         main_img = ""
@@ -370,6 +402,7 @@ def sync_new_products() -> None:
     client = _brain_client()
     vendor_map = client.get_all_vendors()
     cat_map = build_category_map_from_db(client)
+    allowed_ids = _allowed_brain_category_ids(client)
 
     new_ids = client.get_modified_since(_utc_since(7), limit=10000, mod_type="new")
     if not new_ids:
@@ -390,6 +423,8 @@ def sync_new_products() -> None:
     for brain_id in to_import:
         detail = client.get_product(brain_id)
         if not detail:
+            continue
+        if not is_brain_detail_allowed(detail, allowed_ids):
             continue
         try:
             _, created = upsert_product_from_detail(
@@ -420,10 +455,12 @@ def backfill_metadata() -> None:
     vendor_map = client.get_all_vendors()
     cat_map = build_category_map_from_db(client)
 
-    qs = (
+    qs = filter_brain_products_queryset(
         Product.objects.filter(source=Product.SOURCE_BRAIN, external_id__gt="")
         .filter(brand__isnull=True)
-        .only("pk", "external_id", "name", "brand_id", "stock", "hide_if_out_of_stock")
+    )
+    qs = (
+        qs.only("pk", "external_id", "name", "brand_id", "stock", "hide_if_out_of_stock")
         .order_by("pk")[:_BACKFILL_CHUNK]
     )
 
@@ -450,10 +487,12 @@ def backfill_metadata() -> None:
         ):
             updated += 1
 
-    remaining = Product.objects.filter(
-        source=Product.SOURCE_BRAIN,
-        external_id__gt="",
-        brand__isnull=True,
+    remaining = filter_brain_products_queryset(
+        Product.objects.filter(
+            source=Product.SOURCE_BRAIN,
+            external_id__gt="",
+            brand__isnull=True,
+        )
     ).count()
     logger.info(
         "Brain backfill_metadata: %d updated, ~%d without brand remain",
@@ -508,14 +547,17 @@ def sync_description_updates() -> None:
     from apps.integrations.brain.content_sync import backfill_descriptions_from_content
 
     client = _brain_client()
+    allowed_ids = _allowed_brain_category_ids(client)
     modified_ids = client.get_modified_since(_utc_since(24), limit=10000, mod_type="descriptions")
     if not modified_ids:
         logger.info("Brain sync_description_updates: nothing changed")
         return
 
-    products = Product.objects.filter(
-        source=Product.SOURCE_BRAIN,
-        external_id__in=[str(i) for i in modified_ids],
+    products = filter_brain_products_queryset(
+        Product.objects.filter(
+            source=Product.SOURCE_BRAIN,
+            external_id__in=[str(i) for i in modified_ids],
+        )
     ).only("pk", "external_id", "name", "description_uk")
 
     product_map: dict[int, Product] = {}
@@ -551,7 +593,9 @@ def _backfill_images_impl(*, chunk: int = _BACKFILL_CHUNK) -> None:
     from apps.catalog.models import Product
 
     client = _brain_client()
-    base = Product.objects.filter(source=Product.SOURCE_BRAIN).exclude(external_id__in=["", "0"])
+    base = filter_brain_products_queryset(
+        Product.objects.filter(source=Product.SOURCE_BRAIN).exclude(external_id__in=["", "0"])
+    )
     qs = (
         filter_products_missing_display_image(base)
         .only("pk", "external_id", "name", "image_url", "image")
@@ -589,10 +633,12 @@ def reconcile_stale_stock() -> None:
     vendor_map = client.get_all_vendors()
     cat_map = build_category_map_from_db(client)
 
-    qs = (
+    qs = filter_brain_products_queryset(
         Product.objects.filter(source=Product.SOURCE_BRAIN, external_id__gt="")
         .exclude(stock__in=(0, 1))
-        .only("pk", "external_id", "stock", "hide_if_out_of_stock")
+    )
+    qs = (
+        qs.only("pk", "external_id", "stock", "hide_if_out_of_stock")
         .order_by("pk")[:_STALE_STOCK_CHUNK]
     )
 
@@ -618,11 +664,10 @@ def reconcile_stale_stock() -> None:
         ):
             updated += 1
 
-    remaining = (
+    remaining = filter_brain_products_queryset(
         Product.objects.filter(source=Product.SOURCE_BRAIN, external_id__gt="")
         .exclude(stock__in=(0, 1))
-        .count()
-    )
+    ).count()
     logger.info(
         "Brain reconcile_stale_stock: %d fixed, ~%d non-binary stock remain",
         updated,
@@ -638,24 +683,17 @@ def apply_hide_out_of_stock_policy() -> None:
     if not brain_hide_out_of_stock_enabled():
         return
 
-    Product.objects.filter(source=Product.SOURCE_BRAIN).update(hide_if_out_of_stock=True)
-    Product.objects.filter(
-        source=Product.SOURCE_BRAIN,
-        stock__lte=0,
-    ).update(is_visible=False)
-    Product.objects.filter(
-        source=Product.SOURCE_BRAIN,
+    brain_qs = filter_brain_products_queryset(Product.objects.filter(source=Product.SOURCE_BRAIN))
+    brain_qs.update(hide_if_out_of_stock=True)
+    brain_qs.filter(stock__lte=0).update(is_visible=False)
+    brain_qs.filter(
         stock__gt=0,
         price__gt=0,
         hide_if_out_of_stock=True,
     ).update(is_visible=True)
-    Product.objects.filter(
-        source=Product.SOURCE_BRAIN,
-        price__lte=0,
-    ).update(is_visible=False)
+    brain_qs.filter(price__lte=0).update(is_visible=False)
 
-    hidden = Product.objects.filter(
-        source=Product.SOURCE_BRAIN,
+    hidden = brain_qs.filter(
         hide_if_out_of_stock=True,
         stock__lte=0,
         is_visible=True,

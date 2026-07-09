@@ -262,11 +262,19 @@ def upsert_brain_product(external_id: int | str, defaults: dict) -> tuple["Produ
 def build_category_map_from_db(client: "BrainAPIClient", *, lang: str = "ua") -> dict[int, "Category"]:
     """Map Brain categoryID → existing local Category by slug (no MPTT writes)."""
     from apps.catalog.models import Category
+    from apps.integrations.brain.category_filter import (
+        brain_category_allowed_for_tree_sync,
+        build_allowed_brain_category_id_set,
+    )
 
+    allowed_ids = build_allowed_brain_category_id_set(client, lang=lang)
     slug_to_cat = {c.slug: c for c in Category.objects.filter(is_active=True)}
     cat_map: dict[int, Category] = {}
     for bc in client.get_all_categories(lang=lang):
         if bc.get("realcat", 0) > 0:
+            continue
+        cat_id = int(bc["categoryID"])
+        if not brain_category_allowed_for_tree_sync(cat_id, allowed_ids):
             continue
         from apps.catalog.ru_localization import localize_ru_to_uk
 
@@ -285,11 +293,18 @@ def sync_brain_categories(client: "BrainAPIClient", *, lang: str = "ua") -> dict
 
     Existing OC categories with the same slug are reused; parent moves that would
     break MPTT are skipped (InvalidMove).
+
+    Only categories inside ``BRAIN_ALLOWED_CATEGORY_SLUGS`` subtrees are imported.
     """
     from mptt.exceptions import InvalidMove
 
     from apps.catalog.models import Category
+    from apps.integrations.brain.category_filter import (
+        brain_category_allowed_for_tree_sync,
+        build_allowed_brain_category_id_set,
+    )
 
+    allowed_ids = build_allowed_brain_category_id_set(client, lang=lang)
     all_brain_cats = client.get_all_categories(lang=lang)
     cat_map: dict[int, Category] = {}
     sorted_cats = sorted(all_brain_cats, key=lambda c: (c["parentID"], c["categoryID"]))
@@ -298,6 +313,8 @@ def sync_brain_categories(client: "BrainAPIClient", *, lang: str = "ua") -> dict
         if bc.get("realcat", 0) > 0:
             continue
         cat_id = int(bc["categoryID"])
+        if not brain_category_allowed_for_tree_sync(cat_id, allowed_ids):
+            continue
         name = (bc.get("name") or "").strip()
         if not name:
             continue

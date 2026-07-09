@@ -52,6 +52,7 @@ class Command(BaseCommand):
         from apps.catalog.models import Product
         from apps.integrations.brain.client import BrainAPIClient
         from apps.integrations.brain.content_sync import backfill_descriptions_from_content
+        from apps.integrations.brain.category_filter import filter_brain_products_queryset
         from apps.integrations.brain.description_sync import brain_products_needing_content_qs
 
         dry_run: bool = options["dry_run"]
@@ -59,9 +60,11 @@ class Command(BaseCommand):
         limit: int = options["limit"]
         skip_options: bool = options["skip_options"]
 
-        qs = Product.objects.filter(
-            source=Product.SOURCE_BRAIN,
-            external_id__gt="",
+        qs = filter_brain_products_queryset(
+            Product.objects.filter(
+                source=Product.SOURCE_BRAIN,
+                external_id__gt="",
+            )
         ).order_by("pk")
 
         if not update_all:

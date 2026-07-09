@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from django.core.cache import cache
 from django.db.models import Exists, OuterRef, Q
 
+from apps.integrations.brain.category_filter import filter_brain_products_queryset
+
 if TYPE_CHECKING:
     from apps.catalog.models import Product
     from apps.integrations.brain.client import BrainAPIClient
@@ -33,13 +35,14 @@ def brain_products_needing_content_qs():
     """Brain products missing description and/or warranty characteristic from Brain."""
     from apps.catalog.models import Product
 
-    return Product.objects.filter(
+    base = Product.objects.filter(
         source=Product.SOURCE_BRAIN,
         external_id__gt="",
     ).filter(
         Q(description_uk__isnull=True) | Q(description_uk__exact="")
         | ~Exists(_warranty_attr_exists_subquery()),
     )
+    return filter_brain_products_queryset(base)
 
 
 def brain_products_missing_description_qs():

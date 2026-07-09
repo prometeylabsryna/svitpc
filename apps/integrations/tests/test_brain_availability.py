@@ -12,7 +12,8 @@ from apps.integrations.brain.availability import sync_all_availability_from_brai
 
 @pytest.mark.django_db
 class TestSyncAllAvailabilityFromBrain:
-    def test_updates_archive_and_hides_missing(self, product_factory):
+    def test_updates_archive_and_hides_missing(self, product_factory, category_factory):
+        root = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
         visible = product_factory(
             slug="brain-visible",
             source=Product.SOURCE_BRAIN,
@@ -37,12 +38,13 @@ class TestSyncAllAvailabilityFromBrain:
             is_visible=True,
             hide_if_out_of_stock=False,
         )
+        for product in (visible, archived, missing):
+            product.categories.add(root)
 
         client = MagicMock()
         client.get_all_categories.return_value = [
-            {"categoryID": 1181, "parentID": 1, "realcat": 0, "name": "Ноутбуки"},
+            {"categoryID": 1181, "parentID": 1, "realcat": 0, "name": "Ноутбуки, планшети"},
         ]
-        # recommendable_price обов'язковий: без shelf-ціни brain_catalog_visible ховає товар
         client.get_products.return_value = (
             [
                 {"productID": 100, "is_archive": False, "recommendable_price": "999"},
@@ -61,25 +63,26 @@ class TestSyncAllAvailabilityFromBrain:
         archived.refresh_from_db()
         missing.refresh_from_db()
 
-        # "visible" не змінився (stock/visibility/hide ті самі) — updated лише archived
         assert stats["updated"] == 1
         assert stats["missing_hidden"] == 1
         assert visible.stock == 1 and visible.is_visible is True
         assert archived.stock == 0 and archived.is_visible is False
         assert missing.stock == 0 and missing.is_visible is False
 
-    def test_dry_run_does_not_write(self, product_factory):
-        product_factory(
+    def test_dry_run_does_not_write(self, product_factory, category_factory):
+        root = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
+        product = product_factory(
             slug="brain-dry",
             source=Product.SOURCE_BRAIN,
             external_id="400",
             stock=1,
             is_visible=True,
         )
+        product.categories.add(root)
 
         client = MagicMock()
         client.get_all_categories.return_value = [
-            {"categoryID": 1, "parentID": 1, "realcat": 0, "name": "Root"},
+            {"categoryID": 1181, "parentID": 1, "realcat": 0, "name": "Ноутбуки, планшети"},
         ]
         client.get_products.return_value = ([{"productID": 400, "is_archive": True}], 1)
 

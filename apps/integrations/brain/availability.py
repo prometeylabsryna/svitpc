@@ -7,6 +7,11 @@ from typing import TYPE_CHECKING
 
 from django.db.models import Q
 
+from .category_filter import (
+    allowed_brain_top_categories,
+    allowed_local_category_subtree_pks,
+    filter_brain_products_queryset,
+)
 from .client import products_page_limit
 from .services import (
     brain_catalog_visible,
@@ -25,11 +30,12 @@ logger = logging.getLogger(__name__)
 def _brain_product_map() -> dict[str, Product]:
     from apps.catalog.models import Product
 
+    base = Product.objects.filter(source=Product.SOURCE_BRAIN).exclude(external_id__in=["", "0"])
     return {
         p.external_id: p
-        for p in Product.objects.filter(source=Product.SOURCE_BRAIN)
-        .exclude(external_id__in=["", "0"])
-        .only("pk", "external_id", "stock", "is_visible", "hide_if_out_of_stock")
+        for p in filter_brain_products_queryset(base).only(
+            "pk", "external_id", "stock", "is_visible", "hide_if_out_of_stock"
+        )
     }
 
 
@@ -68,10 +74,11 @@ def sync_all_availability_from_brain(
     hide_missing: bool = True,
     dry_run: bool = False,
 ) -> dict[str, int]:
-    """Walk Brain category lists and align stock/visibility for every linked product.
+    """Walk allowed Brain category lists and align stock/visibility for linked products.
 
-    When hide_missing is True, Brain products absent from the full catalog scan
-    are archived locally (stock=0, hidden).
+    When hide_missing is True, Brain products in allowed subtrees but absent from the
+    scan are archived locally (stock=0, hidden). Products outside the whitelist are
+    not touched.
     """
     from apps.catalog.models import Product
 
@@ -85,8 +92,8 @@ def sync_all_availability_from_brain(
         "still_visible_zero_stock": 0,
     }
 
-    all_brain_cats = client.get_all_categories(lang="ua")
-    top_cats = [c for c in all_brain_cats if c.get("parentID") == 1 and c.get("realcat", 0) == 0]
+    top_cats = allowed_brain_top_categories(client, lang="ua")
+    allowed_local_pks = allowed_local_category_subtree_pks()
 
     for brain_cat in top_cats:
         cat_id = int(brain_cat["categoryID"])
@@ -132,12 +139,14 @@ def sync_all_availability_from_brain(
             if offset >= total or len(items) < limit:
                 break
 
-    if hide_missing and seen_ids:
+    if hide_missing and seen_ids and allowed_local_pks:
         missing_qs = (
             Product.objects.filter(source=Product.SOURCE_BRAIN)
             .exclude(external_id__in=["", "0"])
             .exclude(external_id__in=seen_ids)
+            .filter(categories__in=allowed_local_pks)
             .filter(Q(is_visible=True) | Q(stock__gt=0))
+            .distinct()
         )
         missing_count = missing_qs.count()
         stats["missing_hidden"] = missing_count
@@ -148,11 +157,13 @@ def sync_all_availability_from_brain(
                 is_visible=False,
             )
 
-    stats["still_visible_zero_stock"] = Product.objects.filter(
-        source=Product.SOURCE_BRAIN,
-        hide_if_out_of_stock=True,
-        stock__lte=0,
-        is_visible=True,
+    stats["still_visible_zero_stock"] = filter_brain_products_queryset(
+        Product.objects.filter(
+            source=Product.SOURCE_BRAIN,
+            hide_if_out_of_stock=True,
+            stock__lte=0,
+            is_visible=True,
+        )
     ).count()
 
     if stats["scanned_api"] == 0 and top_cats:

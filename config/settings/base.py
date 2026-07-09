@@ -579,6 +579,9 @@ BRAIN_CONTENT_BATCH_SIZE = env.int("BRAIN_CONTENT_BATCH_SIZE", default=50)
 # Brain retail = max(retail_price_uah, recommendable_price, retail_price).
 # 5 means: shelf_price = brain_retail * 1.05
 BRAIN_DEFAULT_MARKUP_PERCENT = env.int("BRAIN_DEFAULT_MARKUP_PERCENT", default=0)
+# Comma-separated top-level category slugs — Brain sync imports only these subtrees.
+# Kancmaster is unaffected (separate source). Empty = built-in default list.
+BRAIN_ALLOWED_CATEGORY_SLUGS = env("BRAIN_ALLOWED_CATEGORY_SLUGS", default="")
 KANCMASTER_XML_URL = env("KANCMASTER_XML_URL", default="https://kancmaster.com.ua/xml_export_request")
 KANCMASTER_LOGIN = env("KANCMASTER_LOGIN", default="")
 KANCMASTER_PASSWORD = env("KANCMASTER_PASSWORD", default="")
