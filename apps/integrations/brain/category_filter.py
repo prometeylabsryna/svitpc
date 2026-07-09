@@ -199,3 +199,29 @@ def brain_category_allowed_for_tree_sync(
     allowed_ids: frozenset[int],
 ) -> bool:
     return brain_category_id in allowed_ids
+
+
+def catalog_products_to_keep_queryset(qs=None):
+    """Products that stay on the site: all Kancmaster + items in allowed category subtrees."""
+    from django.db.models import Q
+
+    from apps.catalog.models import Product
+
+    if qs is None:
+        qs = Product.objects.all()
+    subtree = allowed_local_category_subtree_pks()
+    if not subtree:
+        return qs.filter(source=Product.SOURCE_KANCMASTER)
+    return qs.filter(
+        Q(source=Product.SOURCE_KANCMASTER) | Q(categories__in=subtree),
+    ).distinct()
+
+
+def catalog_products_to_prune_queryset(qs=None):
+    """Products safe to delete: not Kancmaster and not linked to any allowed subtree."""
+    from apps.catalog.models import Product
+
+    if qs is None:
+        qs = Product.objects.all()
+    return qs.exclude(pk__in=catalog_products_to_keep_queryset().values("pk")).distinct()
+
