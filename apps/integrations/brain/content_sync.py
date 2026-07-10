@@ -22,6 +22,7 @@ def brain_description_text(detail: dict) -> str:
 
 def sync_options_from_detail(product: "Product", detail: dict) -> int:
     """Apply characteristics from content payload (options array). Returns count written."""
+    from apps.catalog.derived_filters import sync_derived_filters_for_product
     from apps.catalog.models import Attribute, AttributeGroup, ProductAttribute
     from apps.catalog.ru_localization import localize_ru_to_uk
 
@@ -44,6 +45,12 @@ def sync_options_from_detail(product: "Product", detail: dict) -> int:
             defaults={"value": attr_val},
         )
         written += 1
+
+    if written:
+        # Сайдбар-фасети (діагональ/CPU/RAM/відеокарта/SSD/колір) — окрема таблиця
+        # ProductFilter; Brain FilterID у content-фіді нестабільний, тож мапимо самі.
+        sync_derived_filters_for_product(product)
+
     return written
 
 

@@ -15,6 +15,7 @@ _GROUP_NAME = "Характеристики"
 
 def sync_product_attributes(product: "Product", params: list[dict[str, str]]) -> int:
     """Upsert feed params as product attributes. Returns number of rows written."""
+    from apps.catalog.derived_filters import sync_derived_filters_for_product
     from apps.catalog.models import Attribute, AttributeGroup, ProductAttribute
     from apps.catalog.ru_localization import localize_ru_to_uk
 
@@ -44,5 +45,9 @@ def sync_product_attributes(product: "Product", params: list[dict[str, str]]) ->
         product.attributes.filter(attribute__group=group).exclude(
             attribute_id__in=seen_attr_ids
         ).delete()
+
+    if written:
+        # Сайдбар-фасети (діагональ/CPU/RAM/відеокарта/SSD/колір) — окрема таблиця ProductFilter.
+        sync_derived_filters_for_product(product)
 
     return written
