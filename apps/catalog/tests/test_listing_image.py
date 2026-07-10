@@ -1,8 +1,10 @@
 import pytest
+from django.core.cache import cache
 from django.urls import reverse
 
 from apps.catalog.listing_image import (
     _resize_to_webp,
+    ensure_listing_webp,
     is_allowed_remote_url,
     listing_source_key,
 )
@@ -64,3 +66,38 @@ def test_listing_image_view_redirects_when_no_photo(client, product_factory):
     product = product_factory(image_url="", image="")
     response = client.get(reverse("product_listing_image", kwargs={"pk": product.pk}))
     assert response.status_code in (302, 301)
+
+
+@pytest.mark.django_db
+class TestListingImageFetchFailureFallback:
+    """Постачальник (Kancmaster) інколи блокує IP серверу (403), лишаючись
+    доступним для браузера клієнта — тож при збої серверного фетчу картка
+    має вести напряму на зовнішній URL, а не на заглушку no-photo."""
+
+    def test_view_redirects_to_source_url_on_fetch_failure(self, client, product_factory, monkeypatch):
+        cache.clear()
+        url = "https://kancmaster.com.ua/image/catalog/broken.jpg"
+        product = product_factory(image_url=url, image="")
+
+        monkeypatch.setattr("apps.catalog.listing_image.fetch_listing_webp", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("403")))
+
+        response = client.get(reverse("product_listing_image", kwargs={"pk": product.pk}))
+        assert response.status_code in (302, 301)
+        assert response["Location"] == url
+
+    def test_repeated_failure_short_circuits_without_refetching(self, product_factory, monkeypatch):
+        cache.clear()
+        url = "https://kancmaster.com.ua/image/catalog/broken2.jpg"
+        product = product_factory(image_url=url, image="")
+
+        calls = {"n": 0}
+
+        def _boom(*_a, **_k):
+            calls["n"] += 1
+            raise RuntimeError("403")
+
+        monkeypatch.setattr("apps.catalog.listing_image.fetch_listing_webp", _boom)
+
+        assert ensure_listing_webp(product) is None
+        assert ensure_listing_webp(product) is None
+        assert calls["n"] == 1

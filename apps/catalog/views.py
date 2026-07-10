@@ -376,6 +376,7 @@ def product_listing_image_view(request: HttpRequest, pk: int) -> HttpResponse:
     from django.http import FileResponse, Http404, HttpResponseRedirect
     from django.templatetags.static import static
 
+    from apps.catalog.gallery import resolve_product_image_url
     from apps.catalog.listing_image import ensure_listing_webp
     from apps.catalog.models import Product
 
@@ -387,9 +388,18 @@ def product_listing_image_view(request: HttpRequest, pk: int) -> HttpResponse:
         return HttpResponseRedirect(product.image_thumb.url)
 
     path = ensure_listing_webp(product)
-    if not path:
-        return HttpResponseRedirect(static("images/no-photo.svg"))
+    if path:
+        response = FileResponse(path.open("rb"), content_type="image/webp")
+        response["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
 
-    response = FileResponse(path.open("rb"), content_type="image/webp")
-    response["Cache-Control"] = "public, max-age=31536000, immutable"
-    return response
+    # Серверний фетч не вдався (напр. постачальник тимчасово блокує IP серверу
+    # за 403) — та ж сама зовнішня URL зазвичай доступна напряму з браузера
+    # клієнта (як на сторінці товару), тож віддаємо її замість заглушки.
+    # Короткий кеш (не HTTP-кеш) — фолбек не позначаємо тривалим Cache-Control,
+    # бо джерело може знову стати доступним і webp-кеш підхопиться сам.
+    source_url = resolve_product_image_url(product)
+    if source_url:
+        return HttpResponseRedirect(source_url)
+
+    return HttpResponseRedirect(static("images/no-photo.svg"))

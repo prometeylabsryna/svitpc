@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import requests
 from django.conf import settings
+from django.core.cache import cache
 from PIL import Image
 
 from apps.catalog.gallery import resolve_product_image_url
@@ -20,6 +21,18 @@ LISTING_SIZE = 300
 WEBP_QUALITY = 82
 DOWNLOAD_TIMEOUT = 8
 MAX_BYTES = 6 * 1024 * 1024
+
+# Постачальник (Kancmaster) періодично блокує/рейт-лімітує IP сервера (403),
+# лишаючись доступним для звичайних браузерів клієнтів. Без цього маркера
+# кожен показ картки товару з "мертвим" фото знову чекав би DOWNLOAD_TIMEOUT
+# секунд на приречений запит — навантажуючи і наш Gunicorn-воркер, і сервер
+# постачальника. Короткий backoff не лікує блокування, але не дає йому
+# посилюватись і швидко звільняє воркер для фолбека на прямий URL.
+FETCH_FAILURE_TTL = 15 * 60
+
+
+def _failure_cache_key(source_url: str) -> str:
+    return f"listing_img_fail:{hashlib.sha256(source_url.encode()).hexdigest()[:16]}"
 
 ALLOWED_IMAGE_HOSTS = frozenset(
     {
@@ -115,14 +128,19 @@ def ensure_listing_webp(product) -> Path | None:
     if path.is_file():
         return path
 
+    source_url = "" if product.image else resolve_product_image_url(product)
+    if not product.image and not source_url:
+        return None
+
+    fail_key = _failure_cache_key(source_url) if source_url else None
+    if fail_key and cache.get(fail_key):
+        return None
+
     try:
         if product.image:
             with product.image.open("rb") as handle:
                 data = _resize_to_webp(handle.read())
         else:
-            source_url = resolve_product_image_url(product)
-            if not source_url:
-                return None
             data = fetch_listing_webp(source_url)
 
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -130,4 +148,6 @@ def ensure_listing_webp(product) -> Path | None:
         return path
     except Exception:
         logger.exception("listing webp failed for product pk=%s", product.pk)
+        if fail_key:
+            cache.set(fail_key, True, FETCH_FAILURE_TTL)
         return None
