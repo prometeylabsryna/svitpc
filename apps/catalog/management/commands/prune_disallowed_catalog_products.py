@@ -202,3 +202,16 @@ class Command(BaseCommand):
             cursor.execute("ANALYZE catalog_product")
             cursor.execute("ANALYZE catalog_product_categories")
         self.stdout.write("  ANALYZE catalog_product, catalog_product_categories — виконано.")
+
+        from apps.catalog.tasks import warm_listing_caches
+        from apps.core.celery_utils import safe_delay
+
+        if safe_delay(warm_listing_caches):
+            self.stdout.write("  Прогрів COUNT-кешу категорій поставлено в черзу (light).")
+        else:
+            self.stdout.write(
+                self.style.WARNING(
+                    "  Celery недоступний — прогрів кешу пропущено "
+                    "(перший відвідувач великих категорій платить холодним COUNT)."
+                ),
+            )

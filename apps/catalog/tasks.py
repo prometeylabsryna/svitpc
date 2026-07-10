@@ -24,16 +24,19 @@ def flush_product_views() -> int:
 
 @shared_task(name="catalog.warm_listing_caches", soft_time_limit=600, time_limit=900)
 def warm_listing_caches(limit: int = 20) -> int:
-    """Прогріти COUNT-кеш топ-категорій після інвалідації.
+    """Прогріти COUNT-кеш топ-категорій і їх прямих підкатегорій після інвалідації.
 
-    Після нічного синку кеші лічильників скидаються, і перший відвідувач
-    великої категорії платив ~1с+ за холодний COUNT. COUNT не залежить від
-    мови — рахуємо один раз і записуємо ключ для кожної мови сайту.
+    Після нічного синку/масового видалення кеші лічильників скидаються, і
+    перший відвідувач великої категорії платив ~1с+ за холодний COUNT. Підкатегорії
+    (наприклад «Ноутбуки» під «Ноутбуки, планшети») — це і є сторінки, які реально
+    відкривають користувачі, тому прогріваємо і їх, а не лише топ-рівень.
+    COUNT не залежить від мови — рахуємо один раз і записуємо ключ для кожної мови сайту.
     """
     from django.conf import settings
     from django.utils import translation
 
     from apps.catalog.facet_cache import catalog_filter_params, count_cache_key, set_cached_count
+    from apps.catalog.models import Category
     from apps.catalog.nav import get_top_categories
     from apps.catalog.services import category_listing_products, get_filtered_products
 
@@ -47,20 +50,24 @@ def warm_listing_caches(limit: int = 20) -> int:
     )
 
     warmed = 0
-    for category in get_top_categories(limit=limit):
-        qs_lite = get_filtered_products(
-            category_listing_products(category),
-            for_count=True,
-            skip_image_filter=True,
+    for top_category in get_top_categories(limit=limit):
+        children = list(
+            Category.objects.filter(parent_id=top_category.pk, is_active=True).only("pk"),
         )
-        total = qs_lite.count()
-        for lang_code, _name in settings.LANGUAGES:
-            with translation.override(lang_code):
-                key = count_cache_key(scope="category-v2", scope_id=category.pk, params=params)
-            set_cached_count(key, total)
-        warmed += 1
+        for category in (top_category, *children):
+            qs_lite = get_filtered_products(
+                category_listing_products(category),
+                for_count=True,
+                skip_image_filter=True,
+            )
+            total = qs_lite.count()
+            for lang_code, _name in settings.LANGUAGES:
+                with translation.override(lang_code):
+                    key = count_cache_key(scope="category-v2", scope_id=category.pk, params=params)
+                set_cached_count(key, total)
+            warmed += 1
 
-    logger.info("warm_listing_caches: %d categories warmed", warmed)
+    logger.info("warm_listing_caches: %d categories warmed (top + direct children)", warmed)
     return warmed
 
 
