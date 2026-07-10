@@ -193,25 +193,17 @@ class Command(BaseCommand):
         )
 
     def _post_cleanup(self) -> None:
-        from apps.catalog.nav import invalidate_nav_cache
-
-        invalidate_nav_cache()
-        self.stdout.write("  Кеш навігації інвалідовано.")
+        from apps.catalog.cache_invalidation import invalidate_catalog_listing_caches
 
         with connection.cursor() as cursor:
             cursor.execute("ANALYZE catalog_product")
             cursor.execute("ANALYZE catalog_product_categories")
         self.stdout.write("  ANALYZE catalog_product, catalog_product_categories — виконано.")
 
-        from apps.catalog.tasks import warm_listing_caches
-        from apps.core.celery_utils import safe_delay
-
-        if safe_delay(warm_listing_caches):
-            self.stdout.write("  Прогрів COUNT-кешу категорій поставлено в черзу (light).")
-        else:
-            self.stdout.write(
-                self.style.WARNING(
-                    "  Celery недоступний — прогрів кешу пропущено "
-                    "(перший відвідувач великих категорій платить холодним COUNT)."
-                ),
-            )
+        # nav + home + facets/counts/brands, і одразу ставить прогрів у чергу (light) —
+        # видалення тисяч товарів змінює лічильники всіх категорій, не лише nav.
+        invalidate_catalog_listing_caches()
+        self.stdout.write(
+            "  Кеші каталогу (nav/home/facets/counts/brands) інвалідовано, "
+            "прогрів поставлено в черзу.",
+        )

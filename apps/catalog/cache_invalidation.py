@@ -32,11 +32,17 @@ def invalidate_home_cache() -> None:
             cache.delete(f"catalog:home:{block}:{lang}")
 
 
-def invalidate_catalog_listing_caches() -> None:
+def invalidate_catalog_listing_caches(*, rewarm: bool = True) -> None:
     """Nav + home + facets/counts/brands — після синків чи масових змін каталогу.
 
     На Redis використовує delete_pattern; на LocMem (dev/test) — точкові delete
     для nav/home (facets на TTL, для dev це неістотно).
+
+    За замовчуванням одразу ставить у чергу (light) прогрів COUNT/фасетів/брендів
+    для топ-категорій — щоб реальний відвідувач ніколи не платив за холодний
+    кеш, і сайт не залежав від того, чи хтось не забув запустити прогрів
+    вручну після адмінської дії/бекфілу. `rewarm=False` — коли викликач сам
+    прогріває інакше (напр. одразу після) і друге постановлення в чергу зайве.
     """
     from apps.catalog.nav import invalidate_nav_cache
 
@@ -52,3 +58,19 @@ def invalidate_catalog_listing_caches() -> None:
         invalidate_home_cache()
 
     logger.info("Catalog listing caches invalidated")
+
+    if rewarm:
+        _schedule_rewarm()
+
+
+def _schedule_rewarm() -> None:
+    from apps.catalog.tasks import warm_listing_caches
+    from apps.core.celery_utils import safe_delay
+
+    if safe_delay(warm_listing_caches):
+        logger.info("Catalog listing caches: rewarm scheduled (light queue)")
+    else:
+        logger.warning(
+            "Catalog listing caches: rewarm NOT scheduled (broker unavailable) — "
+            "next visitor to a large category pays cold COUNT/facets until Beat's 15-min tick",
+        )

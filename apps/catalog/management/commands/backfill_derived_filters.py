@@ -130,5 +130,7 @@ class Command(BaseCommand):
     def _invalidate_caches(self) -> None:
         from apps.catalog.cache_invalidation import invalidate_catalog_listing_caches
 
+        # rewarm=True (default) — одразу ставить прогрів топ-категорій у чергу,
+        # реальний відвідувач не платить за холодні фасети з новими даними.
         invalidate_catalog_listing_caches()
-        self.stdout.write("  Кеші фасетів/лічильників інвалідовано.")
+        self.stdout.write("  Кеші фасетів/лічильників інвалідовано, прогрів поставлено в черзу.")

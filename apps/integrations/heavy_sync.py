@@ -110,18 +110,11 @@ def heavy_catalog_sync_lock(task_name: str) -> Iterator[bool]:
         except Exception:
             logger.exception("ANALYZE failed after %s", task_name)
         try:
-            # Синк змінив каталог — nav/home/facets не мають чекати TTL
+            # Синк змінив каталог — nav/home/facets не мають чекати TTL.
+            # invalidate_catalog_listing_caches() сама ставить прогрів у чергу
+            # (light) — окремого safe_delay(warm_listing_caches) тут не треба.
             from apps.catalog.cache_invalidation import invalidate_catalog_listing_caches
 
             invalidate_catalog_listing_caches()
         except Exception:
             logger.exception("Catalog cache invalidation failed after %s", task_name)
-        try:
-            # Прогріти COUNT-кеш топ-категорій (light-черга), щоб перший
-            # відвідувач після синку не платив за холодний COUNT.
-            from apps.catalog.tasks import warm_listing_caches
-            from apps.core.celery_utils import safe_delay
-
-            safe_delay(warm_listing_caches)
-        except Exception:
-            logger.exception("Cache warmup enqueue failed after %s", task_name)

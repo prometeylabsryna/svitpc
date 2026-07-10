@@ -10,9 +10,14 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import translation
 
-FACET_CACHE_TTL = 600
-COUNT_CACHE_TTL = 600
-BRAND_LIST_CACHE_TTL = 600
+# TTL > Celery Beat "catalog-warm-listing-caches" interval (15 хв, див.
+# config/celery_beat_schedule.py), інакше кожен цикл між TTL-закінченням і
+# наступним тіком Beat — гарантована холодна яма для реального відвідувача
+# великої категорії, навіть якщо ніхто нічого не змінював. 30 хв = 2x запас
+# на випадок, якщо один тік Beat пропущено/затримано.
+FACET_CACHE_TTL = 1800
+COUNT_CACHE_TTL = 1800
+BRAND_LIST_CACHE_TTL = 1800
 
 
 def catalog_filter_params(
