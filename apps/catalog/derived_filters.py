@@ -77,6 +77,20 @@ def facet_rule_for_attribute_name(name: str) -> FacetRule | None:
     return None
 
 
+def _get_or_create_single(model, defaults: dict | None = None, /, **lookup):
+    """`get_or_create` без крашу на вже наявних дублікатах у БД.
+
+    OpenCart-імпорт залишив у `FilterGroup`/`Filter` рядки-дублікати (однакові
+    group+name, різні `pk`) — звичайний `get_or_create` кидає `MultipleObjectsReturned`
+    у такому разі. Тут детермінований вибір (найменший pk) замість краху; дублікати
+    прибирає окрема команда `dedupe_catalog_filters`.
+    """
+    existing = model.objects.filter(**lookup).order_by("pk").first()
+    if existing is not None:
+        return existing
+    return model.objects.create(**lookup, **(defaults or {}))
+
+
 def sync_derived_filters_for_product(product: "Product") -> int:
     """Створити ProductFilter для `product` з уже записаних ProductAttribute.
 
@@ -109,10 +123,12 @@ def sync_derived_filters_for_product(product: "Product") -> int:
 
         group = group_cache.get(rule.group_name)
         if group is None:
-            group, _ = FilterGroup.objects.get_or_create(name=rule.group_name)
+            group = _get_or_create_single(FilterGroup, name=rule.group_name)
             group_cache[rule.group_name] = group
 
-        filt, _ = Filter.objects.get_or_create(group=group, name=value)
+        filt = _get_or_create_single(Filter, group=group, name=value)
+
+        # unique_together=("product","filter") — тут дублікатів у БД немає, get_or_create безпечний.
         _, was_created = ProductFilter.objects.get_or_create(product=product, filter=filt)
         if was_created:
             created += 1

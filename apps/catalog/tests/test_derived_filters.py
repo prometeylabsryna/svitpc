@@ -126,3 +126,30 @@ class TestSyncDerivedFiltersForProduct:
     def test_no_attributes_returns_zero(self, product_factory):
         product = product_factory(slug="derived-empty-1")
         assert sync_derived_filters_for_product(product) == 0
+
+    def test_survives_duplicate_filter_rows_in_db(self, product_factory, filter_group_factory, filter_factory):
+        """OpenCart-імпорт лишив 2 Filter з однаковим (group, name) — не має кидати MultipleObjectsReturned."""
+        group = filter_group_factory(name="Діагональ")
+        filter_factory(name='15.6"', group=group)
+        filter_factory(name='15.6"', group=group)  # дублікат — прод-сценарій
+
+        product = product_factory(slug="derived-dup-filter-1")
+        self._add_attr(product, "Діагональ", '15.6"')
+
+        created = sync_derived_filters_for_product(product)
+
+        assert created == 1
+        assert product.filters.count() == 1
+
+    def test_survives_duplicate_filtergroup_rows_in_db(self, product_factory, filter_group_factory):
+        """2 FilterGroup з однаковою назвою (дубль з імпорту) — не має кидати MultipleObjectsReturned."""
+        filter_group_factory(name="Колір")
+        filter_group_factory(name="Колір")  # дублікат — прод-сценарій
+
+        product = product_factory(slug="derived-dup-group-1")
+        self._add_attr(product, "Колір", "Чорний")
+
+        created = sync_derived_filters_for_product(product)
+
+        assert created == 1
+        assert product.filters.count() == 1
