@@ -24,21 +24,36 @@ def flush_product_views() -> int:
 
 @shared_task(name="catalog.warm_listing_caches", soft_time_limit=600, time_limit=900)
 def warm_listing_caches(limit: int = 20) -> int:
-    """Прогріти COUNT-кеш топ-категорій і їх прямих підкатегорій після інвалідації.
+    """Прогріти COUNT/фасети/бренди топ-категорій і їх прямих підкатегорій.
 
-    Після нічного синку/масового видалення кеші лічильників скидаються, і
-    перший відвідувач великої категорії платив ~1с+ за холодний COUNT. Підкатегорії
-    (наприклад «Ноутбуки» під «Ноутбуки, планшети») — це і є сторінки, які реально
-    відкривають користувачі, тому прогріваємо і їх, а не лише топ-рівень.
-    COUNT не залежить від мови — рахуємо один раз і записуємо ключ для кожної мови сайту.
+    Після нічного синку/масового видалення (або просто через TTL=10 хв у тиші)
+    кеші скидаються, і перший відвідувач великої категорії (десятки тисяч товарів,
+    наприклад «Периферія, оргтехніка» чи «Канцелярські товари») платив кілька
+    секунд за холодний COUNT + агрегацію фасетів + список брендів одночасно.
+    Прогріваємо всі три кеші для дефолтного стану (без активних фільтрів) —
+    це стан, у якому 95%+ відвідувачів відкривають категорію вперше.
+    Підкатегорії (наприклад «Ноутбуки» під «Ноутбуки, планшети») — це і є
+    сторінки, які реально відкривають користувачі, тому прогріваємо і їх.
     """
     from django.conf import settings
     from django.utils import translation
 
-    from apps.catalog.facet_cache import catalog_filter_params, count_cache_key, set_cached_count
+    from apps.catalog.facet_cache import (
+        catalog_filter_params,
+        count_cache_key,
+        facet_cache_key,
+        set_cached_count,
+        set_cached_facets,
+    )
     from apps.catalog.models import Category
     from apps.catalog.nav import get_top_categories
-    from apps.catalog.services import category_listing_products, get_filtered_products
+    from apps.catalog.services import (
+        _compute_product_facets,
+        category_listing_category_scope,
+        category_listing_products,
+        get_brands_for_category,
+        get_filtered_products,
+    )
 
     params = catalog_filter_params(
         brand_ids=[],
@@ -61,13 +76,22 @@ def warm_listing_caches(limit: int = 20) -> int:
                 skip_image_filter=True,
             )
             total = qs_lite.count()
+            facets = _compute_product_facets(qs_lite)
+            cat_scope = category_listing_category_scope(category)
+            get_brands_for_category(cat_scope, category_id=category.pk)
+
             for lang_code, _name in settings.LANGUAGES:
                 with translation.override(lang_code):
-                    key = count_cache_key(scope="category-v2", scope_id=category.pk, params=params)
-                set_cached_count(key, total)
+                    count_key = count_cache_key(scope="category-v2", scope_id=category.pk, params=params)
+                    facets_key = facet_cache_key(scope="category-v2", scope_id=category.pk, params=params)
+                set_cached_count(count_key, total)
+                set_cached_facets(facets_key, facets)
             warmed += 1
 
-    logger.info("warm_listing_caches: %d categories warmed (top + direct children)", warmed)
+    logger.info(
+        "warm_listing_caches: %d categories warmed (count + facets + brands, top + direct children)",
+        warmed,
+    )
     return warmed
 
 

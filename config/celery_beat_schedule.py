@@ -118,4 +118,13 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=6, minute=45),
         "options": {"queue": "light"},
     },
+    # Прогрів COUNT/фасетів/брендів для великих категорій (десятки тисяч товарів)
+    # кожні 15 хв — TTL кешів 10 хв, тож без цього перший відвідувач у тиші
+    # платить кілька секунд за холодну агрегацію. Легкі read-only запити,
+    # безпечно для light-черги.
+    "catalog-warm-listing-caches": {
+        "task": "catalog.warm_listing_caches",
+        "schedule": crontab(minute="*/15"),
+        "options": {"queue": "light"},
+    },
 }
