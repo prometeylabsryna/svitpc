@@ -21,7 +21,15 @@
     min-width: 0;
     width: 100%;
     max-width: 100%;
+    /* overflow-x: hidden (сам по собі, без overflow-y) за специфікацією CSS
+       автоматично перетворює обчислений overflow-y на "auto" — контейнер
+       стає скрол-контейнером і "ламає" position: sticky для .page-body__nav
+       та .catalog-sidebar усередині (їхній sticky-контекст прив'язується до
+       цього div, а не до сторінки, тож вони перестають бути прилипними).
+       overflow-x: clip не має цього побічного ефекту (не створює скрол-
+       контейнер), а hidden лишається як фолбек для Safari < 16 / iOS < 16. */
     overflow-x: hidden;
+    overflow-x: clip;
 
     @media (min-width: 769px) {
       display: grid;
