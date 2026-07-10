@@ -17,9 +17,15 @@ def get_redirect_target(path: str) -> str | None:
     if redirect_map is None:
         from apps.catalog.models import Redirect
 
-        redirect_map = {
-            row.old_path: row.new_path
-            for row in Redirect.objects.filter(is_active=True).only("old_path", "new_path")
-        }
+        # ~69k legacy OpenCart rows. `.values_list()` returns plain tuples
+        # straight from the DB cursor — `.only(...)` still builds a full
+        # Product... err, Redirect model instance per row (from_db + __init__
+        # + post_init signal dispatch for each of the 69k rows), which alone
+        # cost ~800ms on every cache-cold request (i.e. every request right
+        # after a Redis restart/flush/TTL expiry — the exact "site is slow"
+        # window). values_list() skips model instantiation entirely.
+        redirect_map = dict(
+            Redirect.objects.filter(is_active=True).values_list("old_path", "new_path")
+        )
         cache.set(REDIRECT_MAP_CACHE_KEY, redirect_map, REDIRECT_CACHE_TTL)
     return redirect_map.get(path)

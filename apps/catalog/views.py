@@ -49,7 +49,21 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
 
     from .nav import get_subtree_product_counts
 
-    if get_subtree_product_counts({category.pk}).get(category.pk, 0) == 0:
+    # htmx-запити (пагінація/фільтри) не показують підкатегорії, тож для них
+    # рахуємо лише поточну категорію (як і раніше) — 1 запит. Для звичайного
+    # показу сторінки підкатегорії потрібні однаково, тож рахуємо їх разом з
+    # категорією ОДНИМ запитом get_subtree_product_counts замість двох
+    # окремих раунд-трипів до БД (перевірка 404 + підрахунок підкатегорій).
+    if request.htmx:
+        subcategories_all: list[Category] = []
+        subtree_counts = get_subtree_product_counts({category.pk})
+    else:
+        subcategories_all = list(
+            category.get_children().filter(is_active=True).order_by("sort_order", "name"),
+        )
+        subtree_counts = get_subtree_product_counts({category.pk, *(c.pk for c in subcategories_all)})
+
+    if subtree_counts.get(category.pk, 0) == 0:
         raise Http404
 
     base_qs = category_listing_products(category)
@@ -112,11 +126,7 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
         _gdata["has_active"] = any(opt["id"] in filter_ids for opt in _gdata["options"])
     brands = get_brands_for_category(cat_scope, category_id=category.pk)
 
-    subcategories_all = list(
-        category.get_children().filter(is_active=True).order_by("sort_order", "name"),
-    )
-    sub_counts = get_subtree_product_counts({c.pk for c in subcategories_all})
-    subcategories = [c for c in subcategories_all if sub_counts.get(c.pk, 0) > 0]
+    subcategories = [c for c in subcategories_all if subtree_counts.get(c.pk, 0) > 0]
     category_ancestors = list(category.get_ancestors())
 
     suggested_products: list[Product] = []

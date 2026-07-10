@@ -179,6 +179,11 @@ class MarkupRule(models.Model):
         return (base_price * multiplier).quantize(Decimal("0.01"))
 
 
+# Sentinel distinguishing "queryset annotation not requested" from "annotation
+# requested but its value is legitimately None/0" — see Product.avg_rating.
+_UNANNOTATED = object()
+
+
 # ── Product ────────────────────────────────────────────────────────────────────
 class Product(models.Model):
     SOURCE_BRAIN = "brain"
@@ -335,16 +340,22 @@ class Product(models.Model):
     @property
     def avg_rating(self) -> float | None:
         # Use queryset annotation when available (avoids N+1 on list pages).
-        ann = self.__dict__.get("avg_rating_ann")
-        if ann is not None:
-            return round(ann, 1)
+        # `avg_rating_ann` legitimately IS None for products with zero reviews
+        # (AVG of an empty set), so we must not confuse "annotation absent"
+        # with "annotation present but empty" — a plain `.get(key)` cannot
+        # tell them apart and previously re-queried the DB for every single
+        # product without reviews (i.e. most of the catalog, on every listing
+        # page). A sentinel default disambiguates the two cases correctly.
+        ann = self.__dict__.get("avg_rating_ann", _UNANNOTATED)
+        if ann is not _UNANNOTATED:
+            return round(ann, 1) if ann is not None else None
         agg = self.reviews.filter(is_approved=True).aggregate(avg=models.Avg("rating"))
         return round(agg["avg"], 1) if agg["avg"] else None
 
     @property
     def review_count(self) -> int:
-        ann = self.__dict__.get("review_count_ann")
-        if ann is not None:
+        ann = self.__dict__.get("review_count_ann", _UNANNOTATED)
+        if ann is not _UNANNOTATED:
             return ann
         return self.reviews.filter(is_approved=True).count()
 
