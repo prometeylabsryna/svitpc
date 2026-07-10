@@ -9,10 +9,12 @@ from apps.catalog.services import visible_catalog_products
 
 
 @pytest.mark.django_db
-def test_nav_warm_path_zero_queries(category_factory, django_assert_num_queries):
+def test_nav_warm_path_zero_queries(category_factory, product_factory, django_assert_num_queries):
     """Warm nav — 0 SQL: повний payload категорій сервірується з кешу."""
     parent = category_factory(name="Top", slug="perf-top", is_top=True)
-    category_factory(name="Child", slug="perf-child", parent=parent)
+    child = category_factory(name="Child", slug="perf-child", parent=parent)
+    product = product_factory(slug="perf-nav-product")
+    product.categories.add(child)
 
     get_top_categories()  # cache miss — будує payload
 

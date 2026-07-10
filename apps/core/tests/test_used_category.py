@@ -15,9 +15,11 @@ def clear_nav_cache():
 
 @pytest.mark.django_db
 class TestUsedCategoryVisibility:
-    def test_hidden_from_nav_when_disabled(self, category_factory):
+    def test_hidden_from_nav_when_disabled(self, category_factory, product_factory):
         used = category_factory(name="Б/У", slug="bu-test", is_top=True)
         visible = category_factory(name="Laptops", slug="laptops-test", is_top=True)
+        product_factory(slug="bu-test-used-product").categories.add(used)
+        product_factory(slug="bu-test-visible-product").categories.add(visible)
 
         site = SiteSettings.load()
         site.used_category = used
@@ -28,8 +30,9 @@ class TestUsedCategoryVisibility:
         assert "bu-test" not in slugs
         assert "laptops-test" in slugs
 
-    def test_shown_in_nav_when_enabled(self, category_factory):
+    def test_shown_in_nav_when_enabled(self, category_factory, product_factory):
         used = category_factory(name="Б/У", slug="bu-visible", is_top=True)
+        product_factory(slug="bu-visible-product").categories.add(used)
 
         site = SiteSettings.load()
         site.used_category = used
@@ -62,8 +65,9 @@ class TestUsedCategoryVisibility:
         response = client.get(reverse("catalog:category", kwargs={"slug": child.slug}))
         assert response.status_code == 404
 
-    def test_category_page_ok_when_enabled(self, client, category_factory):
+    def test_category_page_ok_when_enabled(self, client, category_factory, product_factory):
         used = category_factory(name="Б/У", slug="bu-open", is_top=True)
+        product_factory(slug="bu-open-product").categories.add(used)
 
         site = SiteSettings.load()
         site.used_category = used

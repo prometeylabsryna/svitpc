@@ -47,6 +47,11 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
     if is_used_category_branch(category):
         raise Http404
 
+    from .nav import get_subtree_product_counts
+
+    if get_subtree_product_counts({category.pk}).get(category.pk, 0) == 0:
+        raise Http404
+
     base_qs = category_listing_products(category)
     cat_scope = category_listing_category_scope(category)
 
@@ -106,7 +111,12 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
     for _gdata in facets.values():
         _gdata["has_active"] = any(opt["id"] in filter_ids for opt in _gdata["options"])
     brands = get_brands_for_category(cat_scope, category_id=category.pk)
-    subcategories = category.get_children().filter(is_active=True).order_by("sort_order", "name")
+
+    subcategories_all = list(
+        category.get_children().filter(is_active=True).order_by("sort_order", "name"),
+    )
+    sub_counts = get_subtree_product_counts({c.pk for c in subcategories_all})
+    subcategories = [c for c in subcategories_all if sub_counts.get(c.pk, 0) > 0]
     category_ancestors = list(category.get_ancestors())
 
     suggested_products: list[Product] = []

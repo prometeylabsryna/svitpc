@@ -1,6 +1,5 @@
-{% load i18n cache svitpc_tags catalog_tags %}
+{% load i18n svitpc_tags catalog_tags %}
 
-{% cache 600 site_nav_icons LANGUAGE_CODE %}
 <nav class="site-nav" aria-label="{% trans 'Каталог' %}">
   <ul class="site-nav__list">
     {% for cat in top_categories %}
@@ -57,4 +56,3 @@
     </li>
   </ul>
 </nav>
-{% endcache %}

@@ -9,26 +9,36 @@
   hx-include="[name='sort']"
   aria-label="{% trans 'Фільтри каталогу' %}">
 
-  {# In stock #}
-  <div class="filter-group">
+  <header class="filters-panel__head">
+    <span class="filters-panel__icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
+      </svg>
+    </span>
+    <h2 class="filters-panel__title">{% trans "Фільтри" %}</h2>
+  </header>
+
+  <div class="filter-group filter-group--stock">
     <label class="filter-check">
-      <input type="checkbox" name="in_stock" value="1" {% if in_stock %}checked{% endif %}>
-      {% trans "Тільки в наявності" %}
+      <input class="filter-check__input sr-only" type="checkbox" name="in_stock" value="1" {% if in_stock %}checked{% endif %}>
+      <span class="filter-check__box" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+      </span>
+      <span class="filter-check__label">{% trans "Тільки в наявності" %}</span>
     </label>
   </div>
 
-  {# Price range #}
   <div class="filter-group">
     <p class="filter-group__title filter-group__title--static">{% trans "Ціна, ₴" %}</p>
     <div class="price-range">
       <div class="price-range__inputs">
-        <input class="form-input" type="number" name="price_min" value="{{ price_min|default:'' }}" placeholder="{% trans 'від' %}" min="0" step="50" aria-label="{% trans 'Мінімальна ціна' %}">
-        <input class="form-input" type="number" name="price_max" value="{{ price_max|default:'' }}" placeholder="{% trans 'до' %}" min="0" step="50" aria-label="{% trans 'Максимальна ціна' %}">
+        <input class="form-input price-range__input" type="number" name="price_min" value="{{ price_min|default:'' }}" placeholder="{% trans 'від' %}" min="0" step="50" aria-label="{% trans 'Мінімальна ціна' %}">
+        <span class="price-range__sep" aria-hidden="true">—</span>
+        <input class="form-input price-range__input" type="number" name="price_max" value="{{ price_max|default:'' }}" placeholder="{% trans 'до' %}" min="0" step="50" aria-label="{% trans 'Максимальна ціна' %}">
       </div>
     </div>
   </div>
 
-  {# Brands #}
   {% if brands %}
   <div class="filter-group">
     <button type="button" class="filter-group__title" data-filter-toggle="brands-list" aria-expanded="{% if selected_brands %}true{% else %}false{% endif %}">
@@ -38,15 +48,17 @@
     <div id="brands-list" class="filter-group__items"{% if not selected_brands %} hidden{% endif %}>
       {% for brand in brands %}
       <label class="filter-check">
-        <input type="checkbox" name="brand" value="{{ brand.pk }}" {% if brand.pk in selected_brands %}checked{% endif %}>
-        {{ brand|localized:"name" }}
+        <input class="filter-check__input sr-only" type="checkbox" name="brand" value="{{ brand.pk }}" {% if brand.pk in selected_brands %}checked{% endif %}>
+        <span class="filter-check__box" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+        </span>
+        <span class="filter-check__label">{{ brand|localized:"name" }}</span>
       </label>
       {% endfor %}
     </div>
   </div>
   {% endif %}
 
-  {# Attribute filters (facets) — first 5 always visible, rest collapsible #}
   {% for gid, group in facets.items %}
   <div class="filter-group{% if forloop.counter > 5 and not group.has_active %} filter-group--extra{% endif %}">
     <button type="button" class="filter-group__title" data-filter-toggle="filter-group-{{ gid }}" aria-expanded="{% if group.has_active %}true{% else %}false{% endif %}">
@@ -56,8 +68,11 @@
     <div id="filter-group-{{ gid }}" class="filter-group__items"{% if not group.has_active %} hidden{% endif %}>
       {% for opt in group.options %}
       <label class="filter-check">
-        <input type="checkbox" name="f" value="{{ opt.id }}" {% if opt.id in selected_filters %}checked{% endif %}>
-        {{ opt.name }}
+        <input class="filter-check__input sr-only" type="checkbox" name="f" value="{{ opt.id }}" {% if opt.id in selected_filters %}checked{% endif %}>
+        <span class="filter-check__box" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+        </span>
+        <span class="filter-check__label">{{ opt.name }}</span>
         <span class="filter-check__count">{{ opt.count }}</span>
       </label>
       {% endfor %}
@@ -65,7 +80,6 @@
   </div>
   {% endfor %}
 
-  {# "More filters" toggle — only shown when there are more than 5 facet groups #}
   {% if facets|length > 5 %}
   <button type="button" class="filters-more-btn" data-filters-more aria-expanded="false">
     <span class="filters-more-btn__label filters-more-btn__label--more">{% trans "Більше фільтрів" %}</span>
