@@ -1,34 +1,30 @@
 {% load i18n svitpc_tags catalog_tags %}
 {% if subcategories %}
 {% with visible_limit=10 total=subcategories|length %}
-<section class="catalog-subcategories{% if total > visible_limit %} catalog-subcategories--collapsible{% endif %}" aria-labelledby="subcategories-heading">
-  <h2 class="catalog-subcategories__title" id="subcategories-heading">{% trans "Підкатегорії" %}</h2>
-  {% if total > visible_limit %}
-  <input type="checkbox" class="catalog-subcategories__toggle sr-only" id="subcategories-expand-{{ category.pk }}">
-  {% endif %}
-  <ul class="catalog-subcategories__list">
-    {% for sub in subcategories %}
-    <li class="catalog-subcategories__item{% if forloop.counter > visible_limit %} catalog-subcategories__item--extra{% endif %}">
-      <a href="{{ sub.get_absolute_url }}" class="catalog-subcategories__link">
-        <span class="catalog-subcategories__icon-wrap" aria-hidden="true">
-          {% if sub.icon %}
-          <img class="catalog-subcategories__icon" src="{{ sub.icon.url }}" alt="" loading="lazy">
-          {% else %}
-          {% category_nav_icon sub icon_class="catalog-subcategories__icon-svg" %}
-          {% endif %}
-        </span>
-        <span class="catalog-subcategories__label">{{ sub|localized:"name" }}</span>
-      </a>
-    </li>
-    {% endfor %}
-  </ul>
-  {% if total > visible_limit %}
-  <label class="catalog-subcategories__more" for="subcategories-expand-{{ category.pk }}">
-    <span class="catalog-subcategories__more-label catalog-subcategories__more-label--more">{% trans "Більше підкатегорій" %}</span>
-    <span class="catalog-subcategories__more-label catalog-subcategories__more-label--less">{% trans "Менше підкатегорій" %}</span>
+<div class="filter-group filter-group--subcats" aria-label="{% trans 'Підкатегорії' %}">
+  <button type="button" class="filter-group__title" data-filter-toggle="subcats-list-{{ category.pk }}" aria-expanded="true">
+    {% trans "Підкатегорії" %}
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-  </label>
-  {% endif %}
-</section>
+  </button>
+  <div id="subcats-list-{{ category.pk }}" class="filter-group__items filter-subcats__items">
+    <ul class="filter-subcats__list">
+      {% for sub in subcategories %}
+      <li class="filter-subcats__item{% if forloop.counter > visible_limit %} filter-subcats__item--extra{% endif %}">
+        <a href="{{ sub.get_absolute_url }}" class="filter-subcats__link">
+          {% include "catalog/partials/category_icon.html" with category=sub %}
+          <span class="filter-subcats__label">{{ sub|localized:"name" }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if total > visible_limit %}
+    <button type="button" class="filters-more-btn filter-subcats__more" data-subcats-more aria-expanded="false">
+      <span class="filters-more-btn__label filters-more-btn__label--more">{% trans "Більше підкатегорій" %}</span>
+      <span class="filters-more-btn__label filters-more-btn__label--less">{% trans "Менше підкатегорій" %}</span>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+    </button>
+    {% endif %}
+  </div>
+</div>
 {% endwith %}
 {% endif %}

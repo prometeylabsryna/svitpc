@@ -1,5 +1,9 @@
 {% load i18n svitpc_tags %}
 
+{# Підкатегорії — навігаційні посилання, тому свідомо ПОЗА <form>: чекбокс
+   "показати більше" не має пуст-triggerити change на formi (hx-trigger). #}
+{% include "catalog/partials/subcategories.html" %}
+
 <form
   class="filters-panel"
   hx-get="{{ request.path }}"

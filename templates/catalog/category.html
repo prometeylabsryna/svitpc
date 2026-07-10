@@ -61,8 +61,6 @@
       <div class="category-description">{{ category|localized:"description"|safe }}</div>
       {% endif %}
 
-      {% include "catalog/partials/subcategories.html" %}
-
       {# Sort bar #}
       <div class="sort-bar catalog-sort-bar">
         <span id="sort-bar-results" class="sort-bar__results"><span id="sort-bar-count">{{ total }}</span>&nbsp;{% trans "товарів" %}</span>

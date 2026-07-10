@@ -28,6 +28,20 @@ const initFilterPanel = (root = document) => {
     });
   });
 
+  // "More subcategories" toggle — same DOM-relative approach (no id/for:
+  // subcategories render inside both desktop and mobile panels).
+  root.querySelectorAll("[data-subcats-more]:not([data-subcats-more-init])").forEach((btn) => {
+    btn.dataset.subcatsMoreInit = "1";
+    const group = btn.closest(".filter-group--subcats");
+    btn.addEventListener("click", () => {
+      const expanded = btn.getAttribute("aria-expanded") === "true";
+      btn.setAttribute("aria-expanded", String(!expanded));
+      group?.querySelectorAll(".filter-subcats__item--extra").forEach((li) => {
+        li.classList.toggle("is-visible", !expanded);
+      });
+    });
+  });
+
   // Mobile sidebar open/close
   const openBtn = root.querySelector("[data-filters-open]");
   const closeBtn = root.querySelector("[data-filters-close]");

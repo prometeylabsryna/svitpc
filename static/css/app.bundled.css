@@ -2075,6 +2075,69 @@
     &:last-child { border-bottom: none; }
   }
 
+  /* ── Підкатегорії — той самий рядок-паттерн, що й site-nav (icon-box + label),
+     щоб бокова навігація категорій і панель фільтрів виглядали як одна система. ── */
+  .filter-group--subcats {
+    padding-top: 0;
+  }
+
+  .filter-subcats__items {
+    /* Довжина списку контролюється кнопкою "більше", а не внутрішнім скролом
+       як у .filter-group__items (список опцій фільтра) — інша UX-модель. */
+    max-height: none;
+    overflow: visible;
+  }
+
+  .filter-subcats__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .filter-subcats__item {
+    min-width: 0;
+  }
+
+  .filter-subcats__item--extra {
+    display: none;
+
+    &.is-visible { display: block; }
+  }
+
+  .filter-subcats__link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 40px;
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-medium);
+    line-height: var(--leading-normal);
+    color: var(--clr-text-muted);
+    text-decoration: none;
+    border-radius: var(--radius-lg);
+    border: 1px solid transparent;
+    transition: color var(--transition-fast), background var(--transition-fast),
+                border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover {
+      color: var(--clr-primary-600);
+      background: var(--clr-primary-50);
+      border-color: rgba(var(--clr-accent-rgb), 0.12);
+    }
+  }
+
+  .filter-subcats__label {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   .filter-group--stock {
     padding: var(--space-2) var(--space-3);
     margin-bottom: var(--space-1);
@@ -4571,174 +4634,6 @@
 
   .catalog-sort-bar {
     margin-bottom: var(--space-4);
-  }
-
-  .catalog-subcategories {
-    margin-bottom: var(--space-6);
-    min-width: 0;
-    padding: var(--space-4);
-    background: var(--clr-surface);
-    border: 1px solid var(--clr-border);
-    border-radius: var(--radius-xl);
-
-    @media (max-width: 639px) {
-      padding: var(--space-4);
-    }
-  }
-
-  .catalog-subcategories__title {
-    font-size: var(--text-sm);
-    font-weight: var(--fw-semibold);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--clr-text-muted);
-    margin-bottom: var(--space-3);
-
-    @media (max-width: 639px) {
-      margin-bottom: var(--space-2);
-    }
-  }
-
-  .catalog-subcategories__list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    list-style: none;
-    margin: 0;
-    padding: 0;
-
-    @media (min-width: 640px) {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
-      gap: var(--space-3);
-    }
-
-    @media (min-width: 1024px) {
-      grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
-    }
-  }
-
-  .catalog-subcategories__item {
-    min-width: 0;
-  }
-
-  .catalog-subcategories--collapsible .catalog-subcategories__toggle:not(:checked) ~ .catalog-subcategories__list .catalog-subcategories__item--extra {
-    display: none;
-  }
-
-  .catalog-subcategories__more {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    width: 100%;
-    margin-top: var(--space-3);
-    padding: var(--space-2) var(--space-3);
-    border: 1px dashed var(--clr-border-strong);
-    border-radius: var(--radius-lg);
-    background: transparent;
-    font-size: var(--text-sm);
-    font-weight: var(--fw-medium);
-    color: var(--clr-primary-600);
-    cursor: pointer;
-    transition: border-color var(--transition-fast), background var(--transition-fast);
-
-    svg {
-      width: 1rem;
-      height: 1rem;
-      flex-shrink: 0;
-      transition: transform var(--transition-fast);
-    }
-
-    &:hover {
-      border-color: rgba(var(--clr-accent-rgb), 0.35);
-      background: rgba(var(--clr-accent-rgb), 0.04);
-    }
-
-    .catalog-subcategories__more-label--less { display: none; }
-  }
-
-  .catalog-subcategories--collapsible .catalog-subcategories__more {
-    display: flex;
-  }
-
-  .catalog-subcategories__toggle:checked ~ .catalog-subcategories__more {
-    svg { transform: rotate(180deg); }
-
-    .catalog-subcategories__more-label--more { display: none; }
-    .catalog-subcategories__more-label--less { display: inline; }
-  }
-
-  .catalog-subcategories__link {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--clr-border);
-    background: var(--clr-bg);
-    font-size: var(--text-sm);
-    font-weight: var(--fw-medium);
-    line-height: var(--leading-tight);
-    color: var(--clr-text-muted);
-    text-decoration: none;
-    transition: border-color var(--transition-fast), color var(--transition-fast),
-                background var(--transition-fast), box-shadow var(--transition-fast),
-                transform var(--transition-fast);
-    -webkit-tap-highlight-color: transparent;
-
-    &:hover {
-      border-color: rgba(var(--clr-accent-rgb), 0.35);
-      background: var(--clr-primary-50);
-      color: var(--clr-primary-700);
-      box-shadow: var(--shadow-glow-sm);
-      transform: translateY(-1px);
-    }
-
-    @media (min-width: 640px) {
-      flex-direction: column;
-      justify-content: center;
-      width: 100%;
-      min-height: 6rem;
-      padding: var(--space-4) var(--space-3);
-      border-radius: var(--radius-xl);
-      text-align: center;
-    }
-  }
-
-  .catalog-subcategories__icon-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: var(--radius-md);
-    background: var(--clr-primary-50);
-    color: var(--clr-primary-600);
-    flex-shrink: 0;
-
-    @media (min-width: 640px) {
-      width: 3rem;
-      height: 3rem;
-      border-radius: var(--radius-lg);
-    }
-  }
-
-  .catalog-subcategories__icon {
-    width: 1.25rem;
-    height: 1.25rem;
-    object-fit: contain;
-    flex-shrink: 0;
-
-    @media (min-width: 640px) {
-      width: 2.5rem;
-      height: 2.5rem;
-    }
-  }
-
-  .catalog-subcategories__label {
-    min-width: 0;
-    overflow-wrap: anywhere;
   }
 
   .catalog-product-list {
