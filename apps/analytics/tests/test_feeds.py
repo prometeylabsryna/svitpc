@@ -1,4 +1,4 @@
-"""Tests for Google Merchant / Ads XML feeds."""
+"""Tests for the Google Merchant Center XML feed."""
 
 from decimal import Decimal
 
@@ -29,9 +29,11 @@ def test_merchant_feed_sale_price(client, product_factory, category_factory):
 
 
 @pytest.mark.django_db
-def test_remarketing_feed_rss_format(client, product_factory):
-    product_factory(name="Feed item", slug="feed-item", stock=1)
-    response = client.get(reverse("google_ads"))
+def test_merchant_feed_rss_format(client, product_factory, category_factory):
+    category = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
+    product = product_factory(name="Feed item", slug="feed-item", stock=1)
+    product.categories.add(category)
+    response = client.get(reverse("google_merchant"))
     assert response.status_code == 200
     assert response["Content-Type"].startswith("application/xml")
     body = response.content.decode()

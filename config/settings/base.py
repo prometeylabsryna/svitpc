@@ -456,7 +456,7 @@ UNFOLD = {
                         "link": reverse_lazy("admin:notifications_pushsubscription_changelist"),
                     },
                     {
-                        "title": "Фіди Google",
+                        "title": "Фід Google",
                         "icon": "shopping_cart",
                         "link": reverse_lazy("admin:analytics_feeds_dashboard"),
                     },

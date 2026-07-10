@@ -66,4 +66,3 @@ def test_feeds_admin_dashboard(client, product_factory, settings):
     body = response.content.decode()
     assert "Google Merchant Center" in body
     assert "https://svitpc.com.ua/feeds/google-merchant.xml" in body
-    assert "https://svitpc.com.ua/feeds/google-ads.xml" in body

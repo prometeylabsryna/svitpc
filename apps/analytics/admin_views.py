@@ -1,4 +1,4 @@
-"""Staff-only admin dashboard for Google product feeds."""
+"""Staff-only admin dashboard for the Google Merchant Center feed."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from .feeds import FEED_DEFINITIONS, absolute_feed_url, collect_feed_stats
 
 @method_decorator(staff_member_required, name="dispatch")
 class FeedsDashboardView(View):
-    """Marketing feeds overview — URLs, stats, GMC setup hints."""
+    """Marketing feed overview — URL, stats, GMC setup hints."""
 
     def get(self, request):
         stats = collect_feed_stats(request)
@@ -23,36 +23,19 @@ class FeedsDashboardView(View):
             {
                 "definition": definition,
                 "url": absolute_feed_url(request, definition.slug),
-                "issues": (
-                    stats.merchant_issues
-                    if definition.queryset_builder == "merchant"
-                    else stats.remarketing_issues
-                ),
-                "product_count": (
-                    stats.merchant_in_feed
-                    if definition.queryset_builder == "merchant"
-                    else stats.remarketing_in_feed
-                ),
+                "issues": stats.merchant_issues,
+                "product_count": stats.merchant_in_feed,
             }
             for definition in FEED_DEFINITIONS
-        ]
-
-        price_tier_feeds = [
-            {
-                "tier": tier,
-                "url": absolute_feed_url(request, tier.slug),
-            }
-            for tier in stats.price_tiers
         ]
 
         return render(
             request,
             "admin/analytics/feeds_dashboard.html",
             {
-                "title": _("Фіди Google Merchant / Ads"),
+                "title": _("Фід Google Merchant Center"),
                 "stats": stats,
                 "feeds": feeds,
-                "price_tier_feeds": price_tier_feeds,
                 **admin.site.each_context(request),
             },
         )
