@@ -625,6 +625,11 @@ GOOGLE_ANALYTICS_ID = env("GOOGLE_ANALYTICS_ID", default="")
 GOOGLE_TAG_MANAGER_ID = env("GOOGLE_TAG_MANAGER_ID", default="")
 GOOGLE_ADS_ID = env("GOOGLE_ADS_ID", default="")
 ANALYTICS_FEED_MAX_PRODUCTS = env.int("ANALYTICS_FEED_MAX_PRODUCTS", default=10000)
+# Категорії (+ їх підкатегорії), з яких формується основний Google Merchant фід.
+ANALYTICS_FEED_CATEGORY_SLUGS = env.list(
+    "ANALYTICS_FEED_CATEGORY_SLUGS",
+    default=["ноутбуки-планшети", "компютери-аксесуари", "комплектуючі-до-пк"],
+)
 FACEBOOK_PIXEL_ID = env("FACEBOOK_PIXEL_ID", default="")
 WAYFORPAY_MERCHANT_DOMAIN = env("WAYFORPAY_MERCHANT_DOMAIN", default="")
 SMS_API_KEY = env("SMS_API_KEY", default="")

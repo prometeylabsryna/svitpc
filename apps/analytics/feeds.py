@@ -38,9 +38,31 @@ def _merchant_base() -> QuerySet[Product]:
     return visible_products_queryset().filter(stock__gt=0).order_by("pk")
 
 
+def feed_category_ids() -> list[int]:
+    """PK усіх категорій (+ підкатегорій) з ANALYTICS_FEED_CATEGORY_SLUGS.
+
+    MPTT-дерево не гарантує, що товари прив'язані саме до кореневих категорій
+    (найчастіше — до листових підкатегорій), тож для кожного кореня беремо
+    get_descendants(include_self=True), а не сам корінь.
+    """
+    from apps.catalog.models import Category
+
+    slugs = getattr(settings, "ANALYTICS_FEED_CATEGORY_SLUGS", [])
+    ids: set[int] = set()
+    for root in Category.objects.filter(slug__in=slugs):
+        ids.update(root.get_descendants(include_self=True).values_list("pk", flat=True))
+    return list(ids)
+
+
 def merchant_feed_queryset() -> QuerySet[Product]:
-    """All visible in-stock products — no artificial limit."""
-    return _merchant_base()
+    """Visible in-stock products from ANALYTICS_FEED_CATEGORY_SLUGS categories.
+
+    Обмежено ANALYTICS_FEED_MAX_PRODUCTS — за вимогою фід охоплює лише
+    ноутбуки/комп'ютери/комплектуючі, а не весь каталог.
+    """
+    max_items = getattr(settings, "ANALYTICS_FEED_MAX_PRODUCTS", 10000)
+    qs = _merchant_base().filter(categories__in=feed_category_ids()).distinct()
+    return qs[:max_items]
 
 
 def remarketing_feed_queryset() -> QuerySet[Product]:
@@ -119,8 +141,12 @@ class FeedStats:
 FEED_DEFINITIONS: tuple[FeedDefinition, ...] = (
     FeedDefinition(
         slug=FEED_MERCHANT_SLUG,
-        title="Google Merchant Center — усі товари",
-        description="Основний товарний фід для Shopping / Performance Max. Лише видимі товари в наявності. Без ліміту кількості.",
+        title="Google Merchant Center — ноутбуки, комп'ютери, комплектуючі",
+        description=(
+            "Товарний фід для Shopping / Performance Max. Лише видимі товари в наявності "
+            "з категорій «Ноутбуки, планшети», «Комп'ютери, аксесуари», «Комплектуючі до ПК» "
+            "(з підкатегоріями). Максимум 10 000 товарів."
+        ),
         queryset_builder="merchant",
     ),
     FeedDefinition(
@@ -222,18 +248,18 @@ _FEED_STATS_CACHE_TTL = 300  # 5 minutes
 def _compute_feed_stats(site_url: str) -> FeedStats:
     max_items = getattr(settings, "ANALYTICS_FEED_MAX_PRODUCTS", 10000)
     visible = Product.objects.filter(is_visible=True)
-    merchant_base = visible.filter(stock__gt=0)
+    merchant_eligible_qs = visible.filter(stock__gt=0, categories__in=feed_category_ids()).distinct()
     visible_count = visible.count()
-    merchant_eligible = merchant_base.count()
+    merchant_eligible = merchant_eligible_qs.count()
 
     return FeedStats(
         site_url=site_url,
         max_products=max_items,
         visible_products=visible_count,
         merchant_eligible=merchant_eligible,
-        merchant_in_feed=merchant_eligible,
+        merchant_in_feed=min(merchant_eligible, max_items),
         remarketing_in_feed=visible_count,
-        merchant_issues=_issue_stats(merchant_base),
+        merchant_issues=_issue_stats(merchant_eligible_qs),
         remarketing_issues=_issue_stats(visible),
         price_tiers=_price_tier_stats(None),
     )

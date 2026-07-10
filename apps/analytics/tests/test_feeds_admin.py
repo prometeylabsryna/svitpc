@@ -7,9 +7,13 @@ from django.urls import reverse
 
 
 @pytest.mark.django_db
-def test_collect_feed_stats_counts(product_factory, settings):
+def test_collect_feed_stats_counts(product_factory, category_factory, settings):
     settings.SITE_URL = "https://svitpc.com.ua"
-    product_factory(name="In stock", slug="in-stock", stock=3)
+    # Merchant-фід охоплює лише ANALYTICS_FEED_CATEGORY_SLUGS — товар без такої
+    # категорії лишається "видимим", але не "eligible" для основного фіда.
+    category = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
+    in_stock = product_factory(name="In stock", slug="in-stock", stock=3)
+    in_stock.categories.add(category)
     product_factory(name="Out of stock", slug="out-stock", stock=0)
     from apps.analytics.feeds import collect_feed_stats
 

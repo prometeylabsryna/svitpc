@@ -8,7 +8,9 @@ from django.urls import reverse
 
 @pytest.mark.django_db
 def test_merchant_feed_sale_price(client, product_factory, category_factory):
-    category = category_factory(name="Laptops", slug="laptops")
+    # Основний Merchant-фід охоплює лише категорії з ANALYTICS_FEED_CATEGORY_SLUGS
+    # (див. test_feeds_categories.py) — тут беремо один зі slug-ів за замовчуванням.
+    category = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
     product = product_factory(
         name="Sale item",
         slug="sale-item",
