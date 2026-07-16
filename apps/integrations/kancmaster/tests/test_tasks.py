@@ -247,3 +247,27 @@ class TestSyncAll:
         assert pen.categories.filter(kancmaster_name="Олівці").exists()
         assert not pen.categories.filter(kancmaster_name="Ручки").exists()
         assert Category.objects.filter(kancmaster_name="Олівці").exists()
+
+    def test_does_not_reuse_legacy_category_outside_own_subtree(self):
+        """Легасі OpenCart-категорія з тим же іменем ("Ручки" під незалежним
+        коренем, без kancmaster_name) НЕ має отримувати нові товари Kancmaster
+        — синк створює свою окрему категорію під "Канцелярські товари"."""
+        from apps.catalog.models import Category, Product
+        from apps.integrations.kancmaster.tasks import sync_all
+
+        legacy_root = Category.objects.create(name="Легасі корінь", slug="legacy-root")
+        legacy_category = Category.objects.create(
+            name="Ручки", slug="legacy-ruchky", parent=legacy_root,
+        )
+
+        with self._patch_client():
+            sync_all()
+
+        legacy_category.refresh_from_db()
+        assert legacy_category.kancmaster_name == ""
+        assert legacy_category.products.count() == 0
+
+        pen = Product.objects.get(source=Product.SOURCE_KANCMASTER, external_id="1")
+        synced_category = pen.categories.get(kancmaster_name="Ручки")
+        assert synced_category.pk != legacy_category.pk
+        assert synced_category.parent.slug == "kantseliarski-tovary"

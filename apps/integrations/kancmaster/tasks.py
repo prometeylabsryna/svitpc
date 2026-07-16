@@ -31,11 +31,25 @@ class _SyncContext:
         self._Category = Category
         self._Brand = Brand
         self._parent_category: "Category | None" = self._ensure_parent_category()
+
+        # Категорії поза власним піддеревом Kancmaster НЕ можна матчити за іменем:
+        # легасі OpenCart-категорії (напр. "Калькулятори" під "Торгівельне
+        # обладнання") мають ті самі назви, що й позиції фіда Kancmaster, і
+        # раніше кожен повний синк "воскрешав" їх, причіплюючи туди нові товари.
+        # Матч за plain-назвою дозволений лише для категорій усередині нашого
+        # дерева "Канцелярські товари"; kancmaster_name — надійний маркер "ця
+        # категорія вже створена/підтверджена цим синком" незалежно від дерева.
+        own_subtree_pks: set[int] = set()
+        if self._parent_category:
+            own_subtree_pks = set(
+                self._parent_category.get_descendants(include_self=True).values_list("pk", flat=True)
+            )
         self._category_by_name: dict[str, Category] = {}
         for cat in Category.objects.only("pk", "name", "slug", "kancmaster_name", "parent_id"):
             if cat.kancmaster_name:
                 self._category_by_name[cat.kancmaster_name] = cat
-            self._category_by_name[cat.name] = cat
+            if cat.pk in own_subtree_pks:
+                self._category_by_name[cat.name] = cat
         self._brand_by_name: dict[str, Brand] = {
             b.name: b for b in Brand.objects.only("pk", "name", "slug")
         }
