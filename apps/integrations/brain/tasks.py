@@ -33,6 +33,7 @@ from .services import (
     sync_brain_categories,
     sync_product_options,
     sync_product_pictures,
+    sync_virtual_category_mirrors,
     unique_product_slug,
     upsert_brain_product,
     upsert_product_from_detail,
@@ -129,7 +130,17 @@ def sync_categories() -> None:
         return
     client = _brain_client()
     cat_map = sync_brain_categories(client)
-    logger.info("Brain sync_categories done: %d categories mapped", len(cat_map))
+    # Virtual (realcat>0) Brain-вузли (напр. "SSD диски" під "Комплектуючі
+    # до ПК" — алiас "Внутрішніх SSD" під ноутбуками) не входять у cat_map
+    # (sync_brain_categories свідомо будує лише дерево РЕАЛЬНИХ категорій) —
+    # окремо дзеркалимо товари в локальні "дзеркальні" категорії, інакше
+    # такі розділи назавжди лишаються порожніми на сайті.
+    mirrored = sync_virtual_category_mirrors(client, cat_map)
+    logger.info(
+        "Brain sync_categories done: %d categories mapped, %d mirror links added",
+        len(cat_map),
+        mirrored,
+    )
 
 
 # ── sync_products ─────────────────────────────────────────────────────────────
@@ -259,6 +270,13 @@ def _sync_products_impl() -> None:
         len(top_cats),
         len([c for c in all_brain_cats if c.get("parentID") == 1 and c.get("realcat", 0) == 0]),
     )
+
+    # Усі товари реальних категорій щойно оновлені вище — саме тут дзеркала
+    # (SSD-диски тощо, cat_map з realcat не будує) отримають найповніший і
+    # найсвіжіший набір товарів за ніч. sync_categories() (декілька разів на
+    # день) теж викликає це, але з можливо ще не оновленими товарами дня.
+    mirrored = sync_virtual_category_mirrors(client, cat_map)
+    logger.info("Brain sync_products: %d virtual-category mirror links added", mirrored)
 
     from apps.integrations.brain.description_sync import count_brain_products_missing_description
 

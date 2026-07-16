@@ -282,7 +282,14 @@ def build_category_map_from_db(client: "BrainAPIClient", *, lang: str = "ua") ->
         if not name:
             continue
         slug_base = slugify(name, allow_unicode=True) or f"brain-cat-{bc['categoryID']}"
-        local = slug_to_cat.get(slug_base)
+        # Якщо повний sync_brain_categories() уже розв'язав slug-колізію для
+        # цього конкретного Brain ID (див. _resolve_category_slug_collision),
+        # у БД існує "{slug_base}-{cat_id}" — і саме її треба віддати перевагу,
+        # інакше денні light-синки (prices/stock/options) знову резолвили б
+        # Brain ID на ЧУЖУ категорію іншої гілки, з якою просто збігається
+        # slugify(name) (напр. дві різні "Блоки живлення" — під ноутбуками
+        # і під "Комплектуючі до ПК").
+        local = slug_to_cat.get(f"{slug_base}-{cat_id}") or slug_to_cat.get(slug_base)
         if local:
             cat_map[int(bc["categoryID"])] = local
     return cat_map
@@ -325,28 +332,168 @@ def sync_brain_categories(client: "BrainAPIClient", *, lang: str = "ua") -> dict
         slug_base = slugify(name, allow_unicode=True) or f"brain-cat-{cat_id}"
         parent_brain_id = bc.get("parentID")
         parent_local = cat_map.get(parent_brain_id) if parent_brain_id != 1 else None
+        expected_parent_pk = parent_local.pk if parent_local else None
 
-        existing = Category.objects.filter(slug=slug_base).first()
+        slug_used, existing = _resolve_category_slug_collision(
+            slug_base, cat_id, expected_parent_pk,
+        )
         if existing:
             cat_map[cat_id] = existing
+            update: dict = {}
             if existing.name != name:
-                Category.objects.filter(pk=existing.pk).update(name=name)
+                update["name"] = name
+            if existing.parent_id != expected_parent_pk:
+                update["parent"] = parent_local
+            if update:
+                try:
+                    Category.objects.filter(pk=existing.pk).update(**update)
+                except InvalidMove:
+                    # Небезпечний parent-move (MPTT-цикл) — лишаємо як є, це
+                    # не гірше за попередній стан.
+                    update.pop("parent", None)
+                    if update:
+                        Category.objects.filter(pk=existing.pk).update(**update)
             continue
 
         try:
             cat, _ = Category.objects.update_or_create(
-                slug=slug_base,
+                slug=slug_used,
                 defaults={"name": name, "parent": parent_local, "is_active": True},
             )
         except InvalidMove:
-            logger.warning("Brain category %s: skipped parent move for slug=%s", cat_id, slug_base)
+            logger.warning("Brain category %s: skipped parent move for slug=%s", cat_id, slug_used)
             cat, _ = Category.objects.get_or_create(
-                slug=slug_base,
+                slug=slug_used,
                 defaults={"name": name, "parent": None, "is_active": True},
             )
         cat_map[cat_id] = cat
 
     return cat_map
+
+
+def _resolve_category_slug_collision(
+    slug_base: str,
+    brain_cat_id: int,
+    expected_parent_pk: int | None,
+) -> tuple[str, "Category | None"]:
+    """Resolve (slug_to_use, existing_category_or_None) for one Brain category.
+
+    Brain іноді має ДВІ різні реальні категорії з однаковою назвою під
+    різними батьками (підтверджено: 1213 "Блоки живлення" під ноутбуками
+    і 1442 "Блоки живлення" під "Комплектуючі до ПК" — обидві realcat=0,
+    обидві з товарами). slugify(name) для обох дає той самий slug, а
+    `Category.slug` — глобально unique, тож наївний `filter(slug=...).first()`
+    "знаходив" ПЕРШУ синхронізовану (лаптопну) і помилково прив'язував до неї
+    товари ІНШОЇ гілки (десктопні БЖ опинялись серед аксесуарів ноутбука).
+
+    Дизамбігуація стабільна між прогонами: якщо категорія з базовим slug
+    вже належить ІНШОМУ батьку — використовуємо `{slug}-{brain_cat_id}`
+    (детерміновано за Brain ID, тож повторний синк завжди знаходить ту саму
+    вже створену категорію, а не плодить дублі).
+    """
+    from apps.catalog.models import Category
+
+    candidate = Category.objects.filter(slug=slug_base).first()
+    if candidate is None or candidate.parent_id == expected_parent_pk:
+        return slug_base, candidate
+
+    disambiguated_slug = f"{slug_base}-{brain_cat_id}"
+    disambiguated = Category.objects.filter(slug=disambiguated_slug).first()
+    return disambiguated_slug, disambiguated
+
+
+def sync_virtual_category_mirrors(
+    client: "BrainAPIClient",
+    cat_map: dict[int, "Category"],
+    *,
+    lang: str = "ua",
+) -> int:
+    """Cross-link products into local "mirror" categories for Brain virtual nodes.
+
+    Brain позначає `realcat > 0` як "віртуальну" категорію-алiас іншої,
+    "реальної" (`realcat`) — напр. Brain categoryID 1484 "SSD диски" під
+    "Комплектуючі до ПК" має realcat=1235 ("Внутрішні SSD" під ноутбуками).
+    `/products/{1484}/...` та `/products/{1235}/...` повертають ОДНАКОВИЙ
+    список товарів (підтверджено напряму через Brain API) — АЛЕ кожен товар
+    у власному `/product/{id}` детальному відгуку завжди має РЕАЛЬНИЙ
+    categoryID (1235), ніколи віртуальний. Тож sync_brain_categories() (яка
+    свідомо `continue` на `realcat > 0` — це не помилка, а межа її
+    відповідальності: вона будує ДЕРЕВО категорій, а не M2M-звʼязки товарів)
+    ніколи не створить локальну "SSD-диски" під ПК, і жоден товар не
+    резолвиться на віртуальний вузол через resolve_local_category — товар
+    просто ніколи не позначений цим ID.
+
+    Ця функція окрема і додаткова: створює/повторно використовує локальну
+    "дзеркальну" категорію для кожного такого віртуального вузла (в межах
+    вже дозволеного дерева, з тим самим anti-collision правилом, що і
+    sync_brain_categories) і ДОДАЄ (не замінює!) до неї всі товари, які вже
+    прив'язані до реальної локальної категорії — товар лишається у своїй
+    основній категорії й отримує додаткове членство в дзеркалі. Викликати
+    ПІСЛЯ sync_brain_categories() (потребує вже заповнений cat_map) і після
+    того, як товари реальної категорії вже синхронізовані (інакше просто
+    нічого дублювати — функція ідемпотентна, безпечно перевикликати).
+
+    Returns: кількість нових (product, mirror_category) зв'язків, доданих.
+    """
+    from apps.catalog.models import Category, Product
+    from apps.catalog.ru_localization import localize_ru_to_uk
+
+    all_brain_cats = client.get_all_categories(lang=lang)
+    added = 0
+
+    for bc in all_brain_cats:
+        realcat = bc.get("realcat", 0)
+        if not realcat:
+            continue
+
+        real_local = cat_map.get(int(realcat))
+        if real_local is None:
+            continue  # реальна категорія поза нашим дозволеним деревом
+
+        virtual_id = int(bc["categoryID"])
+        parent_brain_id = bc.get("parentID")
+        parent_local = (
+            cat_map.get(parent_brain_id) if parent_brain_id and parent_brain_id != 1 else None
+        )
+        if parent_local is None:
+            continue  # батько віртуального вузла теж поза дозволеним деревом
+
+        name = localize_ru_to_uk((bc.get("name") or "").strip())
+        if not name:
+            continue
+        slug_base = slugify(name, allow_unicode=True) or f"brain-cat-{virtual_id}"
+
+        slug_used, mirror = _resolve_category_slug_collision(slug_base, virtual_id, parent_local.pk)
+        if mirror is None:
+            mirror = Category.objects.create(
+                slug=slug_used, name=name, parent=parent_local, is_active=True,
+            )
+        elif mirror.pk == real_local.pk:
+            continue  # віртуальний і реальний вузол уже одна й та сама локальна категорія
+
+        product_ids = list(
+            Product.objects.filter(categories=real_local, source=Product.SOURCE_BRAIN).values_list(
+                "pk", flat=True,
+            ),
+        )
+        if not product_ids:
+            continue
+
+        through = Product.categories.through
+        already_linked = set(
+            through.objects.filter(
+                category_id=mirror.pk, product_id__in=product_ids,
+            ).values_list("product_id", flat=True),
+        )
+        missing = [pid for pid in product_ids if pid not in already_linked]
+        if missing:
+            through.objects.bulk_create(
+                [through(product_id=pid, category_id=mirror.pk) for pid in missing],
+                ignore_conflicts=True,
+            )
+            added += len(missing)
+
+    return added
 
 
 def resolve_brand(detail: dict, vendor_map: dict[int, str]) -> "Brand | None":  # type: ignore[name-defined]
