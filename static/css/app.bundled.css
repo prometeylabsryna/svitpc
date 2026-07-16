@@ -4618,6 +4618,16 @@
     &.is-open { display: flex; }
 
     .catalog-sidebar__panel {
+      /* Без position тут панель — "non-positioned" у порядку малювання CSS,
+         тож .mobile-menu__backdrop (position: absolute, всередині того ж
+         .catalog-sidebar--mobile) малюється НАД нею незалежно від порядку в
+         DOM — весь вміст виглядає засіреним/disabled, а кліки (напр. "Більше
+         підкатегорій") потрапляють на backdrop і закривають шторку замість
+         клацання по кнопці. Той самий паттерн, що вже працює в
+         .mobile-menu__panel (_header.css) — position: relative додає панель
+         у той самий "positioned, z-index:auto" шар, де порядок DOM (панель
+         йде після backdrop) вже малює її зверху. */
+      position: relative;
       background: var(--clr-surface);
       border-right: 1px solid var(--clr-border-strong);
       width: min(320px, 100%);
