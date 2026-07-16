@@ -108,6 +108,24 @@ class TestSyncAll:
 
         assert Brand.objects.filter(name="Pilot").exists()
 
+    def test_soft_time_limit_exceeded_is_not_swallowed(self):
+        """SoftTimeLimitExceeded — Exception subclass; must propagate through the
+        per-item try/except (else soft_time_limit would never actually stop
+        the loop, defeating the whole point of the timeout)."""
+        from celery.exceptions import SoftTimeLimitExceeded
+
+        from apps.integrations.kancmaster.tasks import sync_all
+
+        with (
+            self._patch_client(),
+            patch(
+                "apps.integrations.kancmaster.tasks._apply_item",
+                side_effect=SoftTimeLimitExceeded(),
+            ),
+            pytest.raises(SoftTimeLimitExceeded),
+        ):
+            sync_all()
+
     def test_brand_slug_collision_does_not_fail_sync(self):
         from apps.catalog.models import Brand, Product
         from apps.integrations.kancmaster.tasks import sync_all
@@ -120,8 +138,8 @@ class TestSyncAll:
         assert Product.objects.filter(source=Product.SOURCE_KANCMASTER, external_id="301").exists()
 
     def test_gallery_images_synced(self):
-        from apps.integrations.kancmaster.tasks import sync_all
         from apps.catalog.models import Product
+        from apps.integrations.kancmaster.tasks import sync_all
 
         with self._patch_client():
             sync_all()

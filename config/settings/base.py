@@ -582,6 +582,28 @@ BRAIN_DEFAULT_MARKUP_PERCENT = env.int("BRAIN_DEFAULT_MARKUP_PERCENT", default=0
 # Comma-separated top-level category slugs — Brain sync imports only these subtrees.
 # Kancmaster is unaffected (separate source). Empty = built-in default list.
 BRAIN_ALLOWED_CATEGORY_SLUGS = env("BRAIN_ALLOWED_CATEGORY_SLUGS", default="")
+
+# soft_time_limit (сек) для важких нічних синків — захист від "зависання" (мертвий
+# HTTP-запит, нескінченний цикл), а НЕ очікувана тривалість нормального прогону.
+# ВАЖЛИВО: має лишатись помітно НИЖЧЕ heavy_catalog_sync_lock TTL (4 год = 14400с,
+# apps/integrations/heavy_sync.py) — інакше лок сам протухне під час ще живої
+# задачі і ДРУГИЙ синк зможе стартувати паралельно (race). Якщо реальні нічні
+# прогони наближаються до цих значень — підняти тут через .env (без релізу коду),
+# а не в heavy_sync.py. Перевірити фактичну тривалість на сервері:
+#   docker compose logs celery_worker --since 24h | grep -E \
+#     "sync_products completed|Kancmaster sync done"
+BRAIN_SYNC_PRODUCTS_SOFT_TIME_LIMIT = env.int(
+    "BRAIN_SYNC_PRODUCTS_SOFT_TIME_LIMIT", default=3 * 3600,
+)
+BRAIN_SYNC_IMAGES_SOFT_TIME_LIMIT = env.int(
+    "BRAIN_SYNC_IMAGES_SOFT_TIME_LIMIT", default=2 * 3600,
+)
+BRAIN_SYNC_AVAILABILITY_SOFT_TIME_LIMIT = env.int(
+    "BRAIN_SYNC_AVAILABILITY_SOFT_TIME_LIMIT", default=int(1.5 * 3600),
+)
+KANCMASTER_SYNC_ALL_SOFT_TIME_LIMIT = env.int(
+    "KANCMASTER_SYNC_ALL_SOFT_TIME_LIMIT", default=3 * 3600,
+)
 KANCMASTER_XML_URL = env("KANCMASTER_XML_URL", default="https://kancmaster.com.ua/xml_export_request")
 KANCMASTER_LOGIN = env("KANCMASTER_LOGIN", default="")
 KANCMASTER_PASSWORD = env("KANCMASTER_PASSWORD", default="")

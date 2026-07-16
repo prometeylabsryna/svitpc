@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 from celery import shared_task
+from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import Q
 
-from apps.integrations.heavy_sync import heavy_catalog_sync_lock
+from apps.integrations.heavy_sync import heavy_catalog_sync_lock, skip_if_heavy_sync_running
 
 from .category_filter import (
     allowed_brain_top_categories,
@@ -43,9 +46,56 @@ _NIGHTLY_IMAGE_CHUNK = 5000
 _STALE_STOCK_CHUNK = 600
 _LOCK_RETRY_SECONDS = 600
 
+# heavy_catalog_sync_lock TTL — 4 год (14400с) — абсолютний бекстоп. soft/
+# time_limit нижче нього дають задачі шанс завершити `finally` у
+# heavy_catalog_sync_lock (звільнити лок, ANALYZE, інвалідація кешу) ще ДО
+# того, як TTL сам протух би або hard-лімітом прибило воркер без cleanup.
+# Значення — з config.settings (env-конфігуровані), щоб можна було підняти
+# ліміт на сервері без релізу коду, якщо реальний нічний прогін виявиться
+# довшим за дефолт (перевірити фактичну тривалість — див. коментар у settings).
+def _time_limits(soft_setting_name: str, default_soft: int) -> tuple[int, int]:
+    from django.conf import settings
+
+    soft = int(getattr(settings, soft_setting_name, default_soft))
+    return soft, soft + 300
+
+
+_FULL_SYNC_SOFT_TIME_LIMIT, _FULL_SYNC_TIME_LIMIT = _time_limits(
+    "BRAIN_SYNC_PRODUCTS_SOFT_TIME_LIMIT", 3 * 3600,
+)
+_IMAGES_SOFT_TIME_LIMIT, _IMAGES_TIME_LIMIT = _time_limits(
+    "BRAIN_SYNC_IMAGES_SOFT_TIME_LIMIT", 2 * 3600,
+)
+_AVAILABILITY_SOFT_TIME_LIMIT, _AVAILABILITY_TIME_LIMIT = _time_limits(
+    "BRAIN_SYNC_AVAILABILITY_SOFT_TIME_LIMIT", int(1.5 * 3600),
+)
+
 
 def _utc_since(hours: int) -> str:
     return (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+
+
+@contextmanager
+def _resilient_item(task_label: str, item_id: object) -> Iterator[None]:
+    """Log-and-continue for one item inside a sync loop.
+
+    Kancmaster.sync_all вже мав таку стійкість (один битий товар не валив
+    увесь фід); Brain-задачі — ні: помилка API/парсингу на одному товарі
+    (посеред тисяч) раніше обривала весь nightly/денний прогін. Один битий
+    товар тепер лише логується і пропускається.
+
+    SoftTimeLimitExceeded — теж підклас Exception (не BaseException-лише),
+    тож ловимо й пробрасуємо його НЕ мовчки: інакше soft_time_limit ніколи
+    не зупинить цикл — таймер спрацьовує раз, generic except його "з'їв" би,
+    і задача продовжила б працювати аж до hard time_limit (SIGKILL, без
+    graceful cleanup лока).
+    """
+    try:
+        yield
+    except SoftTimeLimitExceeded:
+        raise
+    except Exception:
+        logger.exception("%s: failed to sync item id=%s", task_label, item_id)
 
 
 def _brain_client():
@@ -75,6 +125,8 @@ def _allowed_brain_category_ids(client) -> frozenset[int]:
 @shared_task
 def sync_categories() -> None:
     """Sync Brain category tree (runs several times per day)."""
+    if skip_if_heavy_sync_running(sync_categories, "Brain sync_categories"):
+        return
     client = _brain_client()
     cat_map = sync_brain_categories(client)
     logger.info("Brain sync_categories done: %d categories mapped", len(cat_map))
@@ -82,7 +134,7 @@ def sync_categories() -> None:
 
 # ── sync_products ─────────────────────────────────────────────────────────────
 
-@shared_task
+@shared_task(soft_time_limit=_FULL_SYNC_SOFT_TIME_LIMIT, time_limit=_FULL_SYNC_TIME_LIMIT)
 def sync_products() -> None:
     """Full nightly sync: categories → vendors → products → options → images."""
     with heavy_catalog_sync_lock("brain_products") as acquired:
@@ -134,66 +186,69 @@ def _sync_products_impl() -> None:
                 if not is_brain_detail_allowed(item, allowed_brain_ids):
                     continue
 
-                brain_id = int(brain_id)
-                local_cat = resolve_local_category(
-                    item,
-                    cat_map,
-                    fallback_cat_id=cat_id,
-                )
-                brand = resolve_brand(item, vendor_map)
-
-                shelf, old_price, wholesale_raw = brain_shelf_prices(item)
-                stock = brain_stock_from_detail(item)
-                sku = (item.get("articul") or item.get("product_code") or "").strip()
-                slug_base = _slug(name, allow_unicode=True) or f"brain-p-{brain_id}"
-                slug = unique_product_slug(slug_base, brain_id)
-                from apps.catalog.gallery import normalize_brain_image_url
-
-                main_img = normalize_brain_image_url(
-                    item.get("medium_image") or item.get("large_image") or "",
-                )
-                visible = brain_catalog_visible(
-                    stock=stock,
-                    shelf=shelf,
-                    hide_if_out_of_stock=hide_default,
-                )
-
-                with transaction.atomic():
-                    product, created = upsert_brain_product(
-                        brain_id,
-                        {
-                            "name": name,
-                            "slug": slug,
-                            "brand": brand,
-                            "price": shelf,
-                            "old_price": old_price,
-                            "purchase_price": wholesale_raw if wholesale_raw > 0 else None,
-                            "stock": stock,
-                            "sku": sku,
-                            "image_url": main_img,
-                            "hide_if_out_of_stock": hide_default,
-                            "is_visible": visible,
-                        },
+                with _resilient_item("Brain sync_products", brain_id):
+                    brain_id = int(brain_id)
+                    local_cat = resolve_local_category(
+                        item,
+                        cat_map,
+                        fallback_cat_id=cat_id,
                     )
-                    if local_cat:
-                        product.categories.set([local_cat])
-                    if created:
-                        sync_product_options(client, product, brain_id)
-                        page_needs_desc.append(product)
-                    if created or not main_img:
-                        sync_product_pictures(client, product, brain_id, name)
+                    brand = resolve_brand(item, vendor_map)
+
+                    shelf, old_price, wholesale_raw = brain_shelf_prices(item)
+                    stock = brain_stock_from_detail(item)
+                    sku = (item.get("articul") or item.get("product_code") or "").strip()
+                    slug_base = _slug(name, allow_unicode=True) or f"brain-p-{brain_id}"
+                    slug = unique_product_slug(slug_base, brain_id)
+                    from apps.catalog.gallery import normalize_brain_image_url
+
+                    main_img = normalize_brain_image_url(
+                        item.get("medium_image") or item.get("large_image") or "",
+                    )
+                    visible = brain_catalog_visible(
+                        stock=stock,
+                        shelf=shelf,
+                        hide_if_out_of_stock=hide_default,
+                    )
+
+                    with transaction.atomic():
+                        product, created = upsert_brain_product(
+                            brain_id,
+                            {
+                                "name": name,
+                                "slug": slug,
+                                "brand": brand,
+                                "price": shelf,
+                                "old_price": old_price,
+                                "purchase_price": wholesale_raw if wholesale_raw > 0 else None,
+                                "stock": stock,
+                                "sku": sku,
+                                "image_url": main_img,
+                                "hide_if_out_of_stock": hide_default,
+                                "is_visible": visible,
+                            },
+                        )
+                        if local_cat:
+                            product.categories.set([local_cat])
+                        if created:
+                            sync_product_options(client, product, brain_id)
+                            page_needs_desc.append(product)
+                        if created or not main_img:
+                            sync_product_pictures(client, product, brain_id, name)
 
             if page_needs_desc:
                 from apps.integrations.brain.description_sync import sync_descriptions_for_products
 
-                u, nd, miss = sync_descriptions_for_products(client, page_needs_desc)
-                if u:
-                    logger.info(
-                        "Brain sync_products: descriptions page cat=%s offset=%s updated=%d",
-                        cat_id,
-                        offset,
-                        u,
-                    )
+                page_label = f"cat={cat_id} offset={offset}"
+                with _resilient_item("Brain sync_products: description batch", page_label):
+                    u, nd, miss = sync_descriptions_for_products(client, page_needs_desc)
+                    if u:
+                        logger.info(
+                            "Brain sync_products: descriptions page cat=%s offset=%s updated=%d",
+                            cat_id,
+                            offset,
+                            u,
+                        )
 
             offset += len(items)
             if offset >= total or len(items) < limit:
@@ -217,6 +272,8 @@ def _sync_products_impl() -> None:
 @shared_task
 def sync_prices() -> None:
     """Sync prices (+ brand/category when present) for recently modified products."""
+    if skip_if_heavy_sync_running(sync_prices, "Brain sync_prices"):
+        return
     from apps.catalog.models import Product
 
     client = _brain_client()
@@ -235,23 +292,24 @@ def sync_prices() -> None:
         product = products.get(str(brain_id))
         if not product:
             continue
-        detail = client.get_product(brain_id)
-        if not detail:
-            continue
-        if not brain_product_allowed_for_sync(product, detail, allowed_ids):
-            continue
-        if apply_detail_to_product(
-            product,
-            detail,
-            vendor_map=vendor_map,
-            cat_map=cat_map,
-            update_price=True,
-            update_stock=True,
-            update_brand=True,
-            update_category=True,
-            force_hide_flag=True,
-        ):
-            updated += 1
+        with _resilient_item("Brain sync_prices", brain_id):
+            detail = client.get_product(brain_id)
+            if not detail:
+                continue
+            if not brain_product_allowed_for_sync(product, detail, allowed_ids):
+                continue
+            if apply_detail_to_product(
+                product,
+                detail,
+                vendor_map=vendor_map,
+                cat_map=cat_map,
+                update_price=True,
+                update_stock=True,
+                update_brand=True,
+                update_category=True,
+                force_hide_flag=True,
+            ):
+                updated += 1
 
     hidden_zero = Product.objects.filter(
         source=Product.SOURCE_BRAIN,
@@ -273,6 +331,8 @@ def sync_prices() -> None:
 @shared_task
 def sync_stock() -> None:
     """Sync availability (is_archive) and visibility for modified products."""
+    if skip_if_heavy_sync_running(sync_stock, "Brain sync_stock"):
+        return
     client = _brain_client()
     vendor_map = client.get_all_vendors()
     cat_map = build_category_map_from_db(client)
@@ -289,23 +349,24 @@ def sync_stock() -> None:
         product = products.get(str(brain_id))
         if not product:
             continue
-        detail = client.get_product(brain_id)
-        if not detail:
-            continue
-        if not brain_product_allowed_for_sync(product, detail, allowed_ids):
-            continue
-        if apply_detail_to_product(
-            product,
-            detail,
-            vendor_map=vendor_map,
-            cat_map=cat_map,
-            update_price=False,
-            update_stock=True,
-            update_brand=True,
-            update_category=False,
-            force_hide_flag=True,
-        ):
-            updated += 1
+        with _resilient_item("Brain sync_stock", brain_id):
+            detail = client.get_product(brain_id)
+            if not detail:
+                continue
+            if not brain_product_allowed_for_sync(product, detail, allowed_ids):
+                continue
+            if apply_detail_to_product(
+                product,
+                detail,
+                vendor_map=vendor_map,
+                cat_map=cat_map,
+                update_price=False,
+                update_stock=True,
+                update_brand=True,
+                update_category=False,
+                force_hide_flag=True,
+            ):
+                updated += 1
 
     logger.info("Brain sync_stock done: %d updated / %d modified", updated, len(modified_ids))
 
@@ -314,6 +375,8 @@ def sync_stock() -> None:
 
 @shared_task
 def sync_options() -> None:
+    if skip_if_heavy_sync_running(sync_options, "Brain sync_options"):
+        return
     client = _brain_client()
     allowed_ids = _allowed_brain_category_ids(client)
     modified_ids = client.get_modified_since(_utc_since(8), limit=10000, mod_type="options")
@@ -324,10 +387,11 @@ def sync_options() -> None:
             product = products.get(str(brain_id))
             if not product:
                 continue
-            if not brain_product_allowed_for_sync(product, None, allowed_ids):
-                continue
-            sync_product_options(client, product, brain_id)
-            updated += 1
+            with _resilient_item("Brain sync_options", brain_id):
+                if not brain_product_allowed_for_sync(product, None, allowed_ids):
+                    continue
+                sync_product_options(client, product, brain_id)
+                updated += 1
         logger.info("Brain sync_options done: %d products", updated)
     else:
         logger.info("Brain sync_options: nothing changed in Brain")
@@ -341,6 +405,8 @@ def sync_options() -> None:
 
 @shared_task
 def sync_images() -> None:
+    if skip_if_heavy_sync_running(sync_images, "Brain sync_images"):
+        return
     _sync_images_impl(since_hours=8)
 
 
@@ -358,27 +424,30 @@ def _sync_images_impl(*, since_hours: int) -> None:
         product = products.get(str(brain_id))
         if not product:
             continue
-        if not brain_product_allowed_for_sync(product, None, allowed_ids):
-            continue
-        detail = client.get_product(brain_id)
-        main_img = ""
-        from apps.catalog.gallery import normalize_brain_image_url
+        with _resilient_item("Brain sync_images", brain_id):
+            if not brain_product_allowed_for_sync(product, None, allowed_ids):
+                continue
+            detail = client.get_product(brain_id)
+            main_img = ""
+            from apps.catalog.gallery import normalize_brain_image_url
 
-        if detail:
-            main_img = normalize_brain_image_url(
-                detail.get("medium_image") or detail.get("large_image") or "",
-            )
-        if main_img:
-            from apps.catalog.models import Product
+            if detail:
+                main_img = normalize_brain_image_url(
+                    detail.get("medium_image") or detail.get("large_image") or "",
+                )
+            if main_img:
+                from apps.catalog.models import Product
 
-            Product.objects.filter(pk=product.pk).update(image_url=main_img, has_display_image=True)
-        sync_product_pictures(client, product, brain_id, product.name)
-        updated += 1
+                Product.objects.filter(pk=product.pk).update(
+                    image_url=main_img, has_display_image=True,
+                )
+            sync_product_pictures(client, product, brain_id, product.name)
+            updated += 1
 
     logger.info("Brain sync_images done: %d products", updated)
 
 
-@shared_task
+@shared_task(soft_time_limit=_IMAGES_SOFT_TIME_LIMIT, time_limit=_IMAGES_TIME_LIMIT)
 def sync_brain_images_nightly() -> None:
     """Once per night: pull missing photos and apply image changes from Brain."""
     with heavy_catalog_sync_lock("brain_images") as acquired:
@@ -399,6 +468,8 @@ def sync_brain_images_nightly() -> None:
 @shared_task
 def sync_new_products() -> None:
     """Import newly added Brain products (between nightly full syncs)."""
+    if skip_if_heavy_sync_running(sync_new_products, "Brain sync_new_products"):
+        return
     client = _brain_client()
     vendor_map = client.get_all_vendors()
     cat_map = build_category_map_from_db(client)
@@ -421,25 +492,26 @@ def sync_new_products() -> None:
     imported = 0
 
     for brain_id in to_import:
-        detail = client.get_product(brain_id)
-        if not detail:
-            continue
-        if not is_brain_detail_allowed(detail, allowed_ids):
-            continue
-        try:
-            _, created = upsert_product_from_detail(
-                client,
-                brain_id,
-                detail,
-                vendor_map=vendor_map,
-                cat_map=cat_map,
-                sync_options=True,
-                sync_pictures=True,
-            )
-            if created:
-                imported += 1
-        except ValueError:
-            continue
+        with _resilient_item("Brain sync_new_products", brain_id):
+            detail = client.get_product(brain_id)
+            if not detail:
+                continue
+            if not is_brain_detail_allowed(detail, allowed_ids):
+                continue
+            try:
+                _, created = upsert_product_from_detail(
+                    client,
+                    brain_id,
+                    detail,
+                    vendor_map=vendor_map,
+                    cat_map=cat_map,
+                    sync_options=True,
+                    sync_pictures=True,
+                )
+                if created:
+                    imported += 1
+            except ValueError:
+                continue
 
     logger.info("Brain sync_new_products done: %d imported / %d new", imported, len(to_import))
 
@@ -449,6 +521,8 @@ def sync_new_products() -> None:
 @shared_task
 def backfill_metadata() -> None:
     """Fill brand/stock/category for Brain products still missing vendor mapping."""
+    if skip_if_heavy_sync_running(backfill_metadata, "Brain backfill_metadata"):
+        return
     from apps.catalog.models import Product
 
     client = _brain_client()
@@ -470,22 +544,23 @@ def backfill_metadata() -> None:
             brain_id = int(product.external_id)
         except (TypeError, ValueError):
             continue
-        detail = client.get_product(brain_id)
-        if not detail:
-            continue
-        if apply_detail_to_product(
-            product,
-            detail,
-            vendor_map=vendor_map,
-            cat_map=cat_map,
-            update_price=True,
-            update_stock=True,
-            update_brand=True,
-            update_category=True,
-            update_image=True,
-            force_hide_flag=True,
-        ):
-            updated += 1
+        with _resilient_item("Brain backfill_metadata", brain_id):
+            detail = client.get_product(brain_id)
+            if not detail:
+                continue
+            if apply_detail_to_product(
+                product,
+                detail,
+                vendor_map=vendor_map,
+                cat_map=cat_map,
+                update_price=True,
+                update_stock=True,
+                update_brand=True,
+                update_category=True,
+                update_image=True,
+                force_hide_flag=True,
+            ):
+                updated += 1
 
     remaining = filter_brain_products_queryset(
         Product.objects.filter(
@@ -504,6 +579,12 @@ def backfill_metadata() -> None:
 @shared_task(soft_time_limit=1800, time_limit=2100)
 def backfill_descriptions(reset_cursor: bool = False) -> None:
     """Fill description_uk via POST /products/content (OWN_MODE batch API)."""
+    if skip_if_heavy_sync_running(
+        backfill_descriptions,
+        "Brain backfill_descriptions",
+        kwargs={"reset_cursor": reset_cursor},
+    ):
+        return
     from apps.integrations.brain.description_sync import (
         BACKFILL_REQUEUE_SECONDS,
         run_backfill_descriptions_chunk,
@@ -543,6 +624,8 @@ def backfill_descriptions(reset_cursor: bool = False) -> None:
 @shared_task
 def sync_description_updates() -> None:
     """Apply Brain description changes from modified_products/descriptions."""
+    if skip_if_heavy_sync_running(sync_description_updates, "Brain sync_description_updates"):
+        return
     from apps.catalog.models import Product
     from apps.integrations.brain.content_sync import backfill_descriptions_from_content
 
@@ -611,10 +694,11 @@ def _backfill_images_impl(*, chunk: int = _BACKFILL_CHUNK) -> None:
             continue
         if brain_id <= 0:
             continue
-        sync_product_pictures(client, product, brain_id, product.name)
-        product.refresh_from_db()
-        if resolve_product_image_url(product):
-            updated += 1
+        with _resilient_item("Brain backfill_images", brain_id):
+            sync_product_pictures(client, product, brain_id, product.name)
+            product.refresh_from_db()
+            if resolve_product_image_url(product):
+                updated += 1
 
     remaining = filter_products_missing_display_image(base).count()
     logger.info(
@@ -627,6 +711,8 @@ def _backfill_images_impl(*, chunk: int = _BACKFILL_CHUNK) -> None:
 @shared_task
 def reconcile_stale_stock() -> None:
     """Fix OC-imported placeholder stock (e.g. 999) using Brain is_archive."""
+    if skip_if_heavy_sync_running(reconcile_stale_stock, "Brain reconcile_stale_stock"):
+        return
     from apps.catalog.models import Product
 
     client = _brain_client()
@@ -648,21 +734,22 @@ def reconcile_stale_stock() -> None:
             brain_id = int(product.external_id)
         except (TypeError, ValueError):
             continue
-        detail = client.get_product(brain_id)
-        if not detail:
-            continue
-        if apply_detail_to_product(
-            product,
-            detail,
-            vendor_map=vendor_map,
-            cat_map=cat_map,
-            update_price=False,
-            update_stock=True,
-            update_brand=True,
-            update_category=False,
-            force_hide_flag=True,
-        ):
-            updated += 1
+        with _resilient_item("Brain reconcile_stale_stock", brain_id):
+            detail = client.get_product(brain_id)
+            if not detail:
+                continue
+            if apply_detail_to_product(
+                product,
+                detail,
+                vendor_map=vendor_map,
+                cat_map=cat_map,
+                update_price=False,
+                update_stock=True,
+                update_brand=True,
+                update_category=False,
+                force_hide_flag=True,
+            ):
+                updated += 1
 
     remaining = filter_brain_products_queryset(
         Product.objects.filter(source=Product.SOURCE_BRAIN, external_id__gt="")
@@ -702,7 +789,7 @@ def apply_hide_out_of_stock_policy() -> None:
         logger.warning("Brain apply_hide_out_of_stock_policy: %d still visible with stock<=0", hidden)
 
 
-@shared_task
+@shared_task(soft_time_limit=_AVAILABILITY_SOFT_TIME_LIMIT, time_limit=_AVAILABILITY_TIME_LIMIT)
 def sync_all_availability(hide_missing: bool = True) -> dict[str, int] | None:
     """Daily full availability pass — is_archive for entire Brain catalog."""
     with heavy_catalog_sync_lock("brain_availability") as acquired:

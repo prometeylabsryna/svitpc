@@ -23,6 +23,29 @@ def is_heavy_sync_running() -> bool:
     return cache.get(LOCK_KEY) is not None
 
 
+def skip_if_heavy_sync_running(task, task_label: str, *, countdown: int = 600, **apply_kwargs) -> bool:
+    """True (and reschedules `task`) while a heavy nightly sync holds the lock.
+
+    Denne/light задачі (prices/stock/options/…) не обгортаються самим локом —
+    вони йдуть кілька разів на день і не мають блокувати одна одну весь час
+    його утримання. Але вони пишуть ті самі рядки Product, що й нічний
+    kancmaster/brain sync (celery-воркер) — а light-воркер працює паралельно
+    (окремий процес), тож без цієї перевірки денна задача могла б редагувати
+    товар одночасно з важким імпортом. Просто відкладаємо себе на пізніше,
+    замість блокуючого чекання.
+    """
+    if not is_heavy_sync_running():
+        return False
+    apply_kwargs.setdefault("countdown", countdown)
+    task.apply_async(**apply_kwargs)
+    logger.warning(
+        "%s: heavy sync running, retry in %ss",
+        task_label,
+        apply_kwargs["countdown"],
+    )
+    return True
+
+
 def defer_fts_refresh(product_id: int) -> bool:
     """Відкласти FTS-rebuild товару на кінець heavy-синку.
 

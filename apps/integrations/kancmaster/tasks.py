@@ -6,6 +6,7 @@ import logging
 from decimal import Decimal, InvalidOperation
 
 from celery import shared_task
+from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import Q
 from django.utils.text import slugify
 
@@ -16,6 +17,22 @@ from .client import KancmasterXMLClient
 logger = logging.getLogger(__name__)
 
 _PROGRESS_EVERY = 2000
+
+# Повний фід — десятки тисяч товарів; лок heavy_catalog_sync_lock тримає TTL
+# 4 год (14400с) як абсолютний бекстоп. soft/time_limit — м'якший захист:
+# SoftTimeLimitExceeded піднімається ВСЕРЕДИНІ `with heavy_catalog_sync_lock`,
+# тож `finally` (звільнення лока + ANALYZE + інвалідація кешу) спрацьовує
+# одразу, а не лише через 4 години. hard-лімітом трохи більший за soft, щоб
+# встигнути завершити cleanup до SIGKILL. Значення — з config.settings
+# (env-конфігуровані, без релізу коду), якщо реальний прогін довший за дефолт.
+def _sync_all_time_limits() -> tuple[int, int]:
+    from django.conf import settings
+
+    soft = int(getattr(settings, "KANCMASTER_SYNC_ALL_SOFT_TIME_LIMIT", 3 * 3600))
+    return soft, soft + 300
+
+
+_SYNC_ALL_SOFT_TIME_LIMIT, _SYNC_ALL_TIME_LIMIT = _sync_all_time_limits()
 
 
 _PARENT_CATEGORY_SLUG = "kantseliarski-tovary"
@@ -354,7 +371,7 @@ def _apply_item(ctx: _SyncContext, item: dict) -> str:
     return "created"
 
 
-@shared_task
+@shared_task(soft_time_limit=_SYNC_ALL_SOFT_TIME_LIMIT, time_limit=_SYNC_ALL_TIME_LIMIT)
 def sync_all() -> None:
     """Full Kancmaster XML sync: upsert all products, update descriptions/categories."""
     with heavy_catalog_sync_lock("kancmaster") as acquired:
@@ -397,6 +414,12 @@ def _run_kancmaster_sync() -> None:
                     updated_count += 1
                 else:
                     skipped_count += 1
+            except SoftTimeLimitExceeded:
+                # НЕ ловити тут — інакше soft_time_limit ніколи не зупинить
+                # цикл (таймер спрацьовує раз, а generic except його б з'їв,
+                # і синк тихо продовжився б аж до hard time_limit / SIGKILL
+                # без graceful cleanup лока).
+                raise
             except Exception as exc:  # noqa: BLE001
                 logger.error(
                     "Kancmaster: failed to sync item id=%s name=%r: %s",

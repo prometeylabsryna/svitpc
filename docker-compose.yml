@@ -52,6 +52,13 @@ services:
     # Важкі синки (Brain/Kancmaster) не повинні конкурувати з вебзапитами за CPU:
     # без ліміту сплеск backfill-задач забирав ціле ядро і TTFB сайту падав до 8с+.
     cpus: 0.75
+    # --max-memory-per-child лише рестартує ОДИН дочірній процес після
+    # перевищення (перевірка ПІСЛЯ завершення задачі, не рятує від піку
+    # ПІД час важкого синку). mem_limit — жорсткий бекстоп: якщо контейнер
+    # усе ж вилізе за межі (напр. регресія типу старого _brain_product_map),
+    # OOM killer вб'є САМЕ цей контейнер, а не випадковий процес хоста
+    # (напр. postgres) — на 1vCPU/2GB це критично.
+    mem_limit: 550m
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.docker
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -81,6 +88,7 @@ services:
       dockerfile: ./deploy/backend/Dockerfile
     command: celery -A config worker --loglevel=info --concurrency=1 --max-memory-per-child=200000 -Q light
     cpus: 0.5
+    mem_limit: 300m
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.docker
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -108,7 +116,8 @@ services:
       context: .
       dockerfile: ./deploy/backend/Dockerfile
     # Без CPU-ліміту: ТТН і сповіщення про замовлення мають виконуватись одразу.
-    command: celery -A config worker --loglevel=info --concurrency=1 -Q priority
+    command: celery -A config worker --loglevel=info --concurrency=1 --max-memory-per-child=150000 -Q priority
+    mem_limit: 250m
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.docker
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -136,6 +145,7 @@ services:
       context: .
       dockerfile: ./deploy/backend/Dockerfile
     command: celery -A config beat --loglevel=info
+    mem_limit: 128m
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.docker
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}

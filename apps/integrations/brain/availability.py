@@ -27,16 +27,30 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _brain_product_map() -> dict[str, Product]:
+def _brain_products_by_external_ids(
+    ext_ids: list[str],
+    allowed_local_pks: frozenset[int],
+) -> dict[str, Product]:
+    """Load only the products for the CURRENT API page (not the whole catalog).
+
+    Раніше тут будувалась мапа ВСІХ Brain-товарів одним запитом — на великому
+    каталозі (десятки/сотні тисяч рядків) цей dict Django model-інстансів
+    міг сам займати сотні МБ Python-пам'яті на 2GB сервері, паралельно з
+    іншими воркерами/gunicorn/postgres/redis. Тепер вантажимо лише товари
+    сторінки API (типово ~page_limit штук) — стара мапа звільняється GC після
+    кожної сторінки замість того, щоб жити в пам'яті всю задачу.
+    """
+    if not ext_ids or not allowed_local_pks:
+        return {}
     from apps.catalog.models import Product
 
-    base = Product.objects.filter(source=Product.SOURCE_BRAIN).exclude(external_id__in=["", "0"])
-    return {
-        p.external_id: p
-        for p in filter_brain_products_queryset(base).only(
-            "pk", "external_id", "stock", "is_visible", "hide_if_out_of_stock"
-        )
-    }
+    qs = (
+        Product.objects.filter(source=Product.SOURCE_BRAIN, external_id__in=ext_ids)
+        .filter(categories__in=allowed_local_pks)
+        .distinct()
+        .only("pk", "external_id", "stock", "is_visible", "hide_if_out_of_stock")
+    )
+    return {p.external_id: p for p in qs}
 
 
 def _apply_availability(
@@ -83,7 +97,7 @@ def sync_all_availability_from_brain(
     from apps.catalog.models import Product
 
     hide_default = brain_hide_out_of_stock_enabled()
-    by_external_id = _brain_product_map()
+    allowed_local_pks = allowed_local_category_subtree_pks()
     seen_ids: set[str] = set()
     stats = {
         "scanned_api": 0,
@@ -93,7 +107,6 @@ def sync_all_availability_from_brain(
     }
 
     top_cats = allowed_brain_top_categories(client, lang="ua")
-    allowed_local_pks = allowed_local_category_subtree_pks()
 
     for brain_cat in top_cats:
         cat_id = int(brain_cat["categoryID"])
@@ -104,6 +117,11 @@ def sync_all_availability_from_brain(
             items, total = client.get_products(cat_id, offset=offset, limit=limit)
             if not items:
                 break
+
+            page_ext_ids = [
+                str(int(item["productID"])) for item in items if item.get("productID")
+            ]
+            by_external_id = _brain_products_by_external_ids(page_ext_ids, allowed_local_pks)
 
             for item in items:
                 brain_id = item.get("productID")
