@@ -202,7 +202,13 @@ def brain_category_allowed_for_tree_sync(
 
 
 def catalog_products_to_keep_queryset(qs=None):
-    """Products that stay on the site: all Kancmaster + items in allowed category subtrees."""
+    """Products that stay on the site: all Kancmaster + manual + items in allowed subtrees.
+
+    `SOURCE_MANUAL` — товари, вручну створені адміном (напр. розділ «Б/У»,
+    якого немає в жодному Brain/Kancmaster фіді) — навмисне рішення людини,
+    а не залишок від зміни постачальницького фіда. Автоматичний prune не
+    повинен видаляти те, що людина явно поклала в каталог.
+    """
     from django.db.models import Q
 
     from apps.catalog.models import Product
@@ -210,11 +216,10 @@ def catalog_products_to_keep_queryset(qs=None):
     if qs is None:
         qs = Product.objects.all()
     subtree = allowed_local_category_subtree_pks()
+    base = Q(source=Product.SOURCE_KANCMASTER) | Q(source=Product.SOURCE_MANUAL)
     if not subtree:
-        return qs.filter(source=Product.SOURCE_KANCMASTER)
-    return qs.filter(
-        Q(source=Product.SOURCE_KANCMASTER) | Q(categories__in=subtree),
-    ).distinct()
+        return qs.filter(base)
+    return qs.filter(base | Q(categories__in=subtree)).distinct()
 
 
 def catalog_products_to_prune_queryset(qs=None):

@@ -3,11 +3,13 @@ Delete catalog products outside the allowed category whitelist.
 
 KEEPS:
   - every Kancmaster product (source=kancmaster), full feed as-is
+  - every manually-created product (source=manual) — human decision (напр. «Б/У»),
+    never a supplier-feed leftover, so автопрунінг не має його чіпати
   - any product linked to a category inside one of the allowed top-level subtrees
     (same slugs as BRAIN_ALLOWED_CATEGORY_SLUGS / Brain sync whitelist)
 
 DELETES:
-  - Brain / manual / legacy products not in those subtrees (incl. no category)
+  - Brain / legacy products not in those subtrees (incl. no category)
 
 Always run --dry-run first.
 
@@ -155,7 +157,7 @@ class Command(BaseCommand):
             f"{keep_qs.filter(source=Product.SOURCE_BRAIN).count():>7}",
         )
         self.stdout.write(
-            f"    Manual у дозволених гілках: "
+            f"    Manual (усі, напр. «Б/У»):  "
             f"{keep_qs.filter(source=Product.SOURCE_MANUAL).count():>7}",
         )
 
@@ -166,7 +168,7 @@ class Command(BaseCommand):
             f"{prune_qs.filter(source=Product.SOURCE_BRAIN).count():>7}",
         )
         self.stdout.write(
-            f"    Manual поза whitelist:      "
+            f"    Manual (має бути 0):        "
             f"{prune_qs.filter(source=Product.SOURCE_MANUAL).count():>7}",
         )
         self.stdout.write(

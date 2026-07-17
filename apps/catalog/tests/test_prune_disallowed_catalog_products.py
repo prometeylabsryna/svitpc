@@ -56,6 +56,34 @@ def test_catalog_products_to_prune_keeps_kancmaster_and_allowed(category_factory
 
 
 @pytest.mark.django_db
+def test_catalog_products_to_prune_keeps_manual_regardless_of_category(
+    category_factory, product_factory,
+):
+    """Manual products (напр. розділ «Б/У») — це рішення людини, а не залишок
+    від фіда постачальника; автопрунінг не повинен їх торкатись, навіть якщо
+    їхня категорія поза Brain-whitelist або взагалі без категорії."""
+    from apps.integrations.brain.category_filter import (
+        catalog_products_to_keep_queryset,
+        catalog_products_to_prune_queryset,
+    )
+
+    used_root = category_factory(name="Б/У", slug="бу")
+
+    manual_in_used = product_factory(source=Product.SOURCE_MANUAL, slug="manual-used", external_id="m1")
+    manual_in_used.categories.add(used_root)
+
+    manual_orphan = product_factory(source=Product.SOURCE_MANUAL, slug="manual-orphan", external_id="m2")
+
+    keep_pks = set(catalog_products_to_keep_queryset().values_list("pk", flat=True))
+    prune_pks = set(catalog_products_to_prune_queryset().values_list("pk", flat=True))
+
+    assert manual_in_used.pk in keep_pks
+    assert manual_orphan.pk in keep_pks
+    assert manual_in_used.pk not in prune_pks
+    assert manual_orphan.pk not in prune_pks
+
+
+@pytest.mark.django_db
 def test_prune_disallowed_catalog_products_dry_run(category_factory, product_factory):
     laptops_root = _ensure_allowed_roots(category_factory)
     keep = product_factory(source=Product.SOURCE_BRAIN, slug="keep-me", external_id="10")
@@ -82,8 +110,13 @@ def test_prune_disallowed_catalog_products_confirm(category_factory, product_fac
 
     drop = product_factory(source=Product.SOURCE_BRAIN, slug="phone-go", external_id="21")
 
+    used_root = category_factory(name="Б/У", slug="бу")
+    manual_used = product_factory(source=Product.SOURCE_MANUAL, slug="manual-bu", external_id="m5")
+    manual_used.categories.add(used_root)
+
     call_command("prune_disallowed_catalog_products", "--confirm", "--batch-size", "50")
 
     assert Product.objects.filter(pk=kanc.pk).exists()
     assert Product.objects.filter(pk=keep.pk).exists()
+    assert Product.objects.filter(pk=manual_used.pk).exists()
     assert not Product.objects.filter(pk=drop.pk).exists()
