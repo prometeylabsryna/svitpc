@@ -67,6 +67,59 @@ class TestCatalogNav:
         slugs = [c.slug for c in get_top_categories()]
         assert "ghost-nav" not in slugs
 
+    def test_adding_product_to_previously_empty_category_refreshes_nav(
+        self, category_factory, product_factory,
+    ):
+        """Regression: адмін вручну додає перший товар у порожню категорію
+        (напр. «Б/У») — вона має з'явитись у навігації без очікування TTL,
+        навіть якщо nav-кеш вже прогрітий зі старим (порожнім) станом."""
+        used = category_factory(name="Б/У", slug="бу-nav", is_top=True)
+        product = product_factory(slug="bu-first-product")
+
+        # Прогріваємо кеш ДО того, як товар потрапить у категорію — категорія
+        # ще порожня і не потрапить у payload.
+        slugs_before = [c.slug for c in get_top_categories()]
+        assert "бу-nav" not in slugs_before
+
+        product.categories.add(used)  # мімікрує ProductAdmin: form.save_m2m()
+
+        slugs_after = [c.slug for c in get_top_categories()]
+        assert "бу-nav" in slugs_after
+
+    def test_saving_existing_product_refreshes_nav(self, category_factory, product_factory):
+        """Зміна вже прив'язаного товару (напр. is_visible) також скидає nav-кеш."""
+        cat = category_factory(name="Filled", slug="filled-save-nav", is_top=True)
+        product = product_factory(slug="save-nav-product", is_visible=False)
+        product.categories.add(cat)
+
+        slugs_before = [c.slug for c in get_top_categories()]
+        assert "filled-save-nav" not in slugs_before
+
+        product.is_visible = True
+        product.save()
+
+        slugs_after = [c.slug for c in get_top_categories()]
+        assert "filled-save-nav" in slugs_after
+
+    def test_nav_not_invalidated_during_heavy_sync(self, category_factory, product_factory):
+        """Під час важкого синку сигнал не скидає nav — синк сам зробить це
+        одноразово у finally (див. heavy_catalog_sync_lock)."""
+        from django.core.cache import cache as django_cache
+
+        from apps.integrations.heavy_sync import LOCK_KEY
+
+        used = category_factory(name="Б/У", slug="бу-heavy-nav", is_top=True)
+        product = product_factory(slug="bu-heavy-product")
+
+        get_top_categories()  # прогріти кеш без категорії
+        django_cache.set(LOCK_KEY, "test-heavy-sync", 3600)
+        try:
+            product.categories.add(used)
+            cached = django_cache.get(NAV_ORDER_CACHE_KEY)
+            assert cached is not None  # кеш лишився старим (не скинутий сигналом)
+        finally:
+            django_cache.delete(LOCK_KEY)
+
     def test_invalidate_nav_cache_clears_template_fragment(
         self, settings,
     ):

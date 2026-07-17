@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from apps.catalog.models import Brand, Category, Product, ProductImage
@@ -66,3 +66,39 @@ def invalidate_nav_on_category_change(sender, instance: Category, **kwargs) -> N
 
     invalidate_nav_cache()
     invalidate_admin_category_tree_cache()
+
+
+def _invalidate_nav_unless_heavy_sync() -> None:
+    """Дешеве скидання nav-кешу (кілька cache.delete, без rewarm/delete_pattern).
+
+    Під час важкого нічного синку (heavy_catalog_sync_lock) навмисно
+    пропускаємо: там пишуться тисячі товарів підряд і синк сам одноразово
+    викликає invalidate_catalog_listing_caches() у finally. Без цього гейта
+    кожен save()/зміна categories під час синку зайво скидала б nav —
+    той самий N-запис-N-інвалідацій паттерн, який ми вже прибрали для FTS
+    (див. defer_fts_refresh).
+    """
+    from apps.integrations.heavy_sync import is_heavy_sync_running
+
+    if is_heavy_sync_running():
+        return
+    from apps.catalog.nav import invalidate_nav_cache
+
+    invalidate_nav_cache()
+
+
+@receiver(post_save, sender=Product)
+def invalidate_nav_on_product_change(sender, instance: Product, **kwargs) -> None:
+    """Товар вручну доданий/змінений в адмінці — категорія має з'явитись у навігації одразу.
+
+    Ловить, зокрема, перший товар у раніше порожній категорії (напр. «Б/У»):
+    без цього нав-кеш (TTL 30 хв) продовжував би ховати її як «без товарів».
+    """
+    _invalidate_nav_unless_heavy_sync()
+
+
+@receiver(m2m_changed, sender=Product.categories.through)
+def invalidate_nav_on_product_categories_change(sender, instance, action, **kwargs) -> None:
+    """Зміна прив'язки товару до категорій (форма адмінки: поле «Категорії»)."""
+    if action in ("post_add", "post_remove", "post_clear"):
+        _invalidate_nav_unless_heavy_sync()
