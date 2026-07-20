@@ -5,7 +5,7 @@
   class="filters-panel"
   data-catalog-filters
   hx-get="{{ request.path }}"
-  hx-trigger="change delay:300ms"
+  hx-trigger="submit"
   hx-target="#product-grid"
   hx-swap="outerHTML"
   hx-push-url="true"
@@ -91,5 +91,11 @@
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
   </button>
   {% endif %}
+
+  <div class="filters-panel__actions">
+    <button type="submit" class="btn btn--primary filters-panel__apply" data-filters-apply>
+      {% trans "Застосувати" %}
+    </button>
+  </div>
 
 </form>

@@ -53,13 +53,24 @@ const onDocumentClick = (e) => {
   }
 };
 
+const closeMobileFilters = () => {
+  document.querySelector("[data-filters-sidebar]")?.classList.remove("is-open");
+};
+
 const onMobileClick = (e) => {
   if (e.target.closest("[data-filters-open]")) {
     document.querySelector("[data-filters-sidebar]")?.classList.add("is-open");
     return;
   }
   if (e.target.closest("[data-filters-close], [data-filters-backdrop]")) {
-    document.querySelector("[data-filters-sidebar]")?.classList.remove("is-open");
+    closeMobileFilters();
+  }
+};
+
+const onFiltersApplied = (e) => {
+  const elt = e.detail?.elt;
+  if (elt?.matches?.("form[data-catalog-filters], form.filters-panel")) {
+    closeMobileFilters();
   }
 };
 
@@ -82,6 +93,7 @@ const initFilterPanel = (root = document) => {
   if (!mobileDelegationReady) {
     mobileDelegationReady = true;
     document.addEventListener("click", onMobileClick);
+    document.body.addEventListener("htmx:afterOnLoad", onFiltersApplied);
   }
 };
 

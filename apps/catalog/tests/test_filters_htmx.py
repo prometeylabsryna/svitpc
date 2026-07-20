@@ -46,6 +46,10 @@ class TestCategoryFiltersHtmx:
         assert 'id="desktop-filters-form"' in body
         assert 'id="mobile-filters-form"' in body
         assert 'hx-push-url="true"' in body
+        assert 'hx-trigger="submit"' in body
+        assert "change delay:300ms" not in body
+        assert 'data-filters-apply' in body
+        assert "Застосувати" in body
         assert f'value="{f_red.id}"' in body
         assert f'value="{f_blue.id}"' in body
 

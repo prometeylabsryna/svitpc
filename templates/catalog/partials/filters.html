@@ -1,5 +1,5 @@
 {% load i18n svitpc_tags %}
 
-{# Підкатегорії свідомо ПОЗА <form>: change всередині форми триґерить hx-get. #}
+{# Підкатегорії свідомо ПОЗА <form>: submit форми застосовує лише фільтри. #}
 {% include "catalog/partials/subcategories.html" %}
 {% include "catalog/partials/filters_form.html" %}

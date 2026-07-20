@@ -3,6 +3,28 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
+    min-height: 0;
+  }
+
+  .filters-panel__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+    background: var(--clr-surface);
+    border-top: 1px solid var(--clr-border);
+    /* iOS Safari: sticky footer over scrolling filter list */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+  .filters-panel__apply {
+    width: 100%;
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   .filters-panel__head {
