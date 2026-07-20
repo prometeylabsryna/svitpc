@@ -168,9 +168,73 @@ def _brain_is_archived(detail: dict) -> bool:
     return bool(val)
 
 
+def _brain_available_qty(detail: dict) -> int | None:
+    """Warehouse quantity signal from Brain `available`, or None if field absent.
+
+    Brain docs show ``available`` as ``{stockID: qty}``, але на проді для
+    sold-out товарів інколи приходить порожній список ``[]`` (підтверджено
+    для MICDHU1/32GB). Обидва формати підтримуємо.
+    """
+    if "available" not in detail:
+        return None
+    available = detail.get("available")
+    if available is None:
+        return None
+    if isinstance(available, dict):
+        total = 0
+        for raw in available.values():
+            try:
+                total += max(0, int(raw))
+            except (TypeError, ValueError):
+                continue
+        return total
+    if isinstance(available, (list, tuple, set)):
+        return 1 if len(available) > 0 else 0
+    return 0
+
+
+def _brain_stocks_nonempty(detail: dict) -> bool | None:
+    """True/False if Brain `stocks` list/dict is present; None if field absent."""
+    if "stocks" not in detail:
+        return None
+    stocks = detail.get("stocks")
+    if stocks is None:
+        return None
+    if isinstance(stocks, (list, tuple, set, dict)):
+        return len(stocks) > 0
+    return bool(stocks)
+
+
 def brain_stock_from_detail(detail: dict) -> int:
-    """Brain exposes availability via is_archive (1 = archived / out of stock)."""
-    return 0 if _brain_is_archived(detail) else 1
+    """Map Brain product payload → local binary stock (0 or 1).
+
+    Priority (fail-closed when OWN_LOGISTICS fields are present):
+      1. ``is_archive`` → always out of stock
+      2. ``available`` / ``stocks`` (OWN_LOGISTICS_MODE only) → in stock iff any
+         warehouse qty > 0 or non-empty stocks list; empty = unavailable
+         (cabinet «Товар не доступний»), even when is_archive is still false
+      3. Fallback when stock fields are absent (no OWN_LOGISTICS): NOT archive → 1
+
+    Previously we treated every non-archived product as in-stock. That left
+    sold-out items visible as «В наявності» whenever Brain kept is_archive=false
+    and only cleared stocks/available — the common cabinet state.
+    """
+    if _brain_is_archived(detail):
+        return 0
+
+    qty = _brain_available_qty(detail)
+    if qty is not None and qty > 0:
+        return 1
+
+    stocks_present = _brain_stocks_nonempty(detail)
+    if stocks_present is True:
+        return 1
+
+    # OWN_LOGISTICS payload present but empty → truly unavailable right now.
+    if qty is not None or stocks_present is not None:
+        return 0
+
+    return 1
 
 
 def brain_visibility(stock: int, hide_if_out_of_stock: bool) -> bool:

@@ -1,4 +1,4 @@
-"""Full Brain catalog availability sync (is_archive → stock / visibility)."""
+"""Full Brain catalog availability sync (stocks/available/is_archive → stock)."""
 
 from __future__ import annotations
 

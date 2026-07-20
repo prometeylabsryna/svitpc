@@ -112,6 +112,50 @@ class TestSyncAllAvailabilityFromBrain:
         assert page1.stock == 0 and page1.is_visible is False
         assert page2.stock == 0 and page2.is_visible is False
 
+    def test_empty_stocks_marks_unavailable_even_if_not_archived(
+        self, product_factory, category_factory,
+    ):
+        """Регресія Mibrand-кейс: Brain cabinet «не доступний», is_archive=false,
+        stocks=[] → сайт має прибрати «В наявності»."""
+        root = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
+        product = product_factory(
+            slug="brain-empty-stocks",
+            source=Product.SOURCE_BRAIN,
+            external_id="700",
+            stock=1,
+            is_visible=True,
+            hide_if_out_of_stock=True,
+            price=173,
+        )
+        product.categories.add(root)
+
+        client = MagicMock()
+        client.get_all_categories.return_value = [
+            {"categoryID": 1181, "parentID": 1, "realcat": 0, "name": "Ноутбуки, планшети"},
+        ]
+        client.get_products.return_value = (
+            [{
+                "productID": 700,
+                "is_archive": False,
+                "stocks": [],
+                "available": {},
+                "recommendable_price": "173",
+                "retail_price_uah": "173",
+            }],
+            1,
+        )
+
+        with patch(
+            "apps.integrations.brain.availability.brain_hide_out_of_stock_enabled",
+            return_value=True,
+        ):
+            stats = sync_all_availability_from_brain(client, hide_missing=False, dry_run=False)
+
+        product.refresh_from_db()
+        assert stats["updated"] == 1
+        assert product.stock == 0
+        assert product.is_visible is False
+
     def test_dry_run_does_not_write(self, product_factory, category_factory):
         root = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
         product = product_factory(

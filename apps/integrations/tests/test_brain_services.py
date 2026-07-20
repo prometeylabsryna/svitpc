@@ -26,6 +26,57 @@ class TestBrainServices:
         assert brain_stock_from_detail({"is_archive": "0"}) == 1
         assert brain_stock_from_detail({"is_archive": "1"}) == 0
 
+    def test_brain_stock_empty_stocks_is_unavailable_even_if_not_archived(self):
+        """Cabinet «Товар не доступний» = empty stocks, often still is_archive=false."""
+        assert brain_stock_from_detail({
+            "is_archive": False,
+            "stocks": [],
+            "available": {},
+        }) == 0
+        assert brain_stock_from_detail({
+            "is_archive": False,
+            "stocks": [],
+        }) == 0
+        assert brain_stock_from_detail({
+            "is_archive": False,
+            "available": {"1": 0, "2": 0},
+        }) == 0
+        # Prod Brain (MICDHU1/32GB): available приходить як [] а не {}
+        assert brain_stock_from_detail({
+            "is_archive": False,
+            "stocks": [],
+            "available": [],
+        }) == 0
+
+    def test_brain_stock_available_qty_or_stocks_list(self):
+        assert brain_stock_from_detail({
+            "is_archive": False,
+            "stocks": [1, 2],
+            "available": {"1": 3, "2": 1},
+        }) == 1
+        assert brain_stock_from_detail({
+            "is_archive": False,
+            "stocks": [],
+            "available": {"4": 2},
+        }) == 1
+        assert brain_stock_from_detail({
+            "is_archive": False,
+            "stocks": [1],
+            "available": {},
+        }) == 1
+
+    def test_brain_stock_archive_wins_over_stocks(self):
+        assert brain_stock_from_detail({
+            "is_archive": True,
+            "stocks": [1],
+            "available": {"1": 5},
+        }) == 0
+
+    def test_brain_stock_without_own_logistics_fields_falls_back_to_archive(self):
+        """Without OWN_LOGISTICS_MODE Brain omits stocks/available — keep prior semantics."""
+        assert brain_stock_from_detail({"is_archive": False}) == 1
+        assert brain_stock_from_detail({"is_archive": True}) == 0
+
     @patch("apps.integrations.brain.services.brain_hide_out_of_stock_enabled", return_value=True)
     def test_brain_visibility_hides_zero_stock(self, _mock):
         assert brain_visibility(0, hide_if_out_of_stock=True) is False

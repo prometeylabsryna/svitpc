@@ -809,7 +809,7 @@ def apply_hide_out_of_stock_policy() -> None:
 
 @shared_task(soft_time_limit=_AVAILABILITY_SOFT_TIME_LIMIT, time_limit=_AVAILABILITY_TIME_LIMIT)
 def sync_all_availability(hide_missing: bool = True) -> dict[str, int] | None:
-    """Daily full availability pass — is_archive for entire Brain catalog."""
+    """Full availability pass — stocks/available/is_archive for Brain catalog."""
     with heavy_catalog_sync_lock("brain_availability") as acquired:
         if not acquired:
             sync_all_availability.apply_async(

@@ -85,6 +85,16 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.integrations.brain.tasks.reconcile_stale_stock",
         "schedule": crontab(hour="11,17", minute=25),
     },
+    # Повний прохід наявності (stocks/available/is_archive) — не покладатись
+    # лише на modified_products за 5 год: Brain часто не шле change-event при
+    # спустошенні складу, тож денний sync_stock пропускає sold-out товари.
+    # Нічний ланцюг (після images) лишається; цей слот — денний safety-net.
+    "brain-sync-all-availability": {
+        "task": "apps.integrations.brain.tasks.sync_all_availability",
+        "schedule": crontab(hour="13", minute=30),
+        "kwargs": {"hide_missing": True},
+        "options": _HEAVY_EXPIRES,
+    },
     "brain-sync-new-products": {
         "task": "apps.integrations.brain.tasks.sync_new_products",
         "schedule": crontab(hour="10,16", minute=30),
