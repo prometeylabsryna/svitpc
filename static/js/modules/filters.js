@@ -3,10 +3,13 @@
 const initFilterPanel = (root = document) => {
   // Collapsible groups — use DOM traversal instead of getElementById
   // to correctly handle duplicate filter panels (desktop + mobile sidebar).
-  root.querySelectorAll("[data-filter-toggle]").forEach((btn) => {
+  // Guard with data-init: без нього повторний initFilterPanel (HTMX OOB +
+  // initAll) вішає 2 listeners → клік відкриває і одразу закриває групу.
+  root.querySelectorAll("[data-filter-toggle]:not([data-filter-toggle-init])").forEach((btn) => {
     const items = btn.closest(".filter-group")?.querySelector(".filter-group__items");
     if (!items) return;
 
+    btn.dataset.filterToggleInit = "1";
     items.hidden = btn.getAttribute("aria-expanded") !== "true";
     btn.addEventListener("click", () => {
       const expanded = btn.getAttribute("aria-expanded") === "true";
