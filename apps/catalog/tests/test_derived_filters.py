@@ -153,3 +153,17 @@ class TestSyncDerivedFiltersForProduct:
 
         assert created == 1
         assert product.filters.count() == 1
+
+    def test_replaces_stale_value_in_managed_group(self, product_factory):
+        """Зміна атрибута (8→16 ГБ) має прибрати старий ProductFilter, не лишати обидва."""
+        product = product_factory(slug="derived-stale-ram")
+        self._add_attr(product, "Оперативна пам'ять", "8 ГБ")
+        assert sync_derived_filters_for_product(product) == 1
+        assert product.filters.filter(filter__name="8 ГБ").exists()
+
+        ProductAttribute.objects.filter(product=product).update(value="16 ГБ")
+        created = sync_derived_filters_for_product(product)
+
+        assert created == 1
+        names = set(product.filters.values_list("filter__name", flat=True))
+        assert names == {"16 ГБ"}

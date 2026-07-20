@@ -386,6 +386,13 @@ def sync_stock() -> None:
             ):
                 updated += 1
 
+    if updated:
+        # Counts/facets кешуються окремо від живого product grid — без інвалідації
+        # «Тільки в наявності» і counts лишаються застарілими до TTL (30 хв).
+        from apps.catalog.cache_invalidation import invalidate_catalog_listing_caches
+
+        invalidate_catalog_listing_caches()
+
     logger.info("Brain sync_stock done: %d updated / %d modified", updated, len(modified_ids))
 
 

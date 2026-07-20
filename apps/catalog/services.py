@@ -92,6 +92,27 @@ def order_stock_first(qs: QuerySet[Product], *order_fields: str) -> QuerySet[Pro
     ).order_by("in_stock_order", *order_fields)
 
 
+def expand_equivalent_filter_ids(filter_ids: list[int]) -> list[int]:
+    """Expand selected Filter PKs to all duplicates with the same group+name.
+
+    OpenCart import left duplicate ``Filter`` rows (same group/name, different pk).
+    Facets collapse them to one checkbox (highest count), so shoppers click one
+    ID while products remain linked to a sibling — without expansion the OR/AND
+    chain silently drops those products.
+    """
+    if not filter_ids:
+        return []
+    from .models import Filter as FilterModel
+
+    rows = list(FilterModel.objects.filter(id__in=filter_ids).values("group_id", "name"))
+    if not rows:
+        return list(filter_ids)
+    q = Q()
+    for row in rows:
+        q |= Q(group_id=row["group_id"], name=row["name"])
+    return list(FilterModel.objects.filter(q).values_list("id", flat=True).distinct())
+
+
 def get_filtered_products(
     queryset: QuerySet[Product],
     brands: list[int] | None = None,
@@ -120,8 +141,9 @@ def get_filtered_products(
         # need to match *any* value inside a group but *all* selected groups.
         from .models import Filter as FilterModel
 
+        expanded = expand_equivalent_filter_ids(list(filters))
         group_map: dict[int, list[int]] = {}
-        for row in FilterModel.objects.filter(id__in=filters).values("id", "group_id"):
+        for row in FilterModel.objects.filter(id__in=expanded).values("id", "group_id"):
             group_map.setdefault(row["group_id"], []).append(row["id"])
         for group_filter_ids in group_map.values():
             qs = qs.filter(filters__filter_id__in=group_filter_ids).distinct()
@@ -192,16 +214,26 @@ def finalize_product_listing(
     return qs.select_related("brand").prefetch_related("images")
 
 
-def _compute_product_facets(product_ids: QuerySet[Product]) -> dict:
-    """Build facet groups for products matching ``product_ids`` (subquery-safe)."""
+def _compute_product_facets(
+    product_ids: QuerySet[Product],
+    *,
+    only_group_id: int | None = None,
+) -> dict:
+    """Build facet groups for products matching ``product_ids`` (subquery-safe).
+
+    Duplicate Filter rows (same group+name) are merged: counts are summed and
+    the canonical checkbox id is the smallest pk (stable, matches derived_filters).
+    """
+    qs = Filter.objects.filter(
+        productfilter__product_id__in=product_ids.values("pk"),
+        group__is_brand=False,
+    )
+    if only_group_id is not None:
+        qs = qs.filter(group_id=only_group_id)
     filter_groups = (
-        Filter.objects.filter(
-            productfilter__product_id__in=product_ids.values("pk"),
-            group__is_brand=False,
-        )
-        .select_related("group")
+        qs.select_related("group")
         .annotate(count=Count("productfilter__product", distinct=True))
-        .order_by("group__sort_order", "group__name_uk", "name_uk")
+        .order_by("group__sort_order", "group__name_uk", "name_uk", "pk")
     )
 
     by_name: dict[str, dict] = {}
@@ -211,8 +243,13 @@ def _compute_product_facets(product_ids: QuerySet[Product]) -> dict:
             by_name[gname] = {"name": gname, "gid": f.group_id, "options": {}}
         opts = by_name[gname]["options"]
         opt_name = localized_field(f, "name")
-        if opt_name not in opts or f.count > opts[opt_name]["count"]:
+        if opt_name not in opts:
             opts[opt_name] = {"id": f.id, "name": opt_name, "count": f.count}
+        else:
+            # Keep smallest pk as canonical id; sum counts across duplicates.
+            if f.id < opts[opt_name]["id"]:
+                opts[opt_name]["id"] = f.id
+            opts[opt_name]["count"] += f.count
 
     facets: dict[int, dict] = {}
     for gdata in by_name.values():
@@ -246,13 +283,98 @@ def get_product_facets(
     return facets
 
 
+def get_disjunctive_facets(
+    base_qs: QuerySet[Product],
+    *,
+    brand_ids: list[int] | None = None,
+    filter_ids: list[int] | None = None,
+    price_min: Decimal | None = None,
+    price_max: Decimal | None = None,
+    in_stock: bool = False,
+    cache_key: str | None = None,
+) -> dict:
+    """Facet counts with OR-within-group semantics (standard faceted search).
+
+    Counts for group G ignore selected filters that belong to G, so choosing
+    «Чорний» still shows «Білий» with a count (multi-select OR). Brand / price /
+    stock and *other* groups stay applied.
+    """
+    from .facet_cache import get_cached_facets, set_cached_facets
+    from .models import Filter as FilterModel
+
+    if cache_key:
+        cached = get_cached_facets(cache_key)
+        if cached is not None:
+            return cached
+
+    selected = list(filter_ids or [])
+    by_group: dict[int, list[int]] = {}
+    if selected:
+        for row in FilterModel.objects.filter(id__in=selected).values("id", "group_id"):
+            by_group.setdefault(row["group_id"], []).append(row["id"])
+
+    qs_base = get_filtered_products(
+        base_qs,
+        brands=brand_ids,
+        filters=None,
+        price_min=price_min,
+        price_max=price_max,
+        in_stock_only=in_stock,
+        for_count=True,
+        skip_image_filter=True,
+    )
+    group_ids = list(
+        Filter.objects.filter(
+            productfilter__product_id__in=qs_base.values("pk"),
+            group__is_brand=False,
+        )
+        .values_list("group_id", flat=True)
+        .distinct(),
+    )
+
+    facets: dict[int, dict] = {}
+    for gid in group_ids:
+        other_ids = [
+            fid for other_gid, ids in by_group.items() if other_gid != gid for fid in ids
+        ]
+        qs_g = get_filtered_products(
+            base_qs,
+            brands=brand_ids,
+            filters=other_ids or None,
+            price_min=price_min,
+            price_max=price_max,
+            in_stock_only=in_stock,
+            for_count=True,
+            skip_image_filter=True,
+        )
+        partial = _compute_product_facets(qs_g, only_group_id=gid)
+        facets.update(partial)
+
+    if cache_key:
+        set_cached_facets(cache_key, facets)
+
+    return facets
+
+
+def annotate_facet_active_state(facets: dict, filter_ids: list[int]) -> dict:
+    """Mark groups that have a selected option (for expand/collapse UI)."""
+    selected = set(filter_ids or [])
+    for gdata in facets.values():
+        gdata["has_active"] = any(opt["id"] in selected for opt in gdata["options"])
+    return facets
+
+
 def get_category_facets(
     category: Category,
     current_qs: QuerySet[Product],
     *,
     filter_params: dict | None = None,
 ) -> dict:
-    """Facets for a category listing; cached per category + active filters."""
+    """Facets for a category listing; cached per category + active filters.
+
+    Prefer ``get_disjunctive_facets`` for interactive filter UIs; this helper
+    remains for callers that already have a narrowed ``current_qs``.
+    """
     from .facet_cache import facet_cache_key
 
     cache_key = None

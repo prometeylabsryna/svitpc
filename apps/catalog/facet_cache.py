@@ -46,6 +46,11 @@ def _digest_params(params: dict[str, Any]) -> str:
 
 
 def facet_cache_key(*, scope: str, scope_id: int | str, params: dict[str, Any]) -> str:
+    """Cache key for facet payloads.
+
+    Scope strings should be bumped (e.g. ``category-v3``) when facet *shape*
+    or counting semantics change so warm Redis entries are not reused.
+    """
     lang = translation.get_language() or "uk"
     return f"catalog:facets:{scope}:{scope_id}:{lang}:{_digest_params(params)}"
 

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
-
 from django.db.models import Avg, Count, Q
 from django.http import HttpRequest, HttpResponse
 from django.http import Http404
@@ -17,16 +15,17 @@ from apps.promotions.services import with_active_promotions
 
 from .cross_sell import suggested_products_for_category, suggested_products_for_product
 from .gallery import product_gallery_urls
+from .listing_params import parse_catalog_list_filters
 from .models import Brand, Category, Product
 from .services import (
+    annotate_facet_active_state,
     cached_product_count,
     category_listing_category_scope,
     category_listing_products,
     finalize_product_listing,
     get_brands_for_category,
-    get_category_facets,
+    get_disjunctive_facets,
     get_filtered_products,
-    get_product_facets,
     get_sale_products_queryset,
     order_stock_first,
     visible_catalog_products,
@@ -69,14 +68,14 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
     base_qs = category_listing_products(category)
     cat_scope = category_listing_category_scope(category)
 
-    # Parse filters from GET
-    brand_ids = [int(x) for x in request.GET.getlist("brand") if x.isdigit()]
-    filter_ids = [int(x) for x in request.GET.getlist("f") if x.isdigit()]
-    price_min = Decimal(request.GET["price_min"]) if request.GET.get("price_min") else None
-    price_max = Decimal(request.GET["price_max"]) if request.GET.get("price_max") else None
-    sort = request.GET.get("sort", "default")
-    in_stock = bool(request.GET.get("in_stock"))
-    page = int(request.GET.get("page", 1))
+    parsed = parse_catalog_list_filters(request)
+    brand_ids = parsed["brand_ids"]
+    filter_ids = parsed["filter_ids"]
+    price_min = parsed["price_min"]
+    price_max = parsed["price_max"]
+    sort = parsed["sort"]
+    in_stock = parsed["in_stock"]
+    page = parsed["page"]
     per_page = 24
 
     filter_params = catalog_filter_params(
@@ -88,9 +87,9 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
         sort=sort,
     )
     count_key = count_cache_key(scope="category-v2", scope_id=category.pk, params=filter_params)
+    # v3: disjunctive facet counts (OR within group) + merged duplicate Filter rows
+    facet_key = facet_cache_key(scope="category-v3", scope_id=category.pk, params=filter_params)
 
-    # Фільтри будуються один раз: qs_lite — для count і фасетів,
-    # finalize_product_listing — доводить той самий queryset для сторінки.
     qs_lite = get_filtered_products(
         base_qs,
         brand_ids,
@@ -110,21 +109,39 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
     _qp = request.GET.copy()
     _qp.pop("page", None)
 
-    if request.htmx:
-        ctx = {
-            "products": products,
-            "total": total,
-            "page": page,
-            "per_page": per_page,
-            "total_pages": (total + per_page - 1) // per_page,
-            "query_params": _qp.urlencode(),
-        }
-        return render(request, "catalog/partials/product_grid.html", ctx)
-
-    facets = get_category_facets(category, qs_lite, filter_params=filter_params)
-    for _gdata in facets.values():
-        _gdata["has_active"] = any(opt["id"] in filter_ids for opt in _gdata["options"])
+    facets = annotate_facet_active_state(
+        get_disjunctive_facets(
+            base_qs,
+            brand_ids=brand_ids,
+            filter_ids=filter_ids,
+            price_min=price_min,
+            price_max=price_max,
+            in_stock=in_stock,
+            cache_key=facet_key,
+        ),
+        filter_ids,
+    )
     brands = get_brands_for_category(cat_scope, category_id=category.pk)
+
+    listing_ctx = {
+        "products": products,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page,
+        "query_params": _qp.urlencode(),
+        "facets": facets,
+        "brands": brands,
+        "sort": sort,
+        "selected_brands": brand_ids,
+        "selected_filters": filter_ids,
+        "price_min": price_min,
+        "price_max": price_max,
+        "in_stock": in_stock,
+    }
+
+    if request.htmx:
+        return render(request, "catalog/partials/listing_htmx.html", listing_ctx)
 
     subcategories = [c for c in subcategories_all if subtree_counts.get(c.pk, 0) > 0]
     category_ancestors = list(category.get_ancestors())
@@ -135,28 +152,15 @@ def category_view(request: HttpRequest, slug: str) -> HttpResponse:
         suggested_products, suggested_cross_sell = suggested_products_for_category(category)
 
     ctx = {
+        **listing_ctx,
         "category": category,
         "category_ancestors": category_ancestors,
         "subcategories": subcategories,
-        "products": products,
         "ecommerce_list": product_list_payload(
             list_id=f"category-{category.pk}",
             list_name=category.name,
             products=products,
         ),
-        "facets": facets,
-        "brands": brands,
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "total_pages": (total + per_page - 1) // per_page,
-        "sort": sort,
-        "selected_brands": brand_ids,
-        "selected_filters": filter_ids,
-        "price_min": price_min,
-        "price_max": price_max,
-        "in_stock": in_stock,
-        "query_params": _qp.urlencode(),
         "suggested_products": suggested_products,
         "suggested_cross_sell": suggested_cross_sell,
     }
@@ -222,14 +226,14 @@ def product_detail_view(request: HttpRequest, slug: str) -> HttpResponse:
 
 def brand_view(request: HttpRequest, slug: str) -> HttpResponse:
     brand = get_object_or_404(Brand, slug=slug)
-    page = int(request.GET.get("page", 1))
+    parsed = parse_catalog_list_filters(request)
+    filter_ids = parsed["filter_ids"]
+    price_min = parsed["price_min"]
+    price_max = parsed["price_max"]
+    sort = parsed["sort"]
+    in_stock = parsed["in_stock"]
+    page = parsed["page"]
     per_page = 24
-    sort = request.GET.get("sort", "default")
-
-    filter_ids = [int(x) for x in request.GET.getlist("f") if x.isdigit()]
-    price_min = Decimal(request.GET["price_min"]) if request.GET.get("price_min") else None
-    price_max = Decimal(request.GET["price_max"]) if request.GET.get("price_max") else None
-    in_stock = bool(request.GET.get("in_stock"))
 
     filter_params = catalog_filter_params(
         brand_ids=[],
@@ -240,7 +244,7 @@ def brand_view(request: HttpRequest, slug: str) -> HttpResponse:
         sort=sort,
     )
     count_key = count_cache_key(scope="brand", scope_id=brand.pk, params=filter_params)
-    facet_key = facet_cache_key(scope="brand", scope_id=brand.pk, params=filter_params)
+    facet_key = facet_cache_key(scope="brand-v2", scope_id=brand.pk, params=filter_params)
 
     base_qs = brand.products.filter(is_visible=True, has_display_image=True)
     qs_lite = get_filtered_products(
@@ -261,22 +265,20 @@ def brand_view(request: HttpRequest, slug: str) -> HttpResponse:
     _qp = request.GET.copy()
     _qp.pop("page", None)
 
-    if request.htmx:
-        ctx = {
-            "products": products,
-            "total": total,
-            "page": page,
-            "per_page": per_page,
-            "total_pages": (total + per_page - 1) // per_page,
-            "query_params": _qp.urlencode(),
-        }
-        return render(request, "catalog/partials/product_grid.html", ctx)
+    facets = annotate_facet_active_state(
+        get_disjunctive_facets(
+            base_qs,
+            brand_ids=None,
+            filter_ids=filter_ids,
+            price_min=price_min,
+            price_max=price_max,
+            in_stock=in_stock,
+            cache_key=facet_key,
+        ),
+        filter_ids,
+    )
 
-    facets = get_product_facets(qs_lite, cache_key=facet_key)
-    for _gdata in facets.values():
-        _gdata["has_active"] = any(opt["id"] in filter_ids for opt in _gdata["options"])
-
-    ctx = {
+    listing_ctx = {
         "brand": brand,
         "products": products,
         "facets": facets,
@@ -294,7 +296,10 @@ def brand_view(request: HttpRequest, slug: str) -> HttpResponse:
         "query_params": _qp.urlencode(),
     }
 
-    return render(request, "catalog/brand.html", ctx)
+    if request.htmx:
+        return render(request, "catalog/partials/listing_htmx.html", listing_ctx)
+
+    return render(request, "catalog/brand.html", listing_ctx)
 
 
 @cache_page(600)

@@ -40,7 +40,7 @@
 
     {# Desktop sidebar #}
     <aside class="catalog-sidebar" aria-label="{% trans 'Фільтри' %}">
-      {% include "catalog/partials/filters.html" %}
+      {% include "catalog/partials/filters.html" with filters_dom_id_prefix="desktop-" %}
     </aside>
 
     {# Mobile sidebar #}
@@ -48,7 +48,7 @@
       <div class="mobile-menu__backdrop" data-filters-backdrop></div>
       <div class="catalog-sidebar__panel">
         <button class="btn btn--ghost btn--sm" data-filters-close>✕ {% trans "Закрити" %}</button>
-        {% include "catalog/partials/filters.html" %}
+        {% include "catalog/partials/filters.html" with filters_dom_id_prefix="mobile-" %}
       </div>
     </div>
 
@@ -74,7 +74,8 @@
             hx-trigger="change"
             hx-target="#product-grid"
             hx-swap="outerHTML"
-            hx-include=".catalog-sidebar [name='brand'],.catalog-sidebar [name='f'],.catalog-sidebar [name='price_min'],.catalog-sidebar [name='price_max'],.catalog-sidebar [name='in_stock']"
+            hx-push-url="true"
+            hx-include="#desktop-filters-form [name='brand'],#desktop-filters-form [name='f'],#desktop-filters-form [name='price_min'],#desktop-filters-form [name='price_max'],#desktop-filters-form [name='in_stock'],#mobile-filters-form [name='brand'],#mobile-filters-form [name='f'],#mobile-filters-form [name='price_min'],#mobile-filters-form [name='price_max'],#mobile-filters-form [name='in_stock']"
             name="sort"
             aria-label="{% trans 'Сортування' %}">
             <option value="default" {% if sort == "default" %}selected{% endif %}>{% trans "За замовчуванням" %}</option>

@@ -1,0 +1,5 @@
+{% load i18n %}
+{# HTMX: сітка товарів + OOB-оновлення desktop/mobile форм фільтрів. #}
+{% include "catalog/partials/product_grid.html" %}
+{% include "catalog/partials/filters_form.html" with filters_dom_id_prefix="desktop-" filters_oob=True %}
+{% include "catalog/partials/filters_form.html" with filters_dom_id_prefix="mobile-" filters_oob=True %}

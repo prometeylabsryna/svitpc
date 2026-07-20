@@ -92,20 +92,22 @@ def _get_or_create_single(model, defaults: dict | None = None, /, **lookup):
 
 
 def sync_derived_filters_for_product(product: "Product") -> int:
-    """Створити ProductFilter для `product` з уже записаних ProductAttribute.
+    """Синхронізувати ProductFilter для `product` з ProductAttribute.
 
-    Ідемпотентно — безпечно викликати повторно (наприклад, після кожного content-синку).
-    Повертає кількість нових ProductFilter (наявні зв'язки не чіпаються).
+    Ідемпотентно. Створює відсутні зв'язки і ВИДАЛЯЄ застарілі в керованих
+    групах (Діагональ/CPU/RAM/…) — інакше після зміни атрибута (8→16 ГБ)
+    товар лишався б під обома значеннями фасету.
+    Повертає кількість нових ProductFilter.
     """
     from apps.catalog.models import Filter, FilterGroup, ProductFilter
 
+    managed_names = {rule.group_name for rule in FACET_RULES}
     rows = list(product.attributes.select_related("attribute").only("value", "attribute__name"))
-    if not rows:
-        return 0
 
     created = 0
     seen_values: set[tuple[str, str]] = set()
     group_cache: dict[str, FilterGroup] = {}
+    desired_filter_ids: set[int] = set()
 
     for row in rows:
         rule = facet_rule_for_attribute_name(row.attribute.name)
@@ -127,10 +129,21 @@ def sync_derived_filters_for_product(product: "Product") -> int:
             group_cache[rule.group_name] = group
 
         filt = _get_or_create_single(Filter, group=group, name=value)
+        desired_filter_ids.add(filt.pk)
 
         # unique_together=("product","filter") — тут дублікатів у БД немає, get_or_create безпечний.
         _, was_created = ProductFilter.objects.get_or_create(product=product, filter=filt)
         if was_created:
             created += 1
+
+    managed_group_ids = set(
+        FilterGroup.objects.filter(name__in=managed_names).values_list("pk", flat=True),
+    )
+    managed_group_ids |= {g.pk for g in group_cache.values()}
+    if managed_group_ids:
+        ProductFilter.objects.filter(
+            product=product,
+            filter__group_id__in=managed_group_ids,
+        ).exclude(filter_id__in=desired_filter_ids).delete()
 
     return created

@@ -53,6 +53,11 @@ document.addEventListener("htmx:afterSwap", (e) => {
     }
   }
 
+  // OOB filter-form swaps replace the whole <form> — re-bind collapse toggles.
+  if (target?.matches?.("form.filters-panel, form[data-catalog-filters]")) {
+    initFilterPanel(target);
+  }
+
   if (target?.id === "modal-container") {
     // Registration success uses HX-Reswap: none — form stays in DOM; do not re-open.
     if (xhr?.getResponseHeader?.("HX-Reswap") === "none") {
