@@ -214,6 +214,12 @@
     scrollbar-width: thin;
     scrollbar-color: var(--clr-border-strong) transparent;
 
+    /* display:flex вище перебиває UA [hidden] { display:none } без !important —
+       тоді JS items.hidden=true не ховає групу («не можу закрити Бренд»). */
+    &[hidden] {
+      display: none;
+    }
+
     &::-webkit-scrollbar { width: 4px; }
     &::-webkit-scrollbar-thumb {
       background: var(--clr-border-strong);
