@@ -67,11 +67,9 @@ class WarrantyClaim(models.Model):
     ]
 
     DELIVERY_NOVA_POSHTA = "nova_poshta"
-    DELIVERY_UKRPOSHTA = "ukrposhta"
     DELIVERY_OTHER = "other"
     DELIVERY_CHOICES = [
         (DELIVERY_NOVA_POSHTA, _("Нова Пошта")),
-        (DELIVERY_UKRPOSHTA, _("Укрпошта")),
         (DELIVERY_OTHER, _("Інша")),
     ]
 

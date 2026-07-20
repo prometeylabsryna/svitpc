@@ -3,8 +3,6 @@
  */
 (function () {
   const DELIVERY_NP = "nova_poshta";
-  const DELIVERY_UP = "ukrposhta";
-  const DELIVERY_PICKUP = "pickup";
   const CITIES_URL = "/shipping/np/cities/";
   const WAREHOUSES_URL = "/shipping/np/warehouses/";
   const DEBOUNCE_MS = 400;
@@ -83,8 +81,6 @@
 
   const toggleDeliveryFields = (form, deliveryType) => {
     const npFields = ["city", "city_ref", "warehouse", "warehouse_ref"];
-    const upFields = ["city", "postcode"];
-    const pickupHidden = ["city", "city_ref", "warehouse", "warehouse_ref", "postcode"];
 
     npFields.forEach((name) => {
       const row = fieldRow(form, name);
@@ -92,32 +88,6 @@
         row.hidden = deliveryType !== DELIVERY_NP;
       }
     });
-
-    upFields.forEach((name) => {
-      const row = fieldRow(form, name);
-      if (!row) {
-        return;
-      }
-      if (deliveryType === DELIVERY_UP) {
-        row.hidden = false;
-      } else if (deliveryType === DELIVERY_NP && name === "postcode") {
-        row.hidden = true;
-      }
-    });
-
-    if (deliveryType === DELIVERY_PICKUP) {
-      pickupHidden.forEach((name) => {
-        const row = fieldRow(form, name);
-        if (row) {
-          row.hidden = true;
-        }
-      });
-    } else {
-      const postcodeRow = fieldRow(form, "postcode");
-      if (postcodeRow) {
-        postcodeRow.hidden = deliveryType !== DELIVERY_UP;
-      }
-    }
   };
 
   const initOrderNpDelivery = (form) => {

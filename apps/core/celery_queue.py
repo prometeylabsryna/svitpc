@@ -33,7 +33,6 @@ _HEAVY_KEEP_ONE = frozenset(
 _STATUS_KEEP_ONE = frozenset(
     {
         "apps.shipping.tasks.update_delivery_statuses",
-        "apps.integrations.ukrposhta.tasks.update_up_delivery_statuses",
     }
 )
 
@@ -41,7 +40,6 @@ _STATUS_KEEP_ONE = frozenset(
 _LIGHT_DROP_FROM_CELERY = frozenset(
     {
         "apps.shipping.tasks.update_delivery_statuses",
-        "apps.integrations.ukrposhta.tasks.update_up_delivery_statuses",
         "apps.integrations.novaposhta.tasks.sync_np_cities",
         "apps.integrations.novaposhta.tasks.sync_np_warehouses",
         "apps.integrations.novaposhta.tasks.sync_np_warehouses_chunk",

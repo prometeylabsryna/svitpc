@@ -41,8 +41,6 @@ TRANSLATIONS: dict[str, str] = {
     ),
     "Надіслати Telegram-повідомлення": "Send Telegram message",
     "ТТН (НП)": "Tracking number (NP)",
-    "Штрихкод УкрПошти": "Ukrposhta barcode",
-    "Індекс (УкрПошта)": "Postcode (Ukrposhta)",
     "Ключ ідемпотентності": "Idempotency key",
     "Надіслати push-повідомлення про акцію": "Send push notification about promotion",
     "Push-розсилку поставлено в чергу: %(n)d акцій": "Push campaign queued: %(n)d promotions",
@@ -58,10 +56,7 @@ TRANSLATIONS: dict[str, str] = {
     "Оберіть місто зі списку підказок.": "Select a city from the suggestions.",
     "Оберіть місто доставки.": "Select a delivery city.",
     "Оберіть відділення Нової Пошти.": "Select a Nova Post branch.",
-    "Вкажіть місто доставки.": "Enter a delivery city.",
     "Оберіть спосіб доставки.": "Select a delivery method.",
-    "Вкажіть поштовий індекс відділення Укрпошти.": "Enter the Ukrposhta branch postcode.",
-    "Індекс має містити 5 цифр.": "Postcode must contain 5 digits.",
     "Товар додано до бажаних": "Product added to wishlist",
     "Прибрано з бажаних": "Removed from wishlist",
     "AI-консультант СвітПК — підбір ноутбуків, комплектуючих, перевірка сумісності компонентів": (
@@ -94,7 +89,6 @@ TRANSLATIONS: dict[str, str] = {
     "Оплата карткою (Visa/Mastercard)": "Card payment (Visa/Mastercard)",
     "Післяплата (при отриманні)": "Cash on delivery",
     "Напр. 01001": "E.g. 01001",
-    "Заповниться автоматично за індексом...": "Filled automatically from postcode...",
     "Самовивіз з нашого магазину:": "Pickup from our store:",
     "м. Дніпро, пр. Д. Яворницького 1": "Dnipro, 1 D. Yavornytskyi Ave.",
     "Пн–Пт 9:00–19:00, Сб 10:00–17:00": "Mon–Fri 9:00–19:00, Sat 10:00–17:00",
@@ -131,7 +125,6 @@ TRANSLATIONS: dict[str, str] = {
     "Редагування профілю": "Edit profile",
     "Зберегти зміни": "Save changes",
     "ТТН (НП):": "Tracking number (NP):",
-    "Штрихкод УкрПошти:": "Ukrposhta barcode:",
     "Будь ласка, зачекайте. Вас перенаправляють на сторінку оплати...": (
         "Please wait. You are being redirected to the payment page..."
     ),
@@ -164,7 +157,6 @@ TRANSLATIONS: dict[str, str] = {
     "Знижка (промокод)": "Discount (promo code)",
     "Бонуси": "Bonuses",
     "Назва міста...": "City name...",
-    "Поштовий індекс відділення": "Branch postcode",
     "Оплата карткою": "Card payment",
     "Миттєва розстрочка": "Instant installment",
     "Промокод і бонуси": "Promo code and bonuses",
@@ -433,7 +425,6 @@ TRANSLATIONS: dict[str, str] = {
     "грн": "UAH",
     "Дякуємо за замовлення #%(order_id)s": "Thank you for order #%(order_id)s",
     "Замовлення #%(order_id)s доставлено!": "Order #%(order_id)s has been delivered!",
-    "Штрихкод УП:": "UP barcode:",
     "Замовлення #%(order_id)s передано на доставку": "Order #%(order_id)s handed over for delivery",
     "Доступ обмежено": "Access restricted",
 }

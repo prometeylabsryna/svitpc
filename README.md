@@ -158,15 +158,6 @@ uv run manage.py sync_novaposhta --async
 
 Потрібні змінні в `.env`: `NOVA_POSHTA_API_KEY`, `NP_SENDER_*` (для ТТН).
 
-### Укрпошта
-Потрібні змінні в `.env`:
-- `UKRPOSHTA_BEARER` — Bearer eCom API (PRODUCTIONBEAREReCom)
-- `UKRPOSHTA_TOKEN` — counterparty token (`?token=` у запитах)
-- `UP_SENDER_CLIENT_UUID` — UUID відправника з кабінету Укрпошти
-- `UP_SENDER_POSTCODE`, `UP_SENDER_ADDRESS`, `UP_SENDER_CITY`
-
-ТТН/штрихкод створюється після оплати (або одразу для післяплати). Потрібен Celery worker + beat.
-
 ### Vchasno.Kasa
 Вкажіть `VCHASNO_CASHBOX_KEY` (токен тестової або бойової каси з kasa.vchasno.ua) у `.env`. Фіскалізація відбувається автоматично після підтвердження оплати. Перевірка: `make test-vchasnokasa`.
 
@@ -289,7 +280,7 @@ SvitPC/
 │   ├── wishlist/         # WishlistItem
 │   ├── compare/          # Session-based compare
 │   ├── reviews/          # Product reviews with moderation
-│   ├── shipping/         # Nova Poshta, Ukrposhta
+│   ├── shipping/         # Nova Poshta
 │   ├── payments/         # LiqPay, WayForPay, Monobank
 │   ├── loyalty/          # Bonus system, Coupons
 │   ├── promotions/       # Promotions, Banners

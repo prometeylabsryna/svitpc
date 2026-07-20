@@ -36,14 +36,6 @@ def validate_checkout_step1(data: dict) -> list[str]:
             errors.append(_("Оберіть місто зі списку підказок."))
         if not (data.get("warehouse_ref") or "").strip():
             errors.append(_("Оберіть відділення Нової Пошти."))
-    elif delivery_type == Order.DELIVERY_UP:
-        if not (data.get("city") or "").strip():
-            errors.append(_("Вкажіть місто доставки."))
-        postcode = (data.get("postcode") or "").strip()
-        if not postcode:
-            errors.append(_("Вкажіть поштовий індекс відділення Укрпошти."))
-        elif not postcode.isdigit() or len(postcode) != 5:
-            errors.append(_("Індекс має містити 5 цифр."))
     elif delivery_type != Order.DELIVERY_PICKUP:
         errors.append(_("Оберіть спосіб доставки."))
 

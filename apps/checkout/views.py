@@ -213,7 +213,6 @@ def checkout_confirm_view(request: HttpRequest) -> HttpResponse:
             delivery_type=delivery_type,
             city_ref=step1.get("city_ref", ""),
             warehouse_ref=step1.get("warehouse_ref", ""),
-            postcode=step1.get("postcode", ""),
             weight_kg=cart_weight_kg(cart),
             declared_value=Decimal(str(loyalty.subtotal)),
         )
@@ -232,7 +231,6 @@ def checkout_confirm_view(request: HttpRequest) -> HttpResponse:
                     city_ref=step1.get("city_ref", ""),
                     warehouse=step1.get("warehouse", ""),
                     warehouse_ref=step1.get("warehouse_ref", ""),
-                    postcode=step1.get("postcode", ""),
                     payment_method=step2.get("payment_method", "card"),
                     comment=step1.get("comment", ""),
                     total=loyalty.total,

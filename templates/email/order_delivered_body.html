@@ -13,7 +13,6 @@
   <table style="width:100%; border-collapse:collapse; margin: 16px 0;">
     <tr><td style="padding:6px 0; color:#555;">{% trans "Доставка:" %}</td><td>{{ order.get_delivery_type_display }}</td></tr>
     {% if order.ttn %}<tr><td style="padding:6px 0; color:#555;">{% trans "ТТН:" %}</td><td>{{ order.ttn }}</td></tr>{% endif %}
-    {% if order.up_barcode %}<tr><td style="padding:6px 0; color:#555;">{% trans "Штрихкод УП:" %}</td><td>{{ order.up_barcode }}</td></tr>{% endif %}
     <tr><td style="padding:6px 0; color:#555;">{% trans "Відділення:" %}</td><td>{{ order.city }} — {{ order.warehouse }}</td></tr>
   </table>
   <p>{% trans "Дякуємо за покупку в СвітПК!" %}</p>

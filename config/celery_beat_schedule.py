@@ -112,10 +112,6 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.shipping.tasks.update_delivery_statuses",
         "schedule": crontab(minute=0),
     },
-    "ukrposhta-update-statuses": {
-        "task": "apps.integrations.ukrposhta.tasks.update_up_delivery_statuses",
-        "schedule": crontab(minute=17, hour="*/1"),
-    },
     # Перегляди товарів: PDP пише в Redis-hash, у БД — батчем кожні 5 хв.
     "catalog-flush-product-views": {
         "task": "catalog.flush_product_views",

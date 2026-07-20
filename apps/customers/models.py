@@ -89,7 +89,6 @@ class Address(models.Model):
         max_length=20,
         choices=[
             ("nova_poshta", "Нова Пошта"),
-            ("ukrposhta", "Укрпошта"),
             ("pickup", "Самовивіз"),
         ],
         default="nova_poshta",

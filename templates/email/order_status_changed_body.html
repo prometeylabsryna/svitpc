@@ -12,8 +12,6 @@
   <p>{% trans "Статус вашого замовлення змінено на:" %} <strong>{{ order.status.name }}</strong>.</p>
   {% if order.ttn %}
   <p>{% trans "ТТН для відстеження:" %} <strong>{{ order.ttn }}</strong></p>
-  {% elif order.up_barcode %}
-  <p>{% trans "Штрихкод відправлення:" %} <strong>{{ order.up_barcode }}</strong></p>
   {% endif %}
   <p><a href="{{ site_url }}{{ order.get_absolute_url }}">{% trans "Деталі замовлення на сайті" %}</a></p>
   <hr style="border:none; border-top:1px solid #eee; margin:24px 0;">

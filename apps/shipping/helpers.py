@@ -42,7 +42,6 @@ def build_delivery_context(step1: dict, cart, subtotal: Decimal) -> dict:
         delivery_type=delivery_type,
         city_ref=step1.get("city_ref", ""),
         warehouse_ref=step1.get("warehouse_ref", ""),
-        postcode=step1.get("postcode", ""),
         weight_kg=cart_weight_kg(cart),
         declared_value=subtotal,
     )

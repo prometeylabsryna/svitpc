@@ -931,11 +931,6 @@ msgstr "Installment"
 msgid "Нова Пошта"
 msgstr "Nova Post"
 
-#, fuzzy
-#| msgid "Нова Пошта"
-msgid "Укрпошта"
-msgstr "Nova Post"
-
 msgid "Самовивіз"
 msgstr "Self-pickup"
 
@@ -962,16 +957,6 @@ msgstr "Comment"
 
 msgid "ТТН (НП)"
 msgstr "Tracking number (NP)"
-
-#, fuzzy
-#| msgid "Штрихкод УП:"
-msgid "Штрихкод УкрПошти"
-msgstr "UP barcode:"
-
-#, fuzzy
-#| msgid "Нова Пошта"
-msgid "Індекс (УкрПошта)"
-msgstr "Nova Post"
 
 msgid "Чек"
 msgstr "Receipt"
@@ -1599,20 +1584,8 @@ msgstr "Select a city from the suggestions."
 msgid "Оберіть відділення Нової Пошти."
 msgstr "Select a Nova Post branch."
 
-msgid "Вкажіть місто доставки."
-msgstr "Enter a delivery city."
-
-#, fuzzy
-#| msgid "Оберіть відділення Нової Пошти."
-msgid "Вкажіть поштовий індекс відділення Укрпошти."
-msgstr "Select a Nova Post branch."
-
-msgid "Індекс має містити 5 цифр."
-msgstr "Postcode must contain 5 digits."
-
 msgid "Оберіть спосіб доставки."
 msgstr "Select a delivery method."
-
 msgid "Бажаний товар"
 msgstr "Wished product"
 
@@ -2614,9 +2587,6 @@ msgstr "Your order is waiting for you at the branch."
 
 msgid "ТТН:"
 msgstr "Tracking:"
-
-msgid "Штрихкод УП:"
-msgstr "UP barcode:"
 
 msgid "Дякуємо за покупку в СвітПК!"
 msgstr "Thank you for shopping at SvitPC!"

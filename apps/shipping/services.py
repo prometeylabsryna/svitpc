@@ -5,8 +5,6 @@ from __future__ import annotations
 import logging
 from decimal import Decimal
 
-from apps.shipping.helpers import DEFAULT_PARCEL_HEIGHT_CM, DEFAULT_PARCEL_LENGTH_CM, DEFAULT_PARCEL_WIDTH_CM
-
 logger = logging.getLogger(__name__)
 
 
@@ -14,7 +12,6 @@ def calc_delivery_cost(
     delivery_type: str,
     city_ref: str = "",
     warehouse_ref: str = "",
-    postcode: str = "",
     weight_kg: float = 1.0,
     declared_value: Decimal | None = None,
 ) -> Decimal:
@@ -25,49 +22,10 @@ def calc_delivery_cost(
     if delivery_type == "pickup":
         return Decimal("0")
 
-    if delivery_type == "ukrposhta":
-        return _calc_ukrposhta_cost(postcode, weight_kg, declared_value)
-
     if delivery_type == "nova_poshta":
         return _calc_nova_poshta_cost(city_ref, warehouse_ref, weight_kg, declared_value)
 
     return Decimal("0")
-
-
-def _calc_ukrposhta_cost(
-    postcode: str,
-    weight_kg: float,
-    declared_value: Decimal | None,
-) -> Decimal:
-    postcode = (postcode or "").strip()
-    if not postcode:
-        return Decimal("0")
-
-    try:
-        from apps.integrations.ukrposhta.client import UkrPoshtaClient
-
-        client = UkrPoshtaClient()
-        price = client.calc_delivery_price(
-            recipient_postcode=postcode,
-            weight_kg=weight_kg,
-            declared_value=int(declared_value or 500),
-        )
-        if price is not None:
-            return price
-    except Exception as exc:
-        logger.warning("Ukrposhta delivery price fallback: %s", exc)
-
-    return _ukrposhta_flat_rate(weight_kg)
-
-
-def _ukrposhta_flat_rate(weight_kg: float) -> Decimal:
-    if weight_kg <= 1:
-        return Decimal("60")
-    if weight_kg <= 2:
-        return Decimal("75")
-    if weight_kg <= 5:
-        return Decimal("100")
-    return Decimal("150")
 
 
 def _calc_nova_poshta_cost(

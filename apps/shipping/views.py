@@ -19,33 +19,11 @@ def np_warehouses_view(request: HttpRequest) -> HttpResponse:
     return render(request, "shipping/partials/warehouse_results.html", {"warehouses": warehouses})
 
 
-def up_postoffice_view(request: HttpRequest) -> HttpResponse:
-    """HTMX partial — resolve Ukrposhta post office by postcode."""
-    postcode = request.GET.get("postcode", "").strip()
-    office = None
-    error = ""
-
-    if len(postcode) == 5 and postcode.isdigit():
-        from apps.integrations.ukrposhta.client import UkrPoshtaClient
-
-        client = UkrPoshtaClient()
-        office = client.lookup_postoffice(postcode)
-        if not office:
-            error = "not_found"
-
-    return render(
-        request,
-        "shipping/partials/up_postoffice.html",
-        {"office": office, "postcode": postcode, "error": error},
-    )
-
-
 def delivery_cost_view(request: HttpRequest) -> HttpResponse:
     """HTMX partial — calculate and return delivery cost."""
     delivery_type = request.GET.get("delivery_type", "nova_poshta")
     city_ref = request.GET.get("city_ref", "")
     warehouse_ref = request.GET.get("warehouse_ref", "")
-    postcode = request.GET.get("postcode", "")
     try:
         weight_kg = float(request.GET.get("weight", "1") or 1)
     except (TypeError, ValueError):
@@ -59,7 +37,6 @@ def delivery_cost_view(request: HttpRequest) -> HttpResponse:
         delivery_type=delivery_type,
         city_ref=city_ref,
         warehouse_ref=warehouse_ref,
-        postcode=postcode,
         weight_kg=weight_kg,
         declared_value=cart_total,
     )

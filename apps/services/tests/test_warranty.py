@@ -78,6 +78,13 @@ def test_warranty_form_public_access(client) -> None:
 
 
 @pytest.mark.django_db
+def test_warranty_form_delivery_choices() -> None:
+    form = WarrantyClaimForm()
+    values = {value for value, _label in form.fields["delivery_service"].choices if value}
+    assert values == {"nova_poshta", "other"}
+
+
+@pytest.mark.django_db
 def test_warranty_form_submit(client) -> None:
     resp = client.post(
         reverse("services:warranty_list"),

@@ -54,11 +54,6 @@ class OrderAdminForm(forms.ModelForm):
             cleaned["city_ref"] = ""
             cleaned["warehouse"] = ""
             cleaned["warehouse_ref"] = ""
-            cleaned["postcode"] = ""
-        elif delivery_type == Order.DELIVERY_UP:
-            cleaned["warehouse"] = ""
-            cleaned["warehouse_ref"] = ""
-            cleaned["city_ref"] = ""
         elif delivery_type != Order.DELIVERY_NP:
             cleaned["city_ref"] = ""
             cleaned["warehouse_ref"] = ""
@@ -75,7 +70,6 @@ class OrderAdminForm(forms.ModelForm):
                 "city": cleaned.get("city", ""),
                 "city_ref": cleaned.get("city_ref", ""),
                 "warehouse_ref": cleaned.get("warehouse_ref", ""),
-                "postcode": cleaned.get("postcode", ""),
             }
         )
         for msg in errors:
@@ -84,8 +78,6 @@ class OrderAdminForm(forms.ModelForm):
                 self.add_error("city", msg)
             elif "відділення" in lowered:
                 self.add_error("warehouse", msg)
-            elif "індекс" in lowered:
-                self.add_error("postcode", msg)
             elif "ім" in lowered:
                 self.add_error("first_name", msg)
             elif "прізвище" in lowered:

@@ -71,7 +71,6 @@ LOCAL_APPS = [
     "apps.integrations.brain",
     "apps.integrations.kancmaster",
     "apps.integrations.novaposhta",
-    "apps.integrations.ukrposhta",
     "apps.integrations.vchasnokasa",
     "apps.bots",
 ]
@@ -205,7 +204,6 @@ CELERY_TASK_DEFAULT_QUEUE = "celery"
 CELERY_TASK_ROUTES = {
     # Priority — orders, TTN, emails (dedicated worker).
     "apps.shipping.tasks.create_ttn_for_order": {"queue": "priority"},
-    "apps.integrations.ukrposhta.tasks.create_up_shipment_for_order": {"queue": "priority"},
     "apps.notifications.tasks.notify_new_order_owner": {"queue": "priority"},
     "apps.notifications.tasks.notify_new_order_customer": {"queue": "priority"},
     "apps.notifications.tasks.notify_order_status": {"queue": "priority"},
@@ -213,7 +211,6 @@ CELERY_TASK_ROUTES = {
     # Light — frequent / chunked jobs that must not block catalog imports.
     "apps.shipping.tasks.update_delivery_statuses": {"queue": "light"},
     "catalog.flush_product_views": {"queue": "light"},
-    "apps.integrations.ukrposhta.tasks.update_up_delivery_statuses": {"queue": "light"},
     "apps.integrations.novaposhta.tasks.sync_np_cities": {"queue": "light"},
     "apps.integrations.novaposhta.tasks.sync_np_warehouses": {"queue": "light"},
     "apps.integrations.novaposhta.tasks.sync_np_warehouses_chunk": {"queue": "light"},
@@ -617,12 +614,6 @@ NP_SENDER_CONTACT_REF = env("NP_SENDER_CONTACT_REF", default="")
 NP_SENDER_PHONE = env("NP_SENDER_PHONE", default="")
 NP_SENDER_CITY_REF = env("NP_SENDER_CITY_REF", default="")
 NP_SENDER_WAREHOUSE_REF = env("NP_SENDER_WAREHOUSE_REF", default="")
-UKRPOSHTA_BEARER = env("UKRPOSHTA_BEARER", default="")
-UKRPOSHTA_TOKEN = env("UKRPOSHTA_TOKEN", default="")
-UP_SENDER_CLIENT_UUID = env("UP_SENDER_CLIENT_UUID", default="")
-UP_SENDER_POSTCODE = env("UP_SENDER_POSTCODE", default="")
-UP_SENDER_ADDRESS = env("UP_SENDER_ADDRESS", default="")
-UP_SENDER_CITY = env("UP_SENDER_CITY", default="")
 LIQPAY_PUBLIC_KEY = env("LIQPAY_PUBLIC_KEY", default="")
 LIQPAY_PRIVATE_KEY = env("LIQPAY_PRIVATE_KEY", default="")
 LIQPAY_SERVER_URL = env("LIQPAY_SERVER_URL", default="")

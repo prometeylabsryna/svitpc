@@ -10,8 +10,7 @@ from apps.shipping.validation import validate_checkout_step1
     "data,expected_fragment",
     [
         ({"delivery_type": Order.DELIVERY_NP}, "місто"),
-        ({"delivery_type": Order.DELIVERY_UP, "city": "Київ"}, "індекс"),
-        ({"delivery_type": Order.DELIVERY_UP, "city": "Київ", "postcode": "123"}, "5 цифр"),
+        ({"delivery_type": "unknown"}, "спосіб доставки"),
     ],
 )
 def test_validate_checkout_step1_errors(data, expected_fragment):

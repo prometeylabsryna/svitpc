@@ -10,12 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 def order_ready_for_shipment(order: Order) -> bool:
-    """Return True when the order should receive a TTN / UP barcode."""
+    """Return True when the order should receive a Nova Poshta TTN."""
     if order.delivery_type == Order.DELIVERY_PICKUP:
         return False
     if order.delivery_type == Order.DELIVERY_NP and order.ttn:
-        return False
-    if order.delivery_type == Order.DELIVERY_UP and order.up_barcode:
         return False
     if order.payment_method == Order.PAYMENT_CASH_ON_DELIVERY:
         return True
@@ -32,13 +30,10 @@ def dispatch_shipment_for_order(order_pk: int) -> None:
     if not order_ready_for_shipment(order):
         return
 
+    if order.delivery_type != Order.DELIVERY_NP:
+        return
+
     from apps.core.celery_utils import safe_delay
+    from apps.shipping.tasks import create_ttn_for_order
 
-    if order.delivery_type == Order.DELIVERY_NP:
-        from apps.shipping.tasks import create_ttn_for_order
-
-        safe_delay(create_ttn_for_order, order.pk)
-    elif order.delivery_type == Order.DELIVERY_UP:
-        from apps.integrations.ukrposhta.tasks import create_up_shipment_for_order
-
-        safe_delay(create_up_shipment_for_order, order.pk)
+    safe_delay(create_ttn_for_order, order.pk)
