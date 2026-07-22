@@ -100,7 +100,7 @@ def test_create_ttn_success(settings):
     assert doc_payload["DateTime"]
     assert doc_payload["Recipient"] == "recipient-ref"
     assert doc_payload["ContactRecipient"] == "recipient-contact-ref"
-    assert doc_payload["PayerType"] == "Sender"
+    assert doc_payload["PayerType"] == "Recipient"
     assert doc_payload["PaymentMethod"] == "Cash"
     assert doc_payload["RecipientsPhone"] == "380501234567"
 

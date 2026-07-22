@@ -16,59 +16,11 @@ def calc_delivery_cost(
     declared_value: Decimal | None = None,
 ) -> Decimal:
     """
-    Calculate delivery cost for the given delivery type.
-    Returns Decimal cost in UAH.
+    Delivery amount charged by the shop (added to the order total).
+
+    Always 0 for Nova Poshta and pickup: NP delivery is paid by the buyer
+    at carrier tariffs (TTN PayerType=Recipient); pickup is free.
     """
-    if delivery_type == "pickup":
-        return Decimal("0")
-
-    if delivery_type == "nova_poshta":
-        return _calc_nova_poshta_cost(city_ref, warehouse_ref, weight_kg, declared_value)
-
-    return Decimal("0")
-
-
-def _calc_nova_poshta_cost(
-    city_ref: str,
-    warehouse_ref: str,
-    weight_kg: float,
-    declared_value: Decimal | None,
-) -> Decimal:
-    if not city_ref or not warehouse_ref:
-        return Decimal("0")
-
-    try:
-        from django.conf import settings
-
-        from apps.integrations.novaposhta.client import NovaPoshtaClient
-
-        sender_city_ref = getattr(settings, "NP_SENDER_CITY_REF", "")
-        if not settings.NOVA_POSHTA_API_KEY or not sender_city_ref:
-            return Decimal("0")
-
-        client = NovaPoshtaClient()
-        resp = client._post(
-            "InternetDocument",
-            "getDocumentPrice",
-            {
-                "CitySender": sender_city_ref,
-                "CityRecipient": city_ref,
-                "Weight": str(round(weight_kg, 2)),
-                "ServiceType": "WarehouseWarehouse",
-                "Cost": str(int(declared_value or 500)),
-                "CargoType": "Parcel",
-                "SeatsAmount": "1",
-            },
-        )
-        if resp.get("success") and resp.get("data"):
-            cost = resp["data"][0].get("Cost") or 0
-            return Decimal(str(cost))
-        errors = resp.get("errors") or resp.get("warnings") or []
-        if errors:
-            logger.warning("Nova Poshta price API: %s", errors)
-    except Exception as exc:
-        logger.warning("Nova Poshta delivery price error: %s", exc)
-
     return Decimal("0")
 
 

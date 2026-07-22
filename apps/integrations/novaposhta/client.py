@@ -220,10 +220,8 @@ class NovaPoshtaClient:
         return recipient_ref, contact_ref
 
     def _payment_props(self, order) -> dict[str, str]:
-        """Map order payment to NP payer settings (Cash-only for private senders)."""
-        if order.payment_method == "cod":
-            return {"PayerType": "Recipient", "PaymentMethod": "Cash"}
-        return {"PayerType": "Sender", "PaymentMethod": "Cash"}
+        """Delivery is always paid by the recipient at Nova Poshta tariffs."""
+        return {"PayerType": "Recipient", "PaymentMethod": "Cash"}
 
     def create_ttn(self, order) -> tuple[str | None, str]:
         """Create TTN (waybill). Returns (IntDocNumber or None, error_message)."""

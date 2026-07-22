@@ -1,6 +1,10 @@
 {% load i18n svitpc_tags %}
 {% if cost %}
 <span class="delivery-cost">{% trans "Вартість доставки:" %} <strong>{{ cost|currency }}</strong></span>
+{% elif delivery_type == "nova_poshta" %}
+<span class="delivery-cost">{% trans "Доставку оплачуєте ви за тарифами Нової Пошти при отриманні" %}</span>
+{% elif delivery_type == "pickup" %}
+<span class="delivery-cost delivery-cost--free">{% trans "Самовивіз — безкоштовно" %}</span>
 {% else %}
 <span class="delivery-cost delivery-cost--free">{% trans "Вартість доставки буде розрахована при оформленні" %}</span>
 {% endif %}

@@ -85,9 +85,14 @@
       </div>
       <div id="delivery-cost-container" class="form-hint"
         hx-get="{% url 'shipping:delivery_cost' %}"
-        hx-trigger="change from:#warehouse_ref"
+        hx-trigger="change from:#warehouse_ref, change from:[name='delivery_type']"
         hx-include="[name='delivery_type'],[name='city_ref'],[name='warehouse_ref']"
         hx-swap="innerHTML">
+        {% if form_data.delivery_type|default:"nova_poshta" == "pickup" %}
+        <span class="delivery-cost delivery-cost--free">{% trans "Самовивіз — безкоштовно" %}</span>
+        {% else %}
+        <span class="delivery-cost">{% trans "Доставку оплачуєте ви за тарифами Нової Пошти при отриманні" %}</span>
+        {% endif %}
       </div>
     </div>
 
