@@ -28,7 +28,29 @@ class CategorySitemap(Sitemap):
     i18n = True
 
     def items(self):
-        return Category.objects.filter(is_active=True).only("slug", "lft", "rght", "tree_id", "level")
+        """Тільки категорії, які реально відкриваються (не 404).
+
+        `catalog.views.category_view` ховає (404) категорію без жодного
+        видимого товару в піддереві — і окремо приховану гілку «Б/У»
+        (`is_used_category_branch`). Раніше сюди потрапляли ВСІ активні
+        категорії незалежно від джерела товарів (Brain/Kancmaster/manual),
+        тому sitemap.xml містив тисячі посилань на неіснуючі сторінки.
+        Той самий фільтр застосовуємо тут — БЕЗ прив'язки до Brain-вайтліста
+        (`apps.integrations.brain.category_filter`), інакше з sitemap
+        зникли б цілком легітимні Kancmaster/manual категорії (напр. «Б/У»),
+        які не мають стосунку до Brain, але мають реальні товари й сторінки.
+        """
+        from apps.catalog.nav import get_subtree_product_counts
+        from apps.core.used_category import hidden_used_category_pks
+
+        hidden_pks = hidden_used_category_pks()
+        candidates = list(
+            Category.objects.filter(is_active=True)
+            .exclude(pk__in=hidden_pks)
+            .only("slug", "lft", "rght", "tree_id", "level"),
+        )
+        counts = get_subtree_product_counts({c.pk for c in candidates})
+        return [c for c in candidates if counts.get(c.pk, 0) > 0]
 
     def location(self, obj):
         return obj.get_absolute_url()
