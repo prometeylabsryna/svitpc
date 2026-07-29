@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from django.db.models import Q
@@ -48,7 +49,16 @@ def _brain_products_by_external_ids(
         Product.objects.filter(source=Product.SOURCE_BRAIN, external_id__in=ext_ids)
         .filter(categories__in=allowed_local_pks)
         .distinct()
-        .only("pk", "external_id", "stock", "is_visible", "hide_if_out_of_stock")
+        .only(
+            "pk",
+            "external_id",
+            "stock",
+            "is_visible",
+            "hide_if_out_of_stock",
+            "price",
+            "old_price",
+            "purchase_price",
+        )
     )
     return {p.external_id: p for p in qs}
 
@@ -57,15 +67,37 @@ def _apply_availability(
     product: Product,
     stock: int,
     hide: bool,
-    shelf,
+    shelf: Decimal,
+    old_price: Decimal | None,
+    wholesale: Decimal,
     *,
     dry_run: bool,
 ) -> bool:
+    """Align stock/visibility and — when Brain returned a usable price — price too.
+
+    Ціну оновлюємо лише коли `shelf > 0` (валідний прайс від Brain), так само
+    як у `apply_detail_to_product`/`_sync_products_impl`: порожній/нульовий
+    `shelf` у відповіді listing-ендпоінта не повинен затирати вже коректну
+    ціну товару нулем. Це той самий фікс "гарячого" оновлення ціни, який
+    інакше залежав ЛИШЕ від ненадійного `modified_products` фіда Brain
+    (sync_prices, 4х/добу) — тут ціна звіряється при кожному проході повного
+    списку категорії (частіше й незалежно від того фіда).
+    """
     visible = brain_catalog_visible(stock=stock, shelf=shelf, hide_if_out_of_stock=hide)
+    update_price = shelf > 0
+    price_unchanged = (
+        not update_price
+        or (
+            product.price == shelf
+            and product.old_price == old_price
+            and product.purchase_price == (wholesale if wholesale > 0 else None)
+        )
+    )
     unchanged = (
         product.stock == stock
         and product.is_visible == visible
         and product.hide_if_out_of_stock == hide
+        and price_unchanged
     )
     if unchanged:
         return False
@@ -74,11 +106,17 @@ def _apply_availability(
 
     from apps.catalog.models import Product
 
-    Product.objects.filter(pk=product.pk).update(
-        stock=stock,
-        hide_if_out_of_stock=hide,
-        is_visible=visible,
-    )
+    upd: dict = {
+        "stock": stock,
+        "hide_if_out_of_stock": hide,
+        "is_visible": visible,
+    }
+    if update_price:
+        upd["price"] = shelf
+        upd["old_price"] = old_price
+        upd["purchase_price"] = wholesale if wholesale > 0 else None
+
+    Product.objects.filter(pk=product.pk).update(**upd)
     return True
 
 
@@ -136,22 +174,17 @@ def sync_all_availability_from_brain(
                     continue
 
                 stock = brain_stock_from_detail(item)
-                shelf, _, _ = brain_shelf_prices(item)
+                shelf, old_price, wholesale = brain_shelf_prices(item)
                 if _apply_availability(
                     product,
                     stock,
                     hide_default,
                     shelf,
+                    old_price,
+                    wholesale,
                     dry_run=dry_run,
                 ):
                     stats["updated"] += 1
-                    product.stock = stock
-                    product.is_visible = brain_catalog_visible(
-                        stock=stock,
-                        shelf=shelf,
-                        hide_if_out_of_stock=hide_default,
-                    )
-                    product.hide_if_out_of_stock = hide_default
 
             offset += len(items)
             if offset >= total or len(items) < limit:

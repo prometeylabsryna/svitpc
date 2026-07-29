@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -155,6 +156,89 @@ class TestSyncAllAvailabilityFromBrain:
         assert stats["updated"] == 1
         assert product.stock == 0
         assert product.is_visible is False
+
+    def test_updates_stale_price_during_availability_scan(
+        self, product_factory, category_factory,
+    ):
+        """Ціна на сайті мала бути "заморожена" між нічними sync_products, бо
+        sync_prices залежить від ненадійного Brain modified_products фіда.
+        Тепер безкоштовна (без нового API-запиту) звірка ціни відбувається
+        просто в межах звичайного availability-скану."""
+        root = category_factory(name="Комплектуючі до ПК", slug="комплектуючі-до-пк")
+        product = product_factory(
+            slug="brain-stale-price",
+            source=Product.SOURCE_BRAIN,
+            external_id="800",
+            stock=1,
+            is_visible=True,
+            hide_if_out_of_stock=True,
+            price=199_999,
+            purchase_price=180_000,
+        )
+        product.categories.add(root)
+
+        client = MagicMock()
+        client.get_all_categories.return_value = [
+            {"categoryID": 1330, "parentID": 1, "realcat": 0, "name": "Комплектуючі до ПК"},
+        ]
+        client.get_products.return_value = (
+            [{
+                "productID": 800,
+                "is_archive": False,
+                "stocks": [1],
+                "available": {"1": 3},
+                "price_uah": "216000",
+                "retail_price_uah": "233999",
+            }],
+            1,
+        )
+
+        with patch(
+            "apps.integrations.brain.availability.brain_hide_out_of_stock_enabled",
+            return_value=True,
+        ):
+            stats = sync_all_availability_from_brain(client, hide_missing=False, dry_run=False)
+
+        product.refresh_from_db()
+        assert stats["updated"] == 1
+        assert product.price == Decimal("233999.00")
+        assert product.purchase_price == Decimal("216000.00")
+
+    def test_zero_brain_price_does_not_wipe_existing_price(
+        self, product_factory, category_factory,
+    ):
+        """Порожній/нульовий прайс у listing-відповіді Brain не повинен затирати
+        вже коректну ціну товару нулем (той самий guard, що і в apply_detail_to_product)."""
+        root = category_factory(name="Комплектуючі до ПК", slug="комплектуючі-до-пк")
+        product = product_factory(
+            slug="brain-keep-price",
+            source=Product.SOURCE_BRAIN,
+            external_id="900",
+            stock=1,
+            is_visible=True,
+            hide_if_out_of_stock=True,
+            price=999,
+        )
+        product.categories.add(root)
+
+        client = MagicMock()
+        client.get_all_categories.return_value = [
+            {"categoryID": 1330, "parentID": 1, "realcat": 0, "name": "Комплектуючі до ПК"},
+        ]
+        client.get_products.return_value = (
+            [{"productID": 900, "is_archive": True}],
+            1,
+        )
+
+        with patch(
+            "apps.integrations.brain.availability.brain_hide_out_of_stock_enabled",
+            return_value=True,
+        ):
+            sync_all_availability_from_brain(client, hide_missing=False, dry_run=False)
+
+        product.refresh_from_db()
+        assert product.price == Decimal("999.00")
+        assert product.stock == 0
 
     def test_dry_run_does_not_write(self, product_factory, category_factory):
         root = category_factory(name="Ноутбуки, планшети", slug="ноутбуки-планшети")
