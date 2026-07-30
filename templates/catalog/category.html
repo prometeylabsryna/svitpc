@@ -76,6 +76,8 @@
             hx-swap="outerHTML"
             hx-push-url="true"
             hx-include="#desktop-filters-form [name='brand'],#desktop-filters-form [name='f'],#desktop-filters-form [name='price_min'],#desktop-filters-form [name='price_max'],#desktop-filters-form [name='in_stock'],#mobile-filters-form [name='brand'],#mobile-filters-form [name='f'],#mobile-filters-form [name='price_min'],#mobile-filters-form [name='price_max'],#mobile-filters-form [name='in_stock']"
+            hx-indicator="#catalog-loading-overlay"
+            hx-disabled-elt="this"
             name="sort"
             aria-label="{% trans 'Сортування' %}">
             <option value="default" {% if sort == "default" %}selected{% endif %}>{% trans "За замовчуванням" %}</option>
@@ -90,7 +92,13 @@
       </div>
 
       {# Product grid — partial for HTMX #}
-      {% include "catalog/partials/product_grid.html" %}
+      <div class="catalog-grid-wrap">
+        <div id="catalog-loading-overlay" class="catalog-loading-overlay htmx-indicator" aria-hidden="true">
+          <span class="catalog-loading-overlay__spinner"></span>
+          <span>{% trans "Шукаємо товари…" %}</span>
+        </div>
+        {% include "catalog/partials/product_grid.html" %}
+      </div>
 
       {% if suggested_products %}
       <section class="pdp-related category-suggested" aria-labelledby="category-suggested-heading">

@@ -24,7 +24,7 @@ from django.utils import timezone
 
 from apps.core.i18n import localized_field
 
-from .models import Category, Filter, Product
+from .models import Category, Filter, Product, ProductFilter
 
 
 def visible_catalog_products() -> QuerySet[Product]:
@@ -135,10 +135,16 @@ def get_filtered_products(
     if brands:
         qs = qs.filter(brand_id__in=brands)
     if filters:
-        # OR within a group, AND between groups:
-        # group selected filter IDs by their FilterGroup, then chain one
-        # .filter(filters__filter_id__in=[...]) per group so products only
-        # need to match *any* value inside a group but *all* selected groups.
+        # OR within a group, AND between groups: group selected filter IDs by
+        # their FilterGroup, then require one EXISTS(...) per group so products
+        # only need to match *any* value inside a group but *all* selected groups.
+        #
+        # EXISTS instead of `.filter(filters__filter_id__in=...).distinct()`:
+        # the JOIN+DISTINCT form adds one JOIN to catalog_productfilter per
+        # selected group and forces Postgres to deduplicate the full (wide)
+        # row set at the end — expensive on categories with many attributes
+        # per product. EXISTS is a semi-join per row, never duplicates, and
+        # needs no trailing DISTINCT (same rationale as category_listing_products).
         from .models import Filter as FilterModel
 
         expanded = expand_equivalent_filter_ids(list(filters))
@@ -146,7 +152,14 @@ def get_filtered_products(
         for row in FilterModel.objects.filter(id__in=expanded).values("id", "group_id"):
             group_map.setdefault(row["group_id"], []).append(row["id"])
         for group_filter_ids in group_map.values():
-            qs = qs.filter(filters__filter_id__in=group_filter_ids).distinct()
+            qs = qs.filter(
+                Exists(
+                    ProductFilter.objects.filter(
+                        product_id=OuterRef("pk"),
+                        filter_id__in=group_filter_ids,
+                    ),
+                ),
+            )
     if price_min is not None:
         qs = qs.filter(price__gte=price_min)
     if price_max is not None:
@@ -332,8 +345,39 @@ def get_disjunctive_facets(
         .distinct(),
     )
 
+    # Leave-one-out counts only genuinely differ from each other for groups
+    # that themselves have a selection: `other_ids` for any group WITHOUT a
+    # selection is always the same set (every selected filter, from every
+    # selected group) — the old code still ran one full get_filtered_products
+    # + facet-aggregation query per group regardless, i.e. one heavy query
+    # PER FACET GROUP even though shoppers usually have 0-1 groups selected
+    # at a time. That's the actual N+1 (N = facet groups shown, often 10-20+
+    # for electronics) that made "Застосувати" slow. Splitting into "one
+    # shared query for every unselected group" + "one query per SELECTED
+    # group" collapses that down to (selected_groups + 1) heavy queries.
+    selected_group_ids = set(by_group.keys())
+    all_selected_ids = [fid for ids in by_group.values() for fid in ids]
+
     facets: dict[int, dict] = {}
-    for gid in group_ids:
+
+    unselected_group_ids = [gid for gid in group_ids if gid not in selected_group_ids]
+    if unselected_group_ids:
+        qs_shared = get_filtered_products(
+            base_qs,
+            brands=brand_ids,
+            filters=all_selected_ids or None,
+            price_min=price_min,
+            price_max=price_max,
+            in_stock_only=in_stock,
+            for_count=True,
+            skip_image_filter=True,
+        )
+        shared_facets = _compute_product_facets(qs_shared)
+        for gid in unselected_group_ids:
+            if gid in shared_facets:
+                facets[gid] = shared_facets[gid]
+
+    for gid in selected_group_ids & set(group_ids):
         other_ids = [
             fid for other_gid, ids in by_group.items() if other_gid != gid for fid in ids
         ]

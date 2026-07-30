@@ -10,6 +10,8 @@
   hx-swap="outerHTML"
   hx-push-url="true"
   hx-include="[name='sort']"
+  hx-indicator="#catalog-loading-overlay"
+  hx-disabled-elt="[data-filters-apply]"
   {% if filters_oob %}hx-swap-oob="true"{% endif %}
   aria-label="{% trans 'Фільтри каталогу' %}">
 
@@ -94,6 +96,7 @@
 
   <div class="filters-panel__actions">
     <button type="submit" class="btn btn--primary filters-panel__apply" data-filters-apply>
+      <span class="btn-loader" aria-hidden="true"></span>
       {% trans "Застосувати" %}
     </button>
   </div>

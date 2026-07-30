@@ -4720,6 +4720,51 @@
     color: var(--clr-text-muted);
   }
 
+  .catalog-grid-wrap {
+    position: relative;
+  }
+
+  /* Оверлей "Шукаємо товари…" на час HTMX-запиту (фільтри/сортування) —
+     показує, що сайт не завис, а виконує пошук. #product-grid всередині
+     замінюється outerHTML-свопом, але сам оверлей — сусідній, поза ним,
+     тож не зникає й не дублюється під час свопу. Видимість керується
+     глобальним .htmx-indicator + hx-indicator="#catalog-loading-overlay"
+     на формі фільтрів і селекті сортування (app.css). */
+  .catalog-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    background: rgba(255, 255, 255, 0.82);
+    border-radius: var(--radius-xl);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-medium);
+    color: var(--clr-text-muted);
+    pointer-events: none;
+    /* Плавна поява (200ms) — без миготіння на швидких warm-cache відповідях. */
+  }
+
+  .htmx-request.catalog-loading-overlay {
+    pointer-events: auto;
+  }
+
+  .catalog-loading-overlay__spinner {
+    width: 34px;
+    height: 34px;
+    border: 3px solid var(--clr-border-strong);
+    border-top-color: var(--clr-primary-500);
+    border-radius: 50%;
+    animation: catalog-spin 0.7s linear infinite;
+  }
+
+  @keyframes catalog-spin {
+    to { transform: rotate(360deg); }
+  }
+
   .filters-mobile-btn {
     display: flex;
     align-items: center;
