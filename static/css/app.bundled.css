@@ -2344,6 +2344,10 @@
     flex: 1;
     min-width: 0;
     line-height: var(--leading-tight);
+    /* Довгі значення фасетів (напр. довші назви GPU/сокетів) інакше не
+       переносяться по словах і виходять за межі рядка чекбокса. */
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .filter-check__count {
