@@ -28,6 +28,12 @@ class FacetRule:
     group_name: str
     include: tuple[str, ...]
     exclude: tuple[str, ...] = ()
+    # Якщо задано — правило застосовується ЛИШЕ коли товар належить одній з цих
+    # категорій (за slug). Потрібно для назв атрибутів, які Brain перевикористовує
+    # з ІНШИМ значенням в інших категоріях (напр. "Об'єм пам'яті" — і модуль RAM
+    # (16 ГБ), і картка пам'яті/флешка (256 ГБ) — без цього обмеження модуль
+    # SD-картки помилково потрапив би у фасет "Оперативна пам'ять").
+    category_slugs: tuple[str, ...] = ()
 
 
 # group_name — точні назви існуючих `FilterGroup` (імпортовані з OpenCart) —
@@ -67,6 +73,20 @@ FACET_RULES: tuple[FacetRule, ...] = (
         include=("об'єм оперативної пам'яті", "оперативна пам'ять"),
         exclude=("максимальн", "мінімальн", "кількість", "частота", "можливість", "слот", "роз'єм"),
     ),
+    # Окремі модулі RAM (не ноутбук/ПК у зборі) Brain називає просто
+    # "Об'єм пам'яті" — той самий рядок, що й обсяг SD-картки/флешки
+    # ("Об'єм пам'яті" = 256 ГБ на картці пам'яті). Розрізняємо за категорією
+    # товару, а не за назвою атрибута — інша назва тут не допоможе.
+    FacetRule(
+        group_name="Оперативна пам'ять",
+        include=("об'єм пам'яті",),
+        exclude=("кеш", "вбудованої", "gb"),
+        category_slugs=(
+            "модулі-памяті-для-компютера",
+            "модулі-памяті-до-серверів",
+            "модулі-памяті-до-ноутбуків",
+        ),
+    ),
     FacetRule(
         group_name="Модель відеокарти",
         include=("модель відеокарти", "тип відеокарти"),
@@ -84,16 +104,28 @@ FACET_RULES: tuple[FacetRule, ...] = (
 )
 
 
-def facet_rule_for_attribute_name(name: str) -> FacetRule | None:
-    """Правило фасету для сирого `Attribute.name`, або None, якщо характеристика не мапиться."""
+def facet_rule_for_attribute_name(
+    name: str,
+    category_slugs: frozenset[str] | None = None,
+) -> FacetRule | None:
+    """Правило фасету для сирого `Attribute.name`, або None, якщо характеристика не мапиться.
+
+    `category_slugs` — slug-и категорій товару; потрібні лише для правил з
+    `category_slugs` (неоднозначні назви атрибутів). Без цього аргументу такі
+    правила ніколи не спрацьовують (безпечний дефолт — краще не показати
+    фасет, ніж показати його зі сторонніми значеннями).
+    """
     lowered = (name or "").casefold()
     if not lowered:
         return None
     for rule in FACET_RULES:
         if any(term in lowered for term in rule.exclude):
             continue
-        if any(term in lowered for term in rule.include):
-            return rule
+        if not any(term in lowered for term in rule.include):
+            continue
+        if rule.category_slugs and not (category_slugs and category_slugs & set(rule.category_slugs)):
+            continue
+        return rule
     return None
 
 
@@ -123,6 +155,12 @@ def sync_derived_filters_for_product(product: "Product") -> int:
 
     managed_names = {rule.group_name for rule in FACET_RULES}
     rows = list(product.attributes.select_related("attribute").only("value", "attribute__name"))
+    # Лише для правил з category_slugs (неоднозначні назви атрибутів) — інакше
+    # зайвий запит на кожен товар без потреби.
+    needs_category = any(rule.category_slugs for rule in FACET_RULES)
+    category_slugs = (
+        frozenset(product.categories.values_list("slug", flat=True)) if needs_category else None
+    )
 
     created = 0
     seen_values: set[tuple[str, str]] = set()
@@ -130,7 +168,7 @@ def sync_derived_filters_for_product(product: "Product") -> int:
     desired_filter_ids: set[int] = set()
 
     for row in rows:
-        rule = facet_rule_for_attribute_name(row.attribute.name)
+        rule = facet_rule_for_attribute_name(row.attribute.name, category_slugs)
         if rule is None:
             continue
         value = row.value.strip()

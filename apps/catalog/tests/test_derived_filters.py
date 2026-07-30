@@ -55,6 +55,31 @@ class TestFacetRuleForAttributeName:
         assert facet_rule_for_attribute_name("") is None
         assert facet_rule_for_attribute_name(None) is None
 
+    def test_obem_pamyati_without_category_context_ignored(self):
+        """Без category_slugs — безпечний дефолт: не мапиться нікуди (могла бути
+        SD-картка/флешка, а не RAM-модуль)."""
+        assert facet_rule_for_attribute_name("Об'єм пам'яті") is None
+
+    def test_obem_pamyati_matches_only_in_ram_module_category(self):
+        rule = facet_rule_for_attribute_name(
+            "Об'єм пам'яті", frozenset({"модулі-памяті-для-компютера"}),
+        )
+        assert rule is not None
+        assert rule.group_name == "Оперативна пам'ять"
+
+    def test_obem_pamyati_ignored_for_unrelated_category(self):
+        """Той самий рядок атрибута на SD-картці/флешці — інша категорія, не мапиться."""
+        assert facet_rule_for_attribute_name(
+            "Об'єм пам'яті", frozenset({"карти-памяті"}),
+        ) is None
+
+    def test_obem_pamyati_gb_suffix_ignored_even_in_ram_category(self):
+        """"Об'єм пам'яті Gb" — назва атрибута флешок; ігнорується завжди,
+        незалежно від категорії (додатковий захист від помилкової категоризації)."""
+        assert facet_rule_for_attribute_name(
+            "Об'єм пам'яті Gb", frozenset({"модулі-памяті-для-компютера"}),
+        ) is None
+
 
 @pytest.mark.django_db
 class TestSyncDerivedFiltersForProduct:
@@ -133,6 +158,32 @@ class TestSyncDerivedFiltersForProduct:
     def test_no_attributes_returns_zero(self, product_factory):
         product = product_factory(slug="derived-empty-1")
         assert sync_derived_filters_for_product(product) == 0
+
+    def test_ram_module_gets_ram_facet_from_category(self, product_factory, category_factory):
+        ram_category = category_factory(name="Модулі пам'яті", slug="модулі-памяті-для-компютера")
+        product = product_factory(slug="derived-ram-module-1")
+        product.categories.add(ram_category)
+        self._add_attr(product, "Об'єм пам'яті", "16 ГБ")
+
+        created = sync_derived_filters_for_product(product)
+
+        assert created == 1
+        assert product.filters.filter(
+            filter__group__name="Оперативна пам'ять", filter__name="16 ГБ",
+        ).exists()
+
+    def test_sd_card_same_attribute_name_not_treated_as_ram(self, product_factory, category_factory):
+        """Регресія: "Об'єм пам'яті" на SD-картці/флешці (інша категорія) НЕ
+        повинен потрапляти у фасет "Оперативна пам'ять"."""
+        card_category = category_factory(name="Картки пам'яті", slug="карти-памяті")
+        product = product_factory(slug="derived-sd-card-1")
+        product.categories.add(card_category)
+        self._add_attr(product, "Об'єм пам'яті", "256 ГБ")
+
+        created = sync_derived_filters_for_product(product)
+
+        assert created == 0
+        assert product.filters.count() == 0
 
     def test_survives_duplicate_filter_rows_in_db(self, product_factory, filter_group_factory, filter_factory):
         """OpenCart-імпорт лишив 2 Filter з однаковим (group, name) — не має кидати MultipleObjectsReturned."""
